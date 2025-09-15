@@ -1,0 +1,83 @@
+.profile-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .card-header h3 {
+    margin: 0;
+    color: #1c1c1e;
+  }
+  
+  .edit-button, .save-button, .cancel-button {
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .edit-button { background-color: #f0f0f0; color: #333; }
+  .edit-button:hover { background-color: #e0e0e0; }
+  
+  .save-button { background-color: #007aff; color: white; }
+  .save-button:hover { background-color: #0056b3; }
+  
+  .cancel-button { background-color: #e0e0e0; color: #333; }
+  .cancel-button:hover { background-color: #c7c7c7; }
+  
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  
+  .info-grid div {
+    line-height: 1.5;
+  }
+  .info-grid strong {
+    color: #6a6a6f;
+    font-size: 14px;
+  }
+  .info-grid p {
+    margin: 0;
+    color: #1c1c1e;
+    font-size: 16px;
+  }
+  .info-grid .full-width {
+    grid-column: 1 / -1;
+  }
+  
+  .profile-form .form-group {
+    margin-bottom: 1rem;
+  }
+  .profile-form label {
+    display: block;
+    font-weight: 600;
+    color: #3c3c43;
+    margin-bottom: 8px;
+  }
+  .profile-form input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #c7c7cc;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+  .profile-form .form-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1rem;
+  }

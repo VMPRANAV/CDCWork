@@ -1,0 +1,136 @@
+/* General container to center the form */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f2f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  /* The form itself */
+  .login-form {
+    background: #ffffff;
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+  }
+  
+  /* Header section with title and subtitle */
+  .form-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .form-header .logo {
+    width: 100px;
+    height: auto;
+    margin-bottom: 1rem;
+    object-fit: contain;
+  }
+  
+  .form-header h2 {
+    color: #1c1c1e;
+    font-size: 24px;
+    margin: 0;
+  }
+  
+  .form-header p {
+    color: #6a6a6f;
+    font-size: 14px;
+    margin-top: 0.5rem;
+  }
+  
+  /* Input groups for labels and fields */
+  .input-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #3c3c43;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  .input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #c7c7cc;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  
+  .input-group input:focus {
+    outline: none;
+    border-color: #007aff;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+  }
+  
+  /* Wrapper for the password input and its toggle icon */
+  .password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .password-wrapper input {
+    padding-right: 40px; /* Make space for the icon */
+  }
+  
+  .password-toggle-icon {
+    position: absolute;
+    right: 15px;
+    cursor: pointer;
+    color: #8e8e93;
+  }
+  
+  /* "Forgot Password?" link */
+  .form-options {
+    text-align: right;
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-options a {
+    color: #007aff;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  
+  .form-options a:hover {
+    text-decoration: underline;
+  }
+  
+  /* Login button styling */
+  .login-button {
+    width: 100%;
+    padding: 14px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .login-button:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Responsive design for smaller screens */
+  @media (max-width: 480px) {
+    .login-form {
+      padding: 2rem;
+    }
+  }
