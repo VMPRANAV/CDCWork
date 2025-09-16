@@ -42,7 +42,7 @@ const LoginForm = () => {
         "Pass must have atleast one upper,lower,number and a special character"
       );
       const response = passSchema.safeParse(pass);
-      setPassError(response.success ? "" : response.e0rror.issues[0].message);
+      setPassError(response.success ? "" : response.error.issues[0].message);
       if(response.success) setPassword(pass);
   }
   // --- UPDATED handleSubmit Function ---
