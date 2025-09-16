@@ -1,12 +1,12 @@
 import Attendance from "./attendace";
-import Levels from "./levels";
+import MyAppliactions from "./MyApplications";
 import CodingProfile from "./codingProfile";
 
 function DashBoardPage(){
     return(
         <div className="space-y-6">
             <Attendance />
-            <Levels />
+            <MyAppliactions />
             <CodingProfile />
         </div>
     )

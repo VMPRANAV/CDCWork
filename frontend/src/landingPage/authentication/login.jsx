@@ -4,19 +4,51 @@ import './login.css';
 import collegeLogo from "../../assets/kprietLogo.png";
 import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
 import axios from 'axios'; // Import axios
+import * as z from 'zod';
 
 const LoginForm = () => {
+  let mail,pass;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(''); // State to hold error messages
+  const [emailError,setEmailError] = useState('');
+  const [passError, setPassError] = useState('');
 
   const navigate = useNavigate(); // Hook for navigation
 
+
+  const validateEmail = (e)=>{
+      const mail = e.target.value;
+      const mailSchema = z
+        .string()
+        .regex(
+          /^(?!\.)(?!.*\.\.)[A-Za-z0-9._%+-]{1,64}(?<!\.)@kpriet\.ac\.in$/i,
+          "Please enter a valid domain"
+        );
+        const response = mailSchema.safeParse(mail);
+        setEmailError(response.success ? "" : response.error.issues[0].message);
+        if(response.success) setEmail(mail);
+  }
+  
+  const validatePass = (e)=>{
+    const pass = e.target.value;
+    const passSchema = z
+      .string()
+      .min(8, "minimum of 8 characters")
+      .max(15, "maximum of 15 characters")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/,
+        "Pass must have atleast one upper,lower,number and a special character"
+      );
+      const response = passSchema.safeParse(pass);
+      setPassError(response.success ? "" : response.e0rror.issues[0].message);
+      if(response.success) setPassword(pass);
+  }
   // --- UPDATED handleSubmit Function ---
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setError('');
+    setError(''); // Clear previous errors
 
     try {
       const response = await axios.post('http://localhost:3002/api/auth/login', {
@@ -32,7 +64,7 @@ const LoginForm = () => {
 
       // 2. Redirect based on role
       if(data.role === 'admin') {
-        navigate('/admin/dashboard');
+        navigate('/admin/students');
       } else {
         navigate('/student/dashboard');
       }
@@ -54,7 +86,7 @@ const LoginForm = () => {
           <h2>Placement Cell Login</h2>
           <p>KPR Institute of Engineering and Technology</p>
         </div>
-        
+
         {/* Display error message if it exists */}
         {error && <p className="error-message">{error}</p>}
 
@@ -64,22 +96,22 @@ const LoginForm = () => {
             type="email"
             id="email"
             name="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={mail}
+            onChange={validateEmail}
             placeholder="Enter your email"
             required
           />
         </div>
-
+        <div className="validation-errors">{emailError}</div>
         <div className="input-group">
           <label htmlFor="password">Password</label>
           <div className="password-wrapper">
             <input
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? "text" : "password"}
               id="password"
               name="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={pass}
+              onChange={validatePass}
               placeholder="Enter your password"
               required
             />
@@ -91,7 +123,7 @@ const LoginForm = () => {
             </span>
           </div>
         </div>
-        
+        <div className="validation-errors">{passError}</div>
         <div className="form-options">
           <a href="/forgot-password">Forgot Password?</a>
         </div>

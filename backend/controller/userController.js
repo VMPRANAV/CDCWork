@@ -49,3 +49,14 @@ exports.updateUserProfile = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
+
+// @desc    Get all students
+// @route   GET /api/users
+exports.getAllStudents = async (req, res) => {
+    try {
+        const students = await User.find({ role: 'student' }).select('-password');
+        res.status(200).json(students);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error while fetching students.' });
+    }
+};
