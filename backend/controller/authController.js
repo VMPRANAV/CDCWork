@@ -1,5 +1,4 @@
 const User = require('../models/user'); 
-const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
     try {
@@ -27,88 +26,73 @@ exports.register = async (req, res) => {
             arrears: req.body.arrears,
             codingLinks: req.body.codingLinks,
             skills: skillsArray,
-            resume: req.file.path // Store the path to the uploaded file
+            resume: req.file.path
         });
 
         const savedUser = await newUser.save();
 
-        const token = jwt.sign({ id: savedUser._id, role: savedUser.role }, process.env.JWT_SECRET, {
-            expiresIn: '1h'
+        res.status(201).json({
+            status: 'success',
+            message: "User registered successfully!",
+            data: {
+                id: savedUser._id,
+                name: savedUser.fullName,
+                email: savedUser.email,
+                role: savedUser.role,
+                codingLinks: savedUser.codingLinks
+            }
         });
 
-        // --- NEW: Send back the token and user data ---
-        res.status(201).json({
-        status: 'success',
-        message: "User registered successfully!",
-        token,
-        data: {
-            id: savedUser._id,
-            name: savedUser.fullName,
-            email: savedUser.email,
-            role: savedUser.role,
-            codingLinks: savedUser.codingLinks
-        }
-    });
-
     } catch (error) {
-        // Handle validation errors from Mongoose
         if (error.name === 'ValidationError') {
             return res.status(400).json({ message: error.message });
         }
-        console.error(error);
+        console.error('Registration error:', error);
         res.status(500).json({ message: "Server error during registration." });
     }
-
 };
 
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        console.log('Login attempt:', { email, password }); // Debug log
+        console.log('Login attempt for:', email);
 
-        // 1. Check if email and password exist
         if (!email || !password) {
             return res.status(400).json({ message: 'Please provide email and password.' });
         }
 
-        // 2. Check if user exists and get the password
+        // Find user and include password for comparison
         const user = await User.findOne({ email }).select('+password');
         
-        console.log('User found:', user ? 'Yes' : 'No'); // Debug log
-        if (user) {
-            console.log('Stored password hash:', user.password); // Debug log
-        }
-
         if (!user) {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
-        // 3. Check if the password is correct
+        // Check password
         const isMatch = await user.comparePassword(password);
         
-        console.log('Password match:', isMatch); // Debug log
-
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
-        // 4. If everything is ok, send a token to the client
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-            expiresIn: '1h' // Token expires in 1 hour
-        });
-
+        // ✅ Simple response - no token needed
         res.status(200).json({
             status: 'success',
-            token,
-            data: { // Send some user data back if you want
+            message: 'Login successful',
+            data: {
                 id: user._id,
                 name: user.fullName,
                 email: user.email,
                 role: user.role,
+                department: user.department,
+                year: user.year,
+                cgpa: user.cgpa,
                 codingLinks: user.codingLinks
             }
         });
+
+        console.log('Login successful for:', email);
 
     } catch (error) {
         console.error('Login error:', error);

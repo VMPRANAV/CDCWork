@@ -5,9 +5,9 @@ const User = require('../models/user');
 // @route   GET /api/attendance
 exports.getAttendance = async (req, res) => {
     try {
-        const userId = req.user._id;
+        // ✅ For now, we'll use a default user ID since auth is removed
+        const userId = req.body.userId || '673c88f4f2e03bb82fb6cf44'; // Default for testing
         
-        // Find attendance record for current academic year
         let attendance = await Attendance.findOne({ 
             userId: userId,
             academicYear: '2025-26',
@@ -15,7 +15,6 @@ exports.getAttendance = async (req, res) => {
         });
 
         if (!attendance) {
-            // Create empty attendance record
             attendance = new Attendance({
                 userId: userId,
                 academicYear: '2025-26',
@@ -24,7 +23,7 @@ exports.getAttendance = async (req, res) => {
                 presentClasses: 0,
                 onDutyClasses: 0,
                 absentClasses: 0,
-                dailySchedule: [] // Empty schedule
+                dailySchedule: []
             });
             
             await attendance.save();
@@ -48,11 +47,11 @@ exports.getAttendance = async (req, res) => {
 // @route   PUT /api/attendance/daily
 exports.updateDailyAttendance = async (req, res) => {
     try {
-        const userId = req.user._id;
-        const { date, dailySchedule } = req.body;
+        const { userId, date, dailySchedule } = req.body;
+        const targetUserId = userId || '673c88f4f2e03bb82fb6cf44'; // Default for testing
 
         let attendance = await Attendance.findOne({ 
-            userId: userId,
+            userId: targetUserId,
             academicYear: '2025-26',
             semester: 'Odd'
         });
@@ -64,10 +63,9 @@ exports.updateDailyAttendance = async (req, res) => {
             });
         }
 
-        // Update daily schedule with FN/AN sessions
         attendance.dailySchedule = dailySchedule.map(session => ({
-            session: session.session, // 'FN' or 'AN'
-            status: session.status,   // 'PRESENT', 'ON-DUTY', 'ABSENT'
+            session: session.session,
+            status: session.status,
             subject: session.subject || '',
             faculty: session.faculty || '',
             topic: session.topic || '',
@@ -95,7 +93,7 @@ exports.updateDailyAttendance = async (req, res) => {
 // @route   PUT /api/attendance/stats
 exports.updateAttendanceStats = async (req, res) => {
     try {
-        const userId = req.body.userId || req.user._id;
+        const userId = req.body.userId || '673c88f4f2e03bb82fb6cf44';
         const { 
             totalClasses, 
             presentClasses, 
@@ -110,16 +108,14 @@ exports.updateAttendanceStats = async (req, res) => {
         });
 
         if (!attendance) {
-            // Create empty attendance record
             attendance = new Attendance({
                 userId: userId,
                 academicYear: '2025-26',
                 semester: 'Odd',
-                dailySchedule: [] // Empty schedule
+                dailySchedule: []
             });
         }
 
-        // Update attendance data
         if (totalClasses !== undefined) attendance.totalClasses = totalClasses;
         if (presentClasses !== undefined) attendance.presentClasses = presentClasses;
         if (onDutyClasses !== undefined) attendance.onDutyClasses = onDutyClasses;
@@ -146,7 +142,7 @@ exports.updateAttendanceStats = async (req, res) => {
 // @route   GET /api/attendance/stats
 exports.getAttendanceStats = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.body.userId || '673c88f4f2e03bb82fb6cf44';
         
         const attendance = await Attendance.findOne({ 
             userId: userId,
@@ -205,7 +201,7 @@ exports.getAllStudentsAttendance = async (req, res) => {
         const attendanceRecords = await Attendance.find({
             academicYear: '2025-26',
             semester: 'Odd'
-        }).populate('userId', 'fullName email rollNumber');
+        }).populate('userId', 'fullName email');
 
         res.status(200).json({
             status: 'success',

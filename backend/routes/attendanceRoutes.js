@@ -1,18 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const { getAttendance, updateDailyAttendance, getAttendanceStats } = require('../controller/attendanceController');
-const { protect } = require('../middleware/auth');
+// ✅ Fix the import - use the correct filename
+const { 
+    getAttendance, 
+    updateDailyAttendance, 
+    getAttendanceStats,
+    updateAttendanceStats,
+    getAllStudentsAttendance,
+    deleteAttendance 
+} = require('../controller/attendanceController'); // Changed from attendance.controller
 
-// All routes are protected
-router.use(protect);
-
-router.route('/')
-    .get(getAttendance);
-
-router.route('/daily')
-    .put(updateDailyAttendance);
-
-router.route('/stats')
-    .get(getAttendanceStats);
+// ✅ Simple routes without auth middleware
+router.get('/', getAttendance);
+router.put('/daily', updateDailyAttendance);
+router.get('/stats', getAttendanceStats);
+router.put('/stats', updateAttendanceStats);
+router.get('/all', getAllStudentsAttendance);
+router.delete('/:userId', deleteAttendance);
 
 module.exports = router;

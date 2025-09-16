@@ -6,7 +6,7 @@ import ProfilePage from './landingPage/profile/profilePage';
 import DashBoardPage from './landingPage/dashboard/dashBoardPage';
 import Login from './landingPage/authentication/login';
 import SignUp from './landingPage/authentication/signup';
-import AdminDashboard from './landingPage/admin/AdminDashboard';
+import AdminDashboard from './landingPage/admin/adminDashboard';
 import AppLayout from './landingPage/AppLayout';
 import ManageApplications from './landingPage/admin/ManageApplications';
 

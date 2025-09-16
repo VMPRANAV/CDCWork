@@ -32,41 +32,38 @@ const SignupForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const validateEmail = (e)=>{
-        const {value,name} = e.target;
-        const mailSchema = z
-          .string()
-          .regex(
-            /^(?!\.)(?!.*\.\.)[A-Za-z0-9._%+-]{1,64}(?<!\.)@kpriet\.ac\.in$/i,
-            "Please enter a valid domain"
-          );
-          const response = mailSchema.safeParse(value);
-          setEmailError(response.success ? "" : response.error.issues[0].message);
-          if(response.success) setFormData({...formData, [name]:value});
-    }
+  const validateEmail = (e) => {
+    const { value, name } = e.target;
+    const mailSchema = z
+      .string()
+      .regex(
+        /^(?!\.)(?!.*\.\.)[A-Za-z0-9._%+-]{1,64}(?<!\.)@kpriet\.ac\.in$/i,
+        "Please enter a valid domain"
+      );
+    const response = mailSchema.safeParse(value);
+    setEmailError(response.success ? "" : response.error.issues[0].message);
+    setFormData({...formData, [name]: value}); // ✅ Always set the value
+  }
+
+  const validatePass = (e) => {
+    const { name, value } = e.target;
+    const passSchema = z
+      .string()
+      .min(8, "minimum of 8 characters")
+      .max(15, "maximum of 15 characters")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/,
+        "Pass must have atleast one upper,lower,number and a special character"
+      );
+    const response = passSchema.safeParse(value);
     
-    const validatePass = (e)=>{
-      const {name} = e.target;
-      const pass = e.target.value;
-      const passSchema = z
-        .string()
-        .min(8, "minimum of 8 characters")
-        .max(15, "maximum of 15 characters")
-        .regex(
-          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/,
-          "Pass must have atleast one upper,lower,number and a special character"
-        );
-        const response = passSchema.safeParse(pass);
-        if(name == "password") {
-          setPassError(response.success? "" : response.error.issues[0].message);
-          if(response.success) setFormData({...formData, [name]:pass});
-        }
-        else{
-          setCpassError(response.success ? "" : response.error.issues[0].message);
-          if(response.success) setFormData({...formData,[name]:pass});
-        }
-        
+    if(name === "password") {
+      setPassError(response.success ? "" : response.error.issues[0].message);
+    } else {
+      setCpassError(response.success ? "" : response.error.issues[0].message);
     }
+    setFormData({...formData, [name]: value}); // ✅ Always set the value
+  }
 
   // ... (your handleChange function is perfect) ...
   const handleChange = (e) => {
@@ -154,7 +151,7 @@ const SignupForm = () => {
                 type="email"
                 id="email"
                 name="email"
-                value={mail}
+                value={formData.email} // ✅ Use formData.email, not undefined 'mail'
                 onChange={validateEmail}
                 placeholder="e.g., 23it066@kpriet.ac.in"
                 required
@@ -174,7 +171,7 @@ const SignupForm = () => {
                   type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
-                  value={pass}
+                  value={formData.password} // ✅ Use formData.password, not undefined 'pass'
                   onChange={validatePass}
                   required
                 />
@@ -198,7 +195,7 @@ const SignupForm = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   id="confirmPassword"
                   name="confirmPassword"
-                  value={confPass}
+                  value={formData.confirmPassword} // ✅ Use formData.confirmPassword, not undefined 'confPass'
                   onChange={validatePass}
                   required
                 />
