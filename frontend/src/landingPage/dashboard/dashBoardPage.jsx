@@ -4,7 +4,7 @@ import CodingProfile from "./codingProfile";
 
 function DashBoardPage(){
     return(
-        <div>
+        <div className="space-y-6">
             <Attendance />
             <MyAppliactions />
             <CodingProfile />

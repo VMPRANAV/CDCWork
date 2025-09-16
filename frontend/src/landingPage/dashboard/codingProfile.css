@@ -1,3 +1,4 @@
+@import "tailwindcss";
 .dashboard-container {
     font-family: 'Segoe UI', sans-serif;
     max-width: 900px;

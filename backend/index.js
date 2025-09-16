@@ -12,7 +12,11 @@ const MongoDBURL = "mongodb://127.0.0.1:27017/CDCWork";
 // Import routes
 const authRoutes = require('./routes/authRoute');
 const userRoutes = require('./routes/userRoutes');
-const applicationRoutes = require('./routes/application.routes');
+
+const attendanceRoutes = require('./routes/attendanceRoutes'); // Add this line
+
+const applicationRoutes = require('./routes/applicationRoutes');
+
 
 const app = express();
 
@@ -32,10 +36,10 @@ async function main() {
     await mongoose.connect(MongoDBURL);
 }
 
-
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/attendance', attendanceRoutes); // Add this line
 app.use('/api/applications', applicationRoutes);
 
 app.listen(PORT, () => {
