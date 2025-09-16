@@ -35,7 +35,7 @@ const LoginForm = () => {
       // 2. Redirect the user to their dashboard or home page
       // We will check the user's role and redirect accordingly
       if(data.role === 'admin') {
-        navigate('/admin/dashboard');
+        navigate('/admin/students');
       } else {
         navigate('/student/dashboard');
       }

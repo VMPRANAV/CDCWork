@@ -1,0 +1,124 @@
+.applications-container {
+    max-width: 900px;
+    margin: auto;
+}
+
+.applications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.applications-header h2 {
+    color: #1a202c;
+    margin: 0;
+}
+
+.add-new-btn {
+    background-color: #007aff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.add-new-btn:hover {
+    background-color: #0056b3;
+}
+
+.add-application-form {
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+}
+
+.add-application-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.add-application-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.add-application-form input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #dfe2e6;
+    font-size: 1rem;
+}
+
+.submit-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+/* Application Card Styling */
+.applications-list {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.application-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.application-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.application-card h3 {
+    margin: 0 0 5px 0;
+    color: #1a202c;
+}
+
+.company-name {
+    color: #4a5568;
+    margin: 0;
+}
+
+.applied-date {
+    font-size: 0.85rem;
+    color: #718096;
+    margin-top: 10px;
+}
+
+/* Status Pill Styling */
+.status-pill {
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.status-pill.applied { background-color: #e0e7ff; color: #3730a3; }
+.status-pill.online-assessment { background-color: #dbeafe; color: #1e40af; }
+.status-pill.technical-interview { background-color: #cffafe; color: #0e7490; }
+.status-pill.hr-interview { background-color: #fef3c7; color: #92400e; }
+.status-pill.offer-received { background-color: #dcfce7; color: #166534; }
+.status-pill.rejected { background-color: #fee2e2; color: #991b1b; }

@@ -12,6 +12,7 @@ const MongoDBURL = "mongodb://127.0.0.1:27017/CDCWork";
 // Import routes
 const authRoutes = require('./routes/authRoute');
 const userRoutes = require('./routes/userRoutes');
+const applicationRoutes = require('./routes/application.routes');
 
 const app = express();
 
@@ -35,6 +36,7 @@ async function main() {
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/applications', applicationRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);

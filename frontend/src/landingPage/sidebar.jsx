@@ -1,51 +1,87 @@
-import React from 'react';
-import { Link,NavLink,useNavigate } from 'react-router-dom';
-import { FaTachometerAlt, FaUser, FaSignOutAlt } from 'react-icons/fa'; // Example icons
-import './sidebar.css'; 
+import React, { useState, useEffect } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+// Add an icon for the admin view
+import { FaTachometerAlt, FaUser, FaClipboardList, FaSignOutAlt, FaUsersCog, FaTasks } from 'react-icons/fa';
+import './sidebar.css';
 
 const Sidebar = () => {
+    const navigate = useNavigate();
+    // 1. Add state to hold the current user's role
+    const [userRole, setUserRole] = useState(null);
 
-  const navigate = useNavigate();
+    // 2. Load the user data from localStorage when the component mounts
+    useEffect(() => {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            const user = JSON.parse(storedUser);
+            setUserRole(user.role);
+        }
+    }, []);
 
-  const handleLogout = () => {
-    // 1. Remove the authentication token from storage.
-    // This is the most important step to "forget" the user.
-    localStorage.removeItem('authToken');
+    const handleLogout = () => {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        navigate('/');
+    };
 
-    // 2. Remove the stored user information.
-    localStorage.removeItem('user');
+    return (
+        <aside className="sidebar">
+            <div className="sidebar-main-nav">
+                <div className="sidebar-header">
+                    <h3>Placement Cell</h3>
+                </div>
+                <nav className="sidebar-nav">
+                    <ul>
+                        {/* 3. Conditionally render links based on user role */}
 
-    // 3. Redirect the user to the login page (the homepage).
-    navigate('/');
-  };
+                        {/* === STUDENT LINKS === */}
+                        {userRole === 'student' && (
+                            <>
+                                <li>
+                                    <NavLink to="/student/dashboard">
+                                        <FaTachometerAlt /> <span>Dashboard</span>
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink to="/student/profile">
+                                        <FaUser /> <span>My Profile</span>
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink to="/student/applications">
+                                        <FaClipboardList /> <span>Applications</span>
+                                    </NavLink>
+                                </li>
+                            </>
+                        )}
 
-  return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        Placement Cell
-      </div>
-      <nav className="sidebar-nav">
-        <ul>
-          <li>
-            <NavLink to="/student/dashboard">
-              <FaTachometerAlt /> <span>Dashboard</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/student/profile">
-              <FaUser /> <span>My Profile</span>
-            </NavLink>
-          </li>
-        </ul>
-      </nav>
-      {/* 5. Add the logout button at the end */}
-      <div className="sidebar-footer">
-        <button onClick={handleLogout} className="logout-button">
-          <FaSignOutAlt /> <span>Logout</span>
-        </button>
-      </div>
-    </aside>
-  );
+                        {/* === ADMIN LINKS === */}
+                        {userRole === 'admin' && (
+                            <>
+                                <li>
+                                    <NavLink to="/admin/students">
+                                        <FaUsersCog /> <span>Manage Students</span>
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink to="/admin/applications">
+                                        <FaTasks /> <span>Manage Applications</span>
+                                    </NavLink>
+                                </li>
+                                {/* Add more admin-specific links here in the future */}
+                            </>
+                        )}
+                    </ul>
+                </nav>
+            </div>
+
+            <div className="sidebar-footer">
+                <button onClick={handleLogout} className="logout-button">
+                    <FaSignOutAlt /> <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+    );
 };
 
 export default Sidebar;
