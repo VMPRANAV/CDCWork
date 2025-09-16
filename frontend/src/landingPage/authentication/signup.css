@@ -129,6 +129,13 @@
     transition: background-color 0.3s;
     margin-top: 2rem;
   }
+    .validation-errors{
+    color : red;
+    font-size: 14px;
+    text-align: end;
+    width: 100%;
+    margin-top: 5px;
+  }
   
   .signup-button:hover {
     background-color: #0056b3;
