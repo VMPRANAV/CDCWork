@@ -1,13 +1,8 @@
-const express = require("express");
-const dotenv = require('dotenv');
-dotenv.config();
+const express = require('express');
+const { MONGO_URL, PORT } = require('./.config/config');
 const mongoose = require("mongoose")
 const cors = require('cors');
 const path = require('path');
-const PORT = process.env.PORT || 3002;
-
-//when i used the process.env here it didnt worked will check during atlas connection.
-const MongoDBURL = "mongodb://127.0.0.1:27017/CDCWork";
 
 // Import routes
 const authRoutes = require('./routes/authRoute');
@@ -28,7 +23,7 @@ main()
 .catch(err => console.log(err));
 
 async function main() {
-    await mongoose.connect(MongoDBURL);
+    await mongoose.connect(MONGO_URL);
 }
 
 
