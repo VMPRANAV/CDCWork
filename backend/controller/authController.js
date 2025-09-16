@@ -64,6 +64,8 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        
+        console.log('Login attempt:', { email, password }); // Debug log
 
         // 1. Check if email and password exist
         if (!email || !password) {
@@ -72,14 +74,20 @@ exports.login = async (req, res) => {
 
         // 2. Check if user exists and get the password
         const user = await User.findOne({ email }).select('+password');
+        
+        console.log('User found:', user ? 'Yes' : 'No'); // Debug log
+        if (user) {
+            console.log('Stored password hash:', user.password); // Debug log
+        }
 
         if (!user) {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
         // 3. Check if the password is correct
-        // We use the comparePassword method we defined in the user model
         const isMatch = await user.comparePassword(password);
+        
+        console.log('Password match:', isMatch); // Debug log
 
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials.' });
@@ -103,7 +111,7 @@ exports.login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Login error:', error);
         res.status(500).json({ message: "Server error during login." });
     }
 };

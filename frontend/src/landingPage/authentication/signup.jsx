@@ -42,7 +42,7 @@ const SignupForm = () => {
     setError('');
     setSuccess('');
 
-    // --- Frontend validation remains the same ---
+    // Frontend validation
     if (formData.password !== formData.confirmPassword) {
       return setError('Passwords do not match.');
     }
@@ -51,14 +51,12 @@ const SignupForm = () => {
       return setError('Please use your official KPRIET email.');
     }
 
-    // Use FormData because we are sending a file
     const dataToSubmit = new FormData();
     for (const key in formData) {
       dataToSubmit.append(key, formData[key]);
     }
     
     try {
-        // Send POST request to the backend
         const response = await axios.post(
             'http://localhost:3002/api/auth/register', 
             dataToSubmit,
@@ -69,18 +67,16 @@ const SignupForm = () => {
             }
         );
         
-        // --- 3. Handle the new response and redirect ---
         const { token, data } = response.data;
 
-        // Store the token and user info, just like in the login form
-        localStorage.setItem('authToken', token);
+        // Store the token with the correct key
+        localStorage.setItem('token', token); // ✅ Changed from 'authToken' to 'token'
         localStorage.setItem('user', JSON.stringify(data));
 
         // Navigate to the student dashboard
         navigate('/student/dashboard');
         
     } catch (err) {
-        // Handle errors from the backend
         if (err.response && err.response.data && err.response.data.message) {
             setError(err.response.data.message);
         } else {

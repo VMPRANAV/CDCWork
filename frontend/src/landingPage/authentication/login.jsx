@@ -16,24 +16,21 @@ const LoginForm = () => {
   // --- UPDATED handleSubmit Function ---
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setError(''); // Clear previous errors
+    setError('');
 
     try {
-      // Send login request to the backend
       const response = await axios.post('http://localhost:3002/api/auth/login', {
         email,
         password,
       });
 
-      // If login is successful, the backend sends back a token
       const { token, data } = response.data;
 
-      // 1. Store the token securely (localStorage is common for this)
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(data)); // Optional: store user info
+      // 1. Store the token with the correct key
+      localStorage.setItem('token', token); // ✅ Changed from 'authToken' to 'token'
+      localStorage.setItem('user', JSON.stringify(data));
 
-      // 2. Redirect the user to their dashboard or home page
-      // We will check the user's role and redirect accordingly
+      // 2. Redirect based on role
       if(data.role === 'admin') {
         navigate('/admin/dashboard');
       } else {
@@ -41,7 +38,6 @@ const LoginForm = () => {
       }
       
     } catch (err) {
-      // Handle login errors
       if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message);
       } else {
