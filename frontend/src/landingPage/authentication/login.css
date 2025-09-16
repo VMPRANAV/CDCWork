@@ -1,4 +1,5 @@
 /* General container to center the form */
+@import "tailwindcss";
 .login-container {
     display: flex;
     justify-content: center;

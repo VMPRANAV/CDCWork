@@ -2,21 +2,16 @@ import React, { useState } from 'react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import './login.css';
 import collegeLogo from "../../assets/kprietLogo.png";
-import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
-import axios from 'axios'; // Import axios
-import * as z from 'zod';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const LoginForm = () => {
-  let mail,pass;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(''); // State to hold error messages
-  const [emailError,setEmailError] = useState('');
-  const [passError, setPassError] = useState('');
+  const [error, setError] = useState('');
 
-  const navigate = useNavigate(); // Hook for navigation
-
+  const navigate = useNavigate();
 
   const validateEmail = (e)=>{
       const mail = e.target.value;
@@ -46,32 +41,33 @@ const LoginForm = () => {
       if(response.success) setPassword(pass);
   }
   // --- UPDATED handleSubmit Function ---
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setError(''); // Clear previous errors
-    if(emailError || passError){
-      setError("Please fix the errors before submitting");
+    setError('');
+
+    if (!email || !password) {
+      setError('Please enter both email and password.');
       return;
-    }else{
-      setError('')
     }
 
     try {
-      // Send login request to the backend
+      console.log('Attempting login with:', { email });
+
       const response = await axios.post('http://localhost:3002/api/auth/login', {
         email,
         password,
       });
 
-      // If login is successful, the backend sends back a token
-      const { token, data } = response.data;
+      console.log('Login successful:', response.data);
 
-      // 1. Store the token securely (localStorage is common for this)
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(data)); // Optional: store user info
+      const { data } = response.data;
 
-      // 2. Redirect the user to their dashboard or home page
-      // We will check the user's role and redirect accordingly
+      // ✅ Simple storage - just user data, no token
+      localStorage.setItem('user', JSON.stringify(data));
+      localStorage.setItem('isLoggedIn', 'true');
+
+      // Navigate based on role
       if(data.role === 'admin') {
         navigate('/admin/students');
       } else {
@@ -79,11 +75,11 @@ const LoginForm = () => {
       }
       
     } catch (err) {
-      // Handle login errors
+      console.error('Login error:', err.response?.data || err.message);
       if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message);
       } else {
-        setError('Login failed. Please check your connection and try again.');
+        setError('Login failed. Please try again.');
       }
     }
   };
@@ -97,7 +93,6 @@ const LoginForm = () => {
           <p>KPR Institute of Engineering and Technology</p>
         </div>
 
-        {/* Display error message if it exists */}
         {error && <p className="error-message">{error}</p>}
 
         <div className="input-group">
@@ -106,13 +101,13 @@ const LoginForm = () => {
             type="email"
             id="email"
             name="email"
-            value={mail}
-            onChange={validateEmail}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
             required
           />
         </div>
-        <div className="validation-errors">{emailError}</div>
+        
         <div className="input-group">
           <label htmlFor="password">Password</label>
           <div className="password-wrapper">
@@ -120,8 +115,8 @@ const LoginForm = () => {
               type={showPassword ? "text" : "password"}
               id="password"
               name="password"
-              value={pass}
-              onChange={validatePass}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
             />
@@ -133,7 +128,7 @@ const LoginForm = () => {
             </span>
           </div>
         </div>
-        <div className="validation-errors">{passError}</div>
+        
         <div className="form-options">
           <a href="/forgot-password">Forgot Password?</a>
         </div>
