@@ -1,53 +1,62 @@
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const User = require('./models/user');
+const {MONGO_URL} = require('./.config/config')
 
-dotenv.config();
+const mongoose = require("mongoose");
+const readline = require("readline/promises");
+const Admin = require('./models/admin');
 
-const MongoDBURL = process.env.MONGODB_URL || "mongodb://127.0.0.1:27017/CDCWork";
+const MONGO = MONGO_URL || "mongodb://127.0.0.1:27017/CDCWork";
 
-const seedAdmin = async () => {
-    try {
-        await mongoose.connect(MongoDBURL);
-        console.log("MongoDB connected for seeding.");
+async function main() {
+  // connect
+  await mongoose.connect(MONGO, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
 
-        const adminEmail = 'admin@kpriet.ac.in';
 
-        // Check if the admin user already exists
-        const adminExists = await User.findOne({ email: adminEmail });
 
-        if (adminExists) {
-            console.log('Admin user already exists.');
-            return;
-        }
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
 
-        // If not, create the admin user
-        const adminData = {
-            fullName: 'Placement Officer',
-            email: adminEmail,
-            password: 'Secure!23', // This will be hashed automatically
-            role: 'admin',
-            year: '1',
-            department: 'CSE',
-            cgpa: '5.5',
-            arrears: '0',
-            resume: 'uploads\\resume-1757853076394-212833179.pdf',
-            codingLinks: 'https://gemini.google.com/app/70432ae744c506b5',
-            skills: [ 'MERN', 'DSA' ]
-        };
+  try {
+    const email = await rl.question("Admin email: ");
+    const password = await rl.question("Password (visible): ");
 
-        const newAdmin = new User(adminData);
-        await newAdmin.save();
-        console.log('Admin user created successfully!');
+    rl.close();
 
-    } catch (error) {
-        console.error('Error seeding admin user:', error);
-    } finally {
-        // Disconnect from the database
-        await mongoose.disconnect();
-        console.log('MongoDB disconnected.');
+    const response = await Admin.findOne({email});
+    if(response ){
+        console.log("Admin already Exist");
+        return;
     }
-};
 
-// Run the seeder function
-seedAdmin();
+
+    const admin = new Admin({
+        email,
+        password,
+        role : "admin"
+    })
+
+    await admin.save();
+
+    console.log("Admin user created/updated:", {
+      id: admin._id,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+    });
+  } catch (e) {
+    rl.close();
+    console.error("Error:", e);
+  } finally {
+    await mongoose.disconnect();
+    process.exit(0);
+  }
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
