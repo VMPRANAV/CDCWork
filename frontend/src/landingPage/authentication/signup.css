@@ -1,159 +1,146 @@
-/* Container to center the form */
+/* --- Main Container --- */
 .signup-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 40px 0;
-    background-color: #f0f2f5;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-  
-  /* The form itself */
-  .signup-form {
-    background: #ffffff;
-    padding: 2.5rem;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 800px;
-    box-sizing: border-box;
-  }
-  
-  /* Header section */
-  .form-header {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-  
-  .form-header h2 {
-    color: #1c1c1e;
-    font-size: 24px;
-    margin: 0;
-  }
-  
-  .form-header p {
-    color: #6a6a6f;
-    font-size: 14px;
-    margin-top: 0.5rem;
-  }
-  
-  /* Grid layout for form fields */
-  .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-  }
-  
-  /* Make certain items span both columns */
-  .full-width {
-      grid-column: 1 / -1;
-  }
-  
-  /* Input groups for labels and fields */
-  .input-group {
-    margin-bottom: 0; /* Margin is handled by the grid gap */
-  }
-  
-  .input-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #3c3c43;
-    font-weight: 600;
-    font-size: 14px;
-  }
-  
-  .input-group input, .input-group select {
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #c7c7cc;
-    border-radius: 8px;
-    font-size: 16px;
-    box-sizing: border-box;
-    transition: border-color 0.3s, box-shadow 0.3s;
-  }
-  
-  .input-group input:focus, .input-group select:focus {
-    outline: none;
-    border-color: #007aff;
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
-  }
-  
-  /* Style for file input button */
-  .input-group input[type="file"] {
-      padding: 8px;
-      font-size: 14px;
-  }
-  
-  /* Password wrapper and toggle icon */
-  .password-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-  
-  .password-wrapper input {
-    padding-right: 40px;
-  }
-  
-  .password-toggle-icon {
-    position: absolute;
-    right: 15px;
-    cursor: pointer;
-    color: #8e8e93;
-  }
-  
-  /* Error message styling */
-  .error-message {
-      color: #ff3b30;
-      background-color: #ffe5e5;
-      border: 1px solid #ff3b30;
-      padding: 10px;
-      border-radius: 8px;
-      text-align: center;
-      margin-bottom: 1.5rem;
-      font-size: 14px;
-  }
-  
-  
-  /* Signup button styling */
-  .signup-button {
-    width: 100%;
-    padding: 14px;
-    background-color: #007aff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    margin-top: 2rem;
-  }
-  
-  .signup-button:hover {
-    background-color: #0056b3;
-  }
-  
-  /* Footer link to login */
-  .form-footer {
-      text-align: center;
-      margin-top: 1.5rem;
-      font-size: 14px;
-      color: #6a6a6f;
-  }
-  
-  .form-footer a {
-      color: #007aff;
-      text-decoration: none;
-  }
-  
-  .form-footer a:hover {
-      text-decoration: underline;
-  }
-  
-  /* Responsive design for smaller screens */
-  @media (max-width: 768px) {
-    .form-grid {
-      grid-template-columns: 1fr; /* Stack fields vertically on small screens */
-    }
-  }
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: #f0f2f5;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* --- Form Card Styling --- */
+.signup-form {
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px; /* Wider for the grid layout */
+  box-sizing: border-box;
+}
+
+/* --- Header --- */
+.signup-form h2 {
+  text-align: center;
+  color: #1c1c1e;
+  font-size: 24px;
+  margin: 0 0 2rem 0;
+}
+
+/* Branding block for logo/title used by signup and login */
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.brand-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 22px;
+  color: #1c1c1e;
+}
+
+.brand-subtitle {
+  margin: 0;
+  color: #6a6a6f;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* --- Input Grid Layout --- */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two equal columns */
+  gap: 1.25rem;
+}
+
+.input-group {
+  margin-bottom: 0;
+}
+
+/* Make specific items span both columns */
+.input-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* --- Labels and Inputs --- */
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #3c3c43;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #c7c7cc;
+  border-radius: 8px;
+  font-size: 16px;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+}
+
+/* --- Button and Footer --- */
+.signup-button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 2rem;
+  background-color: #007aff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.signup-button:hover {
+  background-color: #0056b3;
+}
+
+.form-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 14px;
+  color: #6a6a6f;
+}
+
+.form-footer a {
+  color: #007aff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.form-footer a:hover {
+  text-decoration: underline;
+}
+
+/* --- Error Message --- */
+.error-message {
+  color: #c53030;
+  background-color: #fff5f5;
+  border: 1px solid #c53030;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: 14px;
+}
