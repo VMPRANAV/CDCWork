@@ -1,0 +1,137 @@
+/* Post.css - For CreatePost and ViewPosts components */
+
+/* --- Form Styles (reusing where possible) --- */
+.form-container {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    max-width: 700px;
+    margin: 2rem auto;
+}
+
+.form-header h2 {
+    margin-bottom: 1.5rem;
+    color: #1c1c1e;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #3c3c43;
+}
+
+.form-input,
+.form-textarea {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 15px;
+    border: 1px solid #dfe2e6;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+    border-color: #007aff;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 12px 15px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.submit-btn:hover {
+    background-color: #005bb5;
+}
+
+.submit-btn:disabled {
+    background-color: #a0cffc;
+    cursor: not-allowed;
+}
+
+.success-message {
+    color: #28a745;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+/* Inherits from your AdminDashboard.css */
+.error-message {
+    color: #c53030;
+    background-color: #fff5f5;
+    border: 1px solid #c53030;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+/* --- Post List Styles --- */
+.posts-list-container {
+    background: #f9f9f9;
+    padding: 2rem;
+}
+
+.posts-header h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #1c1c1e;
+}
+
+.posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.post-card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.post-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.post-card h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: #1c1c1e;
+}
+
+.post-description {
+    color: #636366;
+    line-height: 1.6;
+}
+
+.post-date {
+    font-size: 13px;
+    color: #8e8e93;
+    margin-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 1rem;
+}

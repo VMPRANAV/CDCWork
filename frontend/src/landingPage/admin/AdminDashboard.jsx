@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './AdminDashboard.css';
 
+import { useNavigate } from 'react-router-dom';
+
 const AdminDashboard = () => {
+    const navigate = useNavigate();
     const [students, setStudents] = useState([]);
     const [filteredStudents, setFilteredStudents] = useState([]); // This is what we'll display
     const [searchTerm, setSearchTerm] = useState(''); // For the search input
@@ -10,6 +13,13 @@ const AdminDashboard = () => {
     const [error, setError] = useState('');
 
     useEffect(() => {
+        // Check admin privilege
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || user.role !== 'admin') {
+            navigate('/'); // Redirect to login or home
+            return;
+        }
+
         const fetchStudents = async () => {
             try {
                 // Get the token from localStorage
@@ -39,7 +49,7 @@ const AdminDashboard = () => {
         };
 
         fetchStudents();
-    }, []);
+    }, [navigate]);
 
     useEffect(() => {
         const results = students.filter(student =>
@@ -54,9 +64,11 @@ const AdminDashboard = () => {
 
     return (
         <div className="students-container">
+            {/* Add CreatePost form at the top */}
+       
+
             <div className="students-header">
                 <h2>All Student Details</h2>
-                {/* 3. JSX: The search bar input field is added here */}
                 <input
                     type="text"
                     placeholder="Search by name or email..."

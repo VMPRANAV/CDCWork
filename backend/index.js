@@ -9,6 +9,7 @@ const path = require('path');
 const authRoutes = require('./routes/authRoute');
 const userRoutes = require('./routes/userRoutes');
 const applicationRoutes = require('./routes/application.routes');
+const postRoutes = require('./routes/postRoutes');
 
 const app = express();
 
@@ -33,6 +34,7 @@ async function main() {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/applications', applicationRoutes);
+app.use('/api/posts', postRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 // Add an icon for the admin view
-import { FaTachometerAlt, FaUser, FaClipboardList, FaSignOutAlt, FaUsersCog, FaTasks } from 'react-icons/fa';
+import { FaTachometerAlt, FaUser, FaClipboardList, FaSignOutAlt, FaUsersCog, FaTasks,FaPaperPlane,FaComments } from 'react-icons/fa';
 import './sidebar.css';
 
 const Sidebar = () => {
@@ -52,6 +52,11 @@ const Sidebar = () => {
                                         <FaClipboardList /> <span>Applications</span>
                                     </NavLink>
                                 </li>
+                                <li>
+                                    <NavLink to="/student/ViewPost">
+                                    <FaComments/><span>Posts</span>
+                                    </NavLink>
+                                </li>
                             </>
                         )}
 
@@ -66,6 +71,11 @@ const Sidebar = () => {
                                 <li>
                                     <NavLink to="/admin/applications">
                                         <FaTasks /> <span>Manage Applications</span>
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink to="/admin/Post">
+                                    <FaPaperPlane/><span> Posts</span>
                                     </NavLink>
                                 </li>
                                 {/* Add more admin-specific links here in the future */}
