@@ -25,7 +25,7 @@ const seedAdmin = async () => {
         const adminData = {
             fullName: 'Placement Officer',
             email: adminEmail,
-            password: 'SecureAdminPassword!23', // This will be hashed automatically
+            password: 'Secure!23', // This will be hashed automatically
             role: 'admin',
             year: '1',
             department: 'CSE',
