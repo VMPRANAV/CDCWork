@@ -1,5 +1,7 @@
 const User = require('../models/user.js');
 const jwt = require('jsonwebtoken');
+const Admin = require('../models/admin');
+const { JWT_USER_SECRET , JWT_ADMIN_SECRET } = require('../.config/config')
 
 // Generate JWT
 const generateToken = (id) => {
@@ -42,8 +44,11 @@ exports.register = async (req, res) => {
         // Generate token
         const token = generateToken(user._id);
 
-        // Don't send password back
-        user.password = undefined;
+
+        const token = jwt.sign({ id: savedUser._id, role: savedUser.role }, JWT_USER_SECRET, {
+            expiresIn: '1h'
+        });
+
 
         res.status(201).json({
             message: 'User registered successfully!',
@@ -57,40 +62,77 @@ exports.register = async (req, res) => {
     }
 };
 
-
-// @desc    Authenticate user & get token
-// @route   POST /api/auth/login
 exports.login = async (req, res) => {
-    const { collegeEmail, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-    // 1. Check if collegeEmail and password exist
-    if (!collegeEmail || !password) {
-        return res.status(400).json({ message: 'Please provide your college email and password.' });
+    // 1. Check if email and password exist
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Please provide email and password." });
     }
 
-    try {
-        // 2. Check if user exists and password is correct
-        // We explicitly select the password because it's excluded by default in the schema
-        const user = await User.findOne({ collegeEmail }).select('+password');
+    // 2. Check if user exists
+    const user = await User.findOne({ email }).select("+password");
 
-        if (!user || !(await user.comparePassword(password))) {
-            return res.status(401).json({ message: 'Incorrect email or password.' });
-        }
-        
-        // 3. If everything is ok, send token to client
-        const token = generateToken(user._id);
+    // 3. If not a user, check if admin exists
+    if (!user) {
+      const admin = await Admin.findOne({ email }).select("+password");
 
-        // Remove password from the output
-        user.password = undefined;
+      if (!admin) {
+        return res.status(401).json({ message: "Invalid credentials." });
+      }
 
-        res.status(200).json({
-            message: 'Login successful!',
-            token,
-            data: user
-        });
+      // Check admin password
+      const isAdminMatch = await admin.comparePassword(password);
+      if (!isAdminMatch) {
+        return res.status(401).json({ message: "Invalid credentials." });
+      }
 
-    } catch (error) {
-        console.error("Login Error:", error);
-        res.status(500).json({ message: 'Server error during login.' });
+      // Create admin token
+      const adminToken = jwt.sign(
+        { id: admin._id, role: admin.role },
+        JWT_ADMIN_SECRET,
+        { expiresIn: "1h" }
+      );
+
+      return res.status(200).json({
+        status: "success",
+        token: adminToken,
+        data: {
+          id: admin._id,
+          email: admin.email,
+          role: admin.role,
+        },
+      });
     }
+
+    // 4. Check user password
+    const isUserMatch = await user.comparePassword(password);
+    if (!isUserMatch) {
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    // 5. Create user token
+    const token = jwt.sign({ id: user._id, role: user.role }, JWT_USER_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.status(200).json({
+      status: "success",
+      token,
+      data: {
+        id: user._id,
+        name: user.fullName,
+        email: user.email,
+        role: user.role,
+        codingLinks: user.codingLinks,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error during login." });
+  }
+
 };
