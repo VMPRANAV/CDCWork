@@ -2,93 +2,184 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Profile.css';
 
-const ProfessionalInfo = () => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [profData, setProfData] = useState({});
-    const [initialData, setInitialData] = useState({});
+const normalizeData = (data) => {
+    const languages = data.languages || {};
+    return {
+        ...data,
+        codingProfiles: data.codingProfiles || {},
+        languages: {
+            japanese: languages.japanese || {},
+            german: languages.german || {},
+        }
+    };
+};
 
-    // ... (useEffect, handleChange, and handleSave functions are the same) ...
+const ProfessionalDetails = () => {
+    const [formData, setFormData] = useState({ codingProfiles: {}, languages: { japanese: {}, german: {} } });
+    const [initialData, setInitialData] = useState({ codingProfiles: {}, languages: { japanese: {}, german: {} } });
+    const [isEditing, setIsEditing] = useState(false);
+
     useEffect(() => {
         const fetchProfile = async () => {
             const token = localStorage.getItem('authToken');
-            if (!token) return;
+            const config = { headers: { Authorization: `Bearer ${token}` } };
             try {
-                const config = { headers: { Authorization: `Bearer ${token}` } };
                 const { data } = await axios.get('http://localhost:3002/api/users/profile', config);
-                setProfData(data);
-                setInitialData(data);
-            } catch (error) {
-                console.error("Failed to fetch profile", error);
-            }
+                const normalized = normalizeData(data);
+                setFormData(normalized);
+                setInitialData(normalized);
+            } catch (error) { console.error("Failed to fetch profile", error); }
         };
         fetchProfile();
     }, []);
 
     const handleChange = (e) => {
-        setProfData({ ...profData, [e.target.name]: e.target.value });
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleNestedChange = (e, category) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [category]: { ...prev[category], [name]: value } }));
+    };
+
+    const handleLanguageChange = (e, lang) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            languages: {
+                ...prev.languages,
+                [lang]: {
+                    ...prev.languages[lang],
+                    [name]: type === 'checkbox' ? checked : value
+                }
+            }
+        }));
     };
 
     const handleSave = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('authToken');
+        const config = { headers: { Authorization: `Bearer ${token}` } };
         try {
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-            const { data } = await axios.put('http://localhost:3002/api/users/profile', profData, config);
-            setInitialData(data);
+            const { data } = await axios.put('http://localhost:3002/api/users/profile', formData, config);
+            const normalized = normalizeData(data);
+            setInitialData(normalized);
+            setFormData(normalized);
             setIsEditing(false);
-            alert("Profile updated successfully!");
+            alert("Professional details updated successfully!");
         } catch (error) {
-            console.error("Failed to update profile", error);
+            alert("Update failed!");
+            console.error("Failed to update profile", error.response?.data || error);
         }
     };
 
     return (
         <div className="profile-card">
             <div className="card-header">
-                <h3>Professional Information</h3>
+                <h3>Professional Details</h3>
                 {!isEditing && <button onClick={() => setIsEditing(true)} className="edit-button">Edit</button>}
             </div>
             {isEditing ? (
                 <form onSubmit={handleSave} className="profile-form">
-                    {/* ... (The edit form is the same) ... */}
-                    <div className="form-group">
-                        <label>CGPA</label>
-                        <input type="number" step="0.01" name="cgpa" value={profData.cgpa || ''} onChange={handleChange} />
-                    </div>
-                    <div className="form-group">
-                        <label>Arrears</label>
-                        <input type="number" name="arrears" value={profData.arrears ?? ''} onChange={handleChange} />
-                    </div>
-                    <div className="form-group">
-                        <label>Skills (comma-separated)</label>
-                        <input type="text" name="skills" value={Array.isArray(profData.skills) ? profData.skills.join(', ') : ''} onChange={handleChange} />
-                    </div>
-                    <div className="form-group">
-                        <label>Coding Links (comma-separated)</label>
-                        <input type="text" name="codingLinks" value={profData.codingLinks || ''} onChange={handleChange} />
-                    </div>
+                    <fieldset className="full-width">
+                        <legend>Coding Profiles</legend>
+                        <label htmlFor="github">GitHub</label>
+                        <input id="github" name="github" value={formData.codingProfiles.github || ''} onChange={(e) => handleNestedChange(e, 'codingProfiles')} placeholder="GitHub URL" />
+
+                        <label htmlFor="leetcode">LeetCode</label>
+                        <input id="leetcode" name="leetcode" value={formData.codingProfiles.leetcode || ''} onChange={(e) => handleNestedChange(e, 'codingProfiles')} placeholder="LeetCode URL" />
+
+                        <label htmlFor="codeforces">Codeforces</label>
+                        <input id="codeforces" name="codeforces" value={formData.codingProfiles.codeforces || ''} onChange={(e) => handleNestedChange(e, 'codingProfiles')} placeholder="Codeforces URL" />
+
+                        <label htmlFor="hackerrank">HackerRank</label>
+                        <input id="hackerrank" name="hackerrank" value={formData.codingProfiles.hackerrank || ''} onChange={(e) => handleNestedChange(e, 'codingProfiles')} placeholder="HackerRank URL" />
+
+                        <label htmlFor="geeksforgeeks">GeeksforGeeks</label>
+                        <input id="geeksforgeeks" name="geeksforgeeks" value={formData.codingProfiles.geeksforgeeks || ''} onChange={(e) => handleNestedChange(e, 'codingProfiles')} placeholder="GeeksforGeeks URL" />
+                    </fieldset>
+
+                    <fieldset className="full-width">
+                        <legend>Language Skills</legend>
+                        <label>
+                            <input type="checkbox" name="knows" checked={!!formData.languages.japanese?.knows} onChange={(e) => handleLanguageChange(e, 'japanese')} />
+                            Knows Japanese
+                        </label>
+                        <label htmlFor="japanese_level">Japanese Level</label>
+                        <select id="japanese_level" name="level" value={formData.languages.japanese?.level || 'Not Applicable'} onChange={(e) => handleLanguageChange(e, 'japanese')} disabled={!formData.languages.japanese?.knows}>
+                            <option value="N5">N5</option>
+                            <option value="N4">N4</option>
+                            <option value="N3">N3</option>
+                            <option value="N2">N2</option>
+                            <option value="N1">N1</option>
+                            <option value="Not Applicable">Not Applicable</option>
+                        </select>
+                        <label>
+                            <input type="checkbox" name="knows" checked={!!formData.languages.german?.knows} onChange={(e) => handleLanguageChange(e, 'german')} />
+                            Knows German
+                        </label>
+                        <label htmlFor="german_level">German Level</label>
+                        <select id="german_level" name="level" value={formData.languages.german?.level || 'Not Applicable'} onChange={(e) => handleLanguageChange(e, 'german')} disabled={!formData.languages.german?.knows}>
+                            <option value="A1">A1</option>
+                            <option value="A2">A2</option>
+                            <option value="B1">B1</option>
+                            <option value="B2">B2</option>
+                            <option value="C1">C1</option>
+                            <option value="C2">C2</option>
+                            <option value="Not Appeared">Not Appeared</option>
+                            <option value="Not Applicable">Not Applicable</option>
+                        </select>
+                    </fieldset>
+
+                    <fieldset className="full-width">
+                        <legend>Documents & Photo</legend>
+                        <label htmlFor="resumeUrl">Resume URL</label>
+                        <input id="resumeUrl" name="resumeUrl" value={formData.resumeUrl || ''} onChange={handleChange} placeholder="Link to Resume PDF" />
+
+                        <label htmlFor="photoUrl">Photo URL</label>
+                        <input id="photoUrl" name="photoUrl" value={formData.photoUrl || ''} onChange={handleChange} placeholder="Link to Profile Photo" />
+                        {formData.photoUrl ? (
+                            <div className="photo-preview">
+                                <img
+                                    src={formData.photoUrl}
+                                    alt="Photo preview"
+                                    style={{ marginTop: '8px', width: '120px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ddd' }}
+                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                />
+                            </div>
+                        ) : null}
+                    </fieldset>
+
                     <div className="form-actions">
                         <button type="submit" className="save-button">Save Changes</button>
-                        <button type="button" onClick={() => { setIsEditing(false); setProfData(initialData); }} className="cancel-button">Cancel</button>
+                        <button type="button" onClick={() => { setIsEditing(false); setFormData(initialData); }} className="cancel-button">Cancel</button>
                     </div>
                 </form>
             ) : (
                 <div className="info-grid">
-                    <div><strong>CGPA:</strong><p>{initialData.cgpa}</p></div>
-                    <div><strong>Arrears:</strong><p>{initialData.arrears}</p></div>
-                    <div className="full-width"><strong>Skills:</strong><p>{Array.isArray(initialData.skills) && initialData.skills.length > 0 ? initialData.skills.join(', ') : 'Not specified'}</p></div>
-                    
-                    {/* --- FIX: Added this block to display coding links --- */}
-                    <div className="full-width">
-                        <strong>Coding Profile Links:</strong>
-                        <p>{initialData.codingLinks || 'Not specified'}</p>
+                    {/* 2. Added Photo and Resume to the 'view' mode */}
+                    <strong>Profile picture:</strong>
+                        <p>
+                            {initialData.photoUrl ? 
+                                <a href={initialData.photoUrl} target="_blank" rel="noopener noreferrer">View Photo</a> 
+                                : 'N/A'}
+                        </p>
+                    <div>
+                        <strong>Resume:</strong>
+                        <p>
+                            {initialData.resumeUrl ? 
+                                <a href={initialData.resumeUrl} target="_blank" rel="noopener noreferrer">View Resume</a> 
+                                : 'N/A'}
+                        </p>
                     </div>
-
-                    <div className="full-width"><strong>Resume:</strong><p><a href={`http://localhost:3002/${initialData.resume}`} target="_blank" rel="noopener noreferrer">View Resume</a></p></div>
+                    <div><strong>GitHub:</strong><p>{initialData.codingProfiles?.github || 'N/A'}</p></div>
+                    <div><strong>LeetCode:</strong><p>{initialData.codingProfiles?.leetcode || 'N/A'}</p></div>
+                    <div><strong>Japanese:</strong><p>{initialData.languages?.japanese?.knows ? `Yes (${initialData.languages.japanese.level || 'N/A'})` : 'No'}</p></div>
+                    <div><strong>German:</strong><p>{initialData.languages?.german?.knows ? `Yes (${initialData.languages.german.level || 'N/A'})` : 'No'}</p></div>
                 </div>
             )}
         </div>
     );
 };
 
-export default ProfessionalInfo;
+export default ProfessionalDetails;

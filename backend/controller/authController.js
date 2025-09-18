@@ -1,67 +1,67 @@
-const User = require('../models/user'); 
+const User = require('../models/user.js');
 const jwt = require('jsonwebtoken');
 const Admin = require('../models/admin');
 const { JWT_USER_SECRET , JWT_ADMIN_SECRET } = require('../.config/config')
 
+// Generate JWT
+const generateToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+        expiresIn: '30d',
+    });
+};
+
+// @desc    Register a new user
+// @route   POST /api/auth/register
 exports.register = async (req, res) => {
+    const { firstName, middleName, lastName, collegeEmail, password } = req.body;
+
+    // Basic validation
+    if (!firstName || !lastName || !collegeEmail || !password) {
+        return res.status(400).json({ message: 'Please enter all required fields.' });
+    }
+
     try {
         // Check if user already exists
-        const userExists = await User.findOne({ email: req.body.email });
+        const userExists = await User.findOne({ collegeEmail });
         if (userExists) {
-            return res.status(400).json({ message: "User with this email already exists." });
-        }
-        
-        // The resume file path is available from Multer in req.file
-        if (!req.file) {
-            return res.status(400).json({ message: "Resume file is required." });
+            return res.status(400).json({ message: 'User with this email already exists.' });
         }
 
-        // Convert comma-separated skills string into an array
-        const skillsArray = req.body.skills ? req.body.skills.split(',').map(skill => skill.trim()) : [];
+        // Construct fullName
+        const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
 
-        const newUser = new User({
-            fullName: req.body.fullName,
-            email: req.body.email,
-            password: req.body.password,
-            year: req.body.year,
-            department: req.body.department,
-            cgpa: req.body.cgpa,
-            arrears: req.body.arrears,
-            codingLinks: req.body.codingLinks,
-            skills: skillsArray,
-            resume: req.file.path // Store the path to the uploaded file
+        // Create new user (only with the fields from the signup form)
+        const user = await User.create({
+            firstName,
+            middleName,
+            lastName,
+            fullName,
+            collegeEmail,
+            password,
+            // All other fields will use defaults or be empty as per the schema
         });
 
-        const savedUser = await newUser.save();
+        // Generate token
+        const token = generateToken(user._id);
+
 
         const token = jwt.sign({ id: savedUser._id, role: savedUser.role }, JWT_USER_SECRET, {
             expiresIn: '1h'
         });
 
-        // --- NEW: Send back the token and user data ---
+
         res.status(201).json({
-        status: 'success',
-        message: "User registered successfully!",
-        token,
-        data: {
-            id: savedUser._id,
-            name: savedUser.fullName,
-            email: savedUser.email,
-            role: savedUser.role,
-            codingLinks: savedUser.codingLinks
-        }
-    });
+            message: 'User registered successfully!',
+            token,
+            data: user
+        });
 
     } catch (error) {
-        // Handle validation errors from Mongoose
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({ message: error.message });
-        }
-        console.error(error);
-        res.status(500).json({ message: "Server error during registration." });
+        console.error("Registration Error:", error);
+        res.status(500).json({ message: 'Server error during registration.', error: error.message });
     }
-
 };
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -134,4 +134,5 @@ exports.login = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Server error during login." });
   }
+
 };

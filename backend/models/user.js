@@ -2,80 +2,92 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-    fullName: {
+    firstName: { type: String, required: true, trim: true },
+    middleName: { type: String, trim: true },
+    lastName: { type: String, required: true, trim: true },
+    fullName: { type: String, trim: true },
+    collegeEmail: {
         type: String,
-        required: [true, 'Full name is required.'],
-        trim: true
-    },
-    email: {
-        type: String,
-        required: [true, 'Email is required.'],
+        required: true,
         unique: true,
         lowercase: true,
         trim: true,
-        // Regex to validate that the email is an official college email
         match: [/^[a-zA-Z0-9.]+@kpriet\.ac\.in$/, 'Please use your official KPRIET email.']
     },
-    password: {
+    password: { type: String, required: true, select: false },
+    role: { type: String, enum: ['student', 'admin'], default: 'student' },
+    isProfileComplete: { type: Boolean, default: false },
+    universityRegNumber: {
         type: String,
-        required: [true, 'Password is required.'],
-        minlength: [6, 'Password must be at least 6 characters long.'],
-        select: false // Prevents password from being sent in queries by default
+        unique: true,
+       sparse: true,
+        match: [/^\d{16}$/, 'University Reg Number must be exactly 16 digits.']
     },
-    role: {
+    rollNo: { type: String,unique: true,
+        sparse: true, trim: true },
+    dob: { type: Date },
+    gender: { type: String, enum: ['Male', 'Female', 'Other'] },
+    nationality: { type: String, trim: true },
+    panNumber: { type: String, trim: true, uppercase: true },
+    aadharNumber: { type: String, trim: true },
+    mobileNumber: { type: String },
+    personalEmail: { type: String, unique: true, sparse: true, lowercase: true },
+    dept: {
         type: String,
-        enum: ['student', 'admin'],
-        default: 'student'
+        enum: ['AIDS', 'BME', 'CHEM', 'CIVIL', 'CSE', 'AIML', 'Cyber Security', 'CSBS', 'ECE', 'EEE', 'IT', 'Mechanical', 'Mechatronics']
     },
-    year: {
-        type: Number,
-        enum: [1, 2, 3, 4],
-        required: [true, 'Year of study is required.']
+    quota: { type: String, enum: ['Management Quota(MQ)', 'Government Quota(GQ)'] },
+    passoutYear: { type: Number },
+    historyOfArrears: { type: Number, default: 0 },
+    currentArrears: { type: Number, default: 0 },
+    ugCgpa: { type: Number },
+    residence: { type: String, enum: ['Hostel', 'Day Scholar'] },
+    education: {
+        tenth: {
+            percentage: { type: Number },
+            board: { type: String, enum: ['State', 'CBSE', 'ICSC', 'NEB', 'others'] },
+            passingYear: { type: Number }
+        },
+        twelfth: {
+            percentage: { type: Number },
+            passingYear: { type: Number }
+        },
+        diploma: {
+            percentage: { type: Number },
+            passingYear: { type: Number }
+        }
     },
-    department: {
-        type: String,
-        enum: ['IT', 'CSE', 'ECE', 'EEE', 'MECH', 'CIVIL'],
-        required: [true, 'Department is required.']
+    languages: {
+        japanese: {
+            knows: { type: Boolean, default: false },
+            level: { type: String, enum: ['N5', 'N4', 'N3', 'N2', 'N1', 'Not Applicable'] }
+        },
+        german: {
+            knows: { type: Boolean, default: false },
+            level: { type: String, enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Not Appeared', 'Not Applicable'] }
+        },
     },
-    cgpa: {
-        type: Number,
-        required: [true, 'CGPA is required.']
+    address: {
+        city: { type: String, trim: true },
+        state: { type: String, trim: true }
     },
-    arrears: {
-        type: Number,
-        required: true,
-        default: 0
-    },
-    resume: {
-        type: String, // Will store the path or URL to the uploaded PDF
-        required: [true, 'Resume is required.']
-    },
-    codingLinks: {
-        type: String,
-        trim: true
-    },
-    skills: {
-        type: [String] // Storing skills as an array of strings
-    },
-    isVerified: {
-        type: Boolean,
-        default: false
+    photoUrl: { type: String },
+    resumeUrl: { type: String },
+    codingProfiles: {
+        leetcode: { type: String, trim: true },
+        codeforces: { type: String, trim: true },
+        hackerrank: { type: String, trim: true },
+        geeksforgeeks: { type: String, trim: true },
+        github: { type: String, trim: true }
     }
-}, {
-    // This option adds `createdAt` and `updatedAt` fields automatically
-    timestamps: true
-});
+}, { timestamps: true });
 
-// --- Mongoose Middleware: Hashing the password before saving ---
-// This function runs automatically before any 'save' operation on a User document.
 userSchema.pre('save', async function(next) {
-    // Only hash the password if it has been modified (or is new)
-    if (!this.isModified('password')) {
-        return next();
+    if (this.isModified('firstName') || this.isModified('middleName') || this.isModified('lastName')) {
+        this.fullName = [this.firstName, this.middleName, this.lastName].filter(Boolean).join(' ');
     }
-
+    if (!this.isModified('password')) return next();
     try {
-        // Generate a salt and hash the password
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
         next();
@@ -84,14 +96,9 @@ userSchema.pre('save', async function(next) {
     }
 });
 
-// --- Mongoose Instance Method: For comparing passwords ---
-// This method can be called on a user instance (e.g., user.comparePassword('plainTextPassword'))
 userSchema.methods.comparePassword = async function(candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
-
-// Create and export the User model
 const User = mongoose.model('User', userSchema);
-
 module.exports = User;

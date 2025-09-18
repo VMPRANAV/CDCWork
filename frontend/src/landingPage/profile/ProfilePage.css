@@ -1,0 +1,109 @@
+.profile-page-container {
+  max-width: 900px;
+  margin: auto;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 2px solid #dfe2e6;
+  margin-bottom: 2rem;
+}
+
+.tab-button {
+  padding: 1rem 1.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4a5568;
+  position: relative;
+  top: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-button.active {
+  color: #007aff;
+  border-bottom-color: #007aff;
+}
+
+.profile-card {
+background: #ffffff;
+border-radius: 12px;
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+padding: 1.5rem 2rem;
+margin-bottom: 2rem;
+}
+
+.card-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+border-bottom: 1px solid #e0e0e0;
+padding-bottom: 1rem;
+margin-bottom: 1.5rem;
+}
+
+.card-header h3 { margin: 0; color: #1c1c1e; }
+
+.edit-button, .save-button, .cancel-button {
+border: none;
+padding: 8px 16px;
+border-radius: 8px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.edit-button { background-color: #f0f0f0; color: #333; }
+.save-button { background-color: #007aff; color: white; }
+.cancel-button { background-color: #e0e0e0; color: #333; }
+
+.info-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 1.5rem;
+}
+.info-grid div { line-height: 1.5; }
+.info-grid strong { color: #6a6a6f; font-size: 14px; display: block; }
+.info-grid p { margin: 0; color: #1c1c1e; font-size: 16px; }
+.info-grid .full-width {
+grid-column: 1 / -1;
+}
+
+.profile-form { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+
+.profile-form .full-width {
+  grid-column: 1 / -1;
+}
+
+.profile-form input, .profile-form select, .profile-form textarea {
+width: 100%;
+padding: 12px 15px;
+border: 1px solid #c7c7cc;
+border-radius: 8px;
+font-size: 16px;
+font-family: inherit;
+}
+.profile-form .form-actions {
+grid-column: 1 / -1;
+display: flex;
+gap: 1rem;
+margin-top: 1rem;
+}
+
+.profile-form fieldset {
+  grid-column: 1 / -1;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.profile-form legend {
+  padding: 0 0.5rem;
+  font-weight: 600;
+  color: #3c3c43;
+}
