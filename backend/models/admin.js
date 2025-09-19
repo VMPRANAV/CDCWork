@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 // Admin Schema
 const adminSchema = new mongoose.Schema(
   {
-    email: {
+    collegeEmail: {
       type: String,
       required: [true, "Email is required"],
       unique: true,
