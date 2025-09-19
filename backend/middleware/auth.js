@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/user.js"); // Make sure this path is correct
+const User = require("../models/user.js");
+const Admin = require("../models/admin.js"); // Add this import
 const { JWT_USER_SECRET, JWT_ADMIN_SECRET } = require("../.config/config.js");
+
 exports.protect = async (req, res, next) => {
   let token;
 
@@ -19,12 +21,18 @@ exports.protect = async (req, res, next) => {
     if (req.headers.role === "user") {
       const decoded = jwt.verify(token, JWT_USER_SECRET);
       req.user = await User.findById(decoded.id).select("-password");
-      next();
     } else {
       const decoded = jwt.verify(token, JWT_ADMIN_SECRET);
-      req.user = await User.findById(decoded.id).select("-password");
-      next();
+      // Use Admin model instead of User model for admin authentication
+      req.user = await Admin.findById(decoded.id).select("-password");
     }
+
+    // Check if user exists after database lookup
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authorized, user not found" });
+    }
+
+    next();
   } catch (error) {
     res.status(401).json({ message: "Not authorized, token failed" });
   }
@@ -32,9 +40,10 @@ exports.protect = async (req, res, next) => {
 
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    // Add null check for req.user
+    if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({
-        message: `User role '${req.user.role}' is not authorized to access this route.`,
+        message: `User role '${req.user?.role || 'unknown'}' is not authorized to access this route.`,
       });
     }
     next();

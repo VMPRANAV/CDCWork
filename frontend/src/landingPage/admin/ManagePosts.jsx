@@ -50,16 +50,18 @@ const ManagePosts = () => {
             setActionMsg('You must be logged in as an admin.');
             return;
         }
+        const config = { 
+            headers: { 
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                role: "admin"
+            } 
+        };
         try {
             await axios.put(
                 `http://localhost:3002/api/posts/${editId}`,
-                editData,
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
+                editData, 
+                config
             );
             setActionMsg('Post updated successfully!');
             setEditId(null);
@@ -78,14 +80,15 @@ const ManagePosts = () => {
             setActionMsg('You must be logged in as an admin.');
             return;
         }
+        const config = { 
+            headers: { 
+                Authorization: `Bearer ${token}`,
+                role: "admin"
+            } 
+        };
         try {
             await axios.delete(
-                `http://localhost:3002/api/posts/${id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
+                `http://localhost:3002/api/posts/${id}`,config
             );
             setActionMsg('Post deleted successfully!');
             fetchPosts();

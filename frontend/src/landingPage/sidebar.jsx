@@ -64,7 +64,7 @@ const Sidebar = () => {
                         {userRole === 'admin' && (
                             <>
                                 <li>
-                                    <NavLink to="/admin/students">
+                                    <NavLink to="/admin/dashboard">
                                         <FaUsersCog /> <span>Manage Students</span>
                                     </NavLink>
                                 </li>

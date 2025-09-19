@@ -25,7 +25,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/student/profile" element={<ProfilePage />} />
            <Route path ="/student/ViewPost" element={<ViewPost/>}/>
           <Route path="/student/applications" element={<StudentApplications />} />
-          <Route path="/admin/students" element={<AdminDashboard />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/applications" element={<ManageApplications />} />
           
          
