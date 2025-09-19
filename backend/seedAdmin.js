@@ -21,12 +21,12 @@ async function main() {
   });
 
   try {
-    const email = await rl.question("Admin email: ");
+    const collegeEmail = await rl.question("Admin email: ");
     const password = await rl.question("Password (visible): ");
 
     rl.close();
 
-    const response = await Admin.findOne({email});
+    const response = await Admin.findOne({collegeEmail});
     if(response ){
         console.log("Admin already Exist");
         return;
@@ -34,7 +34,7 @@ async function main() {
 
 
     const admin = new Admin({
-        email,
+        collegeEmail,
         password,
         role : "admin"
     })
@@ -44,7 +44,7 @@ async function main() {
     console.log("Admin user created/updated:", {
       id: admin._id,
       name: admin.name,
-      email: admin.email,
+      collegeEmail: admin.collegeEmail,
       role: admin.role,
     });
   } catch (e) {
