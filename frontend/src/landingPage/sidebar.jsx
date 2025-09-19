@@ -38,8 +38,8 @@ const Sidebar = () => {
                         {userRole === 'student' && (
                             <>
                                 <li>
-                                    <NavLink to="/student/dashboard">
-                                        <FaTachometerAlt /> <span>Dashboard</span>
+                                    <NavLink to="/student/availableJob">
+                                        <FaTachometerAlt /> <span>Job Listings</span>
                                     </NavLink>
                                 </li>
                                 <li>
@@ -76,6 +76,11 @@ const Sidebar = () => {
                                 <li>
                                     <NavLink to="/admin/Post">
                                     <FaPaperPlane/><span> Posts</span>
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink to="/admin/createJob">
+                                    <FaPaperPlane/><span> Create Job</span>
                                     </NavLink>
                                 </li>
                                 {/* Add more admin-specific links here in the future */}
