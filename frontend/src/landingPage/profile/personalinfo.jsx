@@ -10,7 +10,7 @@ const PersonalDetails = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             const token = localStorage.getItem('authToken');
-            const config = { headers: { Authorization: `Bearer ${token}` } };
+            const config = { headers: { Authorization: `Bearer ${token}`, role:"user" } };
             try {
                 const { data } = await axios.get('http://localhost:3002/api/users/profile', config);
                 setFormData(data);
