@@ -22,7 +22,7 @@ const ProfessionalDetails = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             const token = localStorage.getItem('authToken');
-            const config = { headers: { Authorization: `Bearer ${token}` } };
+            const config = { headers: { Authorization: `Bearer ${token}`, role: "user" }};
             try {
                 const { data } = await axios.get('http://localhost:3002/api/users/profile', config);
                 const normalized = normalizeData(data);
@@ -59,7 +59,7 @@ const ProfessionalDetails = () => {
     const handleSave = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('authToken');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const config = { headers: { Authorization: `Bearer ${token}`, role: "user" } };
         try {
             const { data } = await axios.put('http://localhost:3002/api/users/profile', formData, config);
             const normalized = normalizeData(data);
