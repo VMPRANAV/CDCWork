@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema({
             board: { type: String, enum: ['State', 'CBSE', 'ICSC', 'NEB', 'others'] },
             passingYear: { type: Number }
         },
-        twelfth: {
+        twelth: {
             percentage: { type: Number },
             passingYear: { type: Number }
         },

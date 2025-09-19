@@ -3,12 +3,6 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../models/admin');
 const { JWT_USER_SECRET , JWT_ADMIN_SECRET } = require('../.config/config')
 
-// Generate JWT
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: '30d',
-    });
-};
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -41,11 +35,9 @@ exports.register = async (req, res) => {
             // All other fields will use defaults or be empty as per the schema
         });
 
-        // Generate token
-        const token = generateToken(user._id);
 
 
-        const token = jwt.sign({ id: savedUser._id, role: savedUser.role }, JWT_USER_SECRET, {
+        const token = jwt.sign({ id: user._id, role: user.role }, JWT_USER_SECRET, {
             expiresIn: '1h'
         });
 
@@ -64,21 +56,22 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    console.log(req.body);
+    const { collegeEmail, password } = req.body;
 
     // 1. Check if email and password exist
-    if (!email || !password) {
+    if (!collegeEmail || !password) {
       return res
         .status(400)
         .json({ message: "Please provide email and password." });
     }
 
     // 2. Check if user exists
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ collegeEmail }).select("+password");
 
     // 3. If not a user, check if admin exists
     if (!user) {
-      const admin = await Admin.findOne({ email }).select("+password");
+      const admin = await Admin.findOne({ collegeEmail }).select("+password");
 
       if (!admin) {
         return res.status(401).json({ message: "Invalid credentials." });
@@ -102,7 +95,7 @@ exports.login = async (req, res) => {
         token: adminToken,
         data: {
           id: admin._id,
-          email: admin.email,
+          collegeEmail: admin.collegeEmail,
           role: admin.role,
         },
       });
@@ -125,7 +118,7 @@ exports.login = async (req, res) => {
       data: {
         id: user._id,
         name: user.fullName,
-        email: user.email,
+        collegeEmail: user.collegeEmail,
         role: user.role,
         codingLinks: user.codingLinks,
       },
