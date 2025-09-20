@@ -15,6 +15,31 @@ exports.createJob = async (req, res) => {
     }
 };
 
+exports.getJobs = async (req, res) => {
+    try {
+        const open_jobs = await Job.find({
+            status : 'OPEN'
+        })
+        const inProg_jobs = await Job.find({
+          status: "IN_PROGRESS",
+        });
+        const closed_jobs = await Job.find({
+          status: "CLOSED",
+        });
+        if (!jobs) {
+            return res.status(404).json({ message: 'No active jobs found' });
+        }
+        
+        res.status(200).json({
+            open : open_jobs,
+            in_progress : inProg_jobs,
+            closed : closed_jobs
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching jobs', error: error.message });
+    }
+}
+
 // @desc    Student gets a list of jobs they are eligible for
 exports.getEligibleJobs = async (req, res) => {
     try {
