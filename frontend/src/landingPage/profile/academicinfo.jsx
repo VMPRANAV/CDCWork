@@ -7,14 +7,14 @@ const normalizeData = (data) => ({
     ...data,
     education: {
         tenth: data.education?.tenth || {},
-        twelfth: data.education?.twelfth || {},
+        twelth: data.education?.twelth || {}, // Fixed: was 'twelfth' but should be 'twelth'
         diploma: data.education?.diploma || {},
     }
 });
 
 const AcademicDetails = () => {
-    const [formData, setFormData] = useState({ education: { tenth: {}, twelfth: {}, diploma: {} } });
-    const [initialData, setInitialData] = useState({ education: { tenth: {}, twelfth: {}, diploma: {} } });
+    const [formData, setFormData] = useState({ education: { tenth: {}, twelth: {}, diploma: {} } }); // Fixed: was 'twelfth'
+    const [initialData, setInitialData] = useState({ education: { tenth: {}, twelth: {}, diploma: {} } }); // Fixed: was 'twelfth'
     const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
@@ -130,8 +130,12 @@ const AcademicDetails = () => {
 
                     <fieldset className="full-width">
                          <legend>12th Grade</legend>
-                         <input name="percentage" type="number" placeholder="Percentage" value={formData.education.twelfth.percentage || ''} onChange={(e) => handleNestedChange(e, 'twelfth')} />
-                         <input name="passingYear" type="number" placeholder="Passing Year" value={formData.education.twelfth.passingYear || ''} onChange={(e) => handleNestedChange(e, 'twelfth')} />
+                         <input name="percentage" type="number" placeholder="Percentage" value={formData.education.twelth.percentage || ''} onChange={(e) => handleNestedChange(e, 'twelth')} />
+                         <select name="board" value={formData.education.twelth.board || ''} onChange={(e) => handleNestedChange(e, 'twelth')}>
+                             <option value="">Select Board</option>
+                             {['State', 'CBSE', 'ICSC', 'NEB', 'others'].map(b => <option key={b} value={b}>{b}</option>)}
+                         </select>
+                         <input name="passingYear" type="number" placeholder="Passing Year" value={formData.education.twelth.passingYear || ''} onChange={(e) => handleNestedChange(e, 'twelth')} />
                     </fieldset>
                     
                      <fieldset className="full-width">
@@ -154,7 +158,7 @@ const AcademicDetails = () => {
                     <div><strong>Passout Year:</strong><p>{initialData.passoutYear || 'N/A'}</p></div>
                     <div><strong>UG CGPA:</strong><p>{initialData.ugCgpa || 'N/A'}</p></div>
                     <div className="full-width"><strong>10th Grade:</strong><p>{initialData.education?.tenth?.percentage ? `${initialData.education.tenth.percentage}% (${initialData.education.tenth.board})` : 'N/A'}</p></div>
-                    <div className="full-width"><strong>12th Grade:</strong><p>{initialData.education?.twelfth?.percentage ? `${initialData.education.twelfth.percentage}%` : 'N/A'}</p></div>
+                    <div className="full-width"><strong>12th Grade:</strong><p>{initialData.education?.twelth?.percentage ? `${initialData.education.twelth.percentage}% (${initialData.education.twelth.board})` : 'N/A'}</p></div>
                  </div>
             )}
         </div>

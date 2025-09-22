@@ -78,11 +78,6 @@ const Sidebar = () => {
                                     <FaPaperPlane/><span> Posts</span>
                                     </NavLink>
                                 </li>
-                                <li>
-                                    <NavLink to="/admin/createJob">
-                                    <FaPaperPlane/><span> Create Job</span>
-                                    </NavLink>
-                                </li>
                                 {/* Add more admin-specific links here in the future */}
                             </>
                         )}

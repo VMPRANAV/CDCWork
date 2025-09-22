@@ -19,7 +19,9 @@ exports.getStudentApplications = async (req, res) => {
 exports.getMyApplications = async (req, res) => {
     try {
         // req.user.id comes from your 'protect' middleware
-        const applications = await Application.find({ student: req.user.id });
+        const applications = await Application.find({ student: req.user.id })
+            .populate('job', 'companyName jobTitle jobDescription')
+            .sort({ appliedDate: -1 });
         res.status(200).json(applications);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
@@ -30,19 +32,43 @@ exports.getMyApplications = async (req, res) => {
 // @route   POST /api/applications
 exports.createApplication = async (req, res) => {
     try {
-        const { companyName, jobTitle } = req.body;
+        const { jobId } = req.body;
 
-        if (!companyName || !jobTitle) {
-            return res.status(400).json({ message: 'Please provide company name and job title.' });
+        if (!jobId) {
+            return res.status(400).json({ message: 'Please provide jobId.' });
+        }
+
+        // Check if student is eligible for this job
+        const job = await require('../models/job.model').findById(jobId);
+        if (!job) {
+            return res.status(404).json({ message: 'Job not found.' });
+        }
+
+        // Check if student is in the eligible students list
+        if (!job.eligibleStudents.includes(req.user.id)) {
+            return res.status(403).json({ message: 'You are not eligible for this job.' });
+        }
+
+        // Check if student has already applied to this job
+        const existingApplication = await Application.findOne({
+            student: req.user.id,
+            job: jobId
+        });
+
+        if (existingApplication) {
+            return res.status(400).json({ message: 'You have already applied to this job.' });
         }
 
         const application = new Application({
-            companyName,
-            jobTitle,
-            student: req.user.id // Assign to the logged-in student
+            student: req.user.id,
+            job: jobId
         });
 
         const createdApplication = await application.save();
+
+        // Populate job details for response
+        await createdApplication.populate('job', 'companyName jobTitle');
+
         res.status(201).json(createdApplication);
 
     } catch (error) {
@@ -78,7 +104,8 @@ exports.updateApplication = async (req, res) => {
 exports.getAllApplications = async (req, res) => {
     try {
         const applications = await Application.find({})
-            .populate('student', 'fullName') // This gets the student's name from the User collection
+            .populate('student', 'fullName collegeEmail dept') // This gets the student's name from the User collection
+            .populate('job', 'companyName jobTitle') // This gets job details
             .sort({ createdAt: -1 });
         res.status(200).json(applications);
     } catch (error) {
