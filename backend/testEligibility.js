@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const User = require('./models/user.js');
+const User = require('./models/user.model');
 const Job = require('./models/job.model.js');
 
 async function testEligibility() {

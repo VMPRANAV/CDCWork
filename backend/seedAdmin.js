@@ -2,8 +2,8 @@ const {MONGO_URL} = require('./.config/config')
 
 const mongoose = require("mongoose");
 const readline = require("readline/promises");
-const Admin = require('./models/admin');
-const User = require('./models/user');
+const Admin = require('./models/admin.model');
+const User = require('./models/user.model');
 
 const MONGO = MONGO_URL || "mongodb://127.0.0.1:27017/CDCWork";
 

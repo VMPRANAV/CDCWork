@@ -6,11 +6,11 @@ const path = require('path');
 
 
 // Import routes
-const authRoutes = require('./routes/authRoute');
-const userRoutes = require('./routes/userRoutes');
+const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
 const applicationRoutes = require('./routes/application.routes');
-const postRoutes = require('./routes/postRoutes');
-const jobRoutes = require('./routes/jobRoutes');
+const postRoutes = require('./routes/post.routes');
+const jobRoutes = require('./routes/job.routes');
 
 const app = express();
 

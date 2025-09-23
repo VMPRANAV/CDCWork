@@ -2,10 +2,10 @@
 
 const express = require('express');
 const router = express.Router();
-const { createPost, getAllPosts,getPostById,  updatePost, deletePost} = require('../controller/postController');
+const { createPost, getAllPosts,getPostById,  updatePost, deletePost} = require('../controller/post.controller');
 
 // Import your excellent middleware
-const { protect, authorize } = require('../middleware/auth'); 
+const { protect, authorize } = require('../middleware/auth.middleware'); 
 
 // --- PUBLIC ROUTES ---
 router.get('/', getAllPosts);

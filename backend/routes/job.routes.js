@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { createJob, getEligibleJobs, getJobs, getEligibleStudentsForJob, updateJob } = require('../controller/job.controller');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth.middleware');
 
 // Admin route to create a new job
 router.route('/').post(protect, authorize('admin'), createJob);

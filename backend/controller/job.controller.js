@@ -1,5 +1,5 @@
 const Job = require('../models/job.model');
-const User = require('../models/user.js');
+const User = require('../models/user.model');
 
 // Helper function to check if a student meets job eligibility criteria
 const checkStudentEligibility = (student, criteria) => {
