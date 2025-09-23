@@ -6,18 +6,16 @@ const postSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-   
     description: {
         type: String,
         required: true
     },
-    
-    createdAt: {
-        type: Date,
-        default: Date.now
+    postedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User', // Links to the admin who created the post
+        required: true
     }
-});
+}, { timestamps: true }); // Automatically adds createdAt and updatedAt
 
 const Post = mongoose.model('Post', postSchema);
-
 module.exports = Post;
