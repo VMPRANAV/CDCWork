@@ -1,4 +1,4 @@
-const Post = require('../models/postModel');
+const Post = require('../models/post.model');
 
 // Only handles `title` and `description` to match your model
 const createPost = async (req, res) => {

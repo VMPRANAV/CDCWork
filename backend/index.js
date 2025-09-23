@@ -6,10 +6,11 @@ const path = require('path');
 
 
 // Import routes
-const authRoutes = require('./routes/authRoute');
-const userRoutes = require('./routes/userRoutes');
+const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
 const applicationRoutes = require('./routes/application.routes');
-const postRoutes = require('./routes/postRoutes');
+const postRoutes = require('./routes/post.routes');
+const jobRoutes = require('./routes/job.routes');
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/jobs',jobRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);

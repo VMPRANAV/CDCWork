@@ -1,7 +1,7 @@
-const User = require('../models/user.js');
+const User = require('../models/user.model.js');
 const jwt = require('jsonwebtoken');
-const Admin = require('../models/admin');
-const { JWT_USER_SECRET , JWT_ADMIN_SECRET } = require('../.config/config')
+const Admin = require('../models/admin.model.js');
+const { JWT_USER_SECRET , JWT_ADMIN_SECRET } = require('../.config/config.js')
 
 
 // @desc    Register a new user
@@ -56,7 +56,7 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    console.log(req.body);
+
     const { collegeEmail, password } = req.body;
 
     // 1. Check if email and password exist

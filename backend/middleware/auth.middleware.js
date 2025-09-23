@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/user.js");
-const Admin = require("../models/admin.js"); // Add this import
+const User = require("../models/user.model.js");
+const Admin = require("../models/admin.model.js"); // Add this import
 const { JWT_USER_SECRET, JWT_ADMIN_SECRET } = require("../.config/config.js");
 
 exports.protect = async (req, res, next) => {

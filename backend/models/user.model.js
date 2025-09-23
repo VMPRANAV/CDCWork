@@ -50,6 +50,7 @@ const userSchema = new mongoose.Schema({
         },
         twelth: {
             percentage: { type: Number },
+            board: { type: String, enum: ['State', 'CBSE', 'ICSC', 'NEB', 'others'] },
             passingYear: { type: Number }
         },
         diploma: {

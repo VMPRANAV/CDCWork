@@ -53,8 +53,8 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         const results = students.filter(student =>
-            student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            student.email.toLowerCase().includes(searchTerm.toLowerCase())
+            (student.fullName && student.fullName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (student.collegeEmail && student.collegeEmail.toLowerCase().includes(searchTerm.toLowerCase()))
         );
         setFilteredStudents(results);
     }, [searchTerm, students]);
@@ -64,9 +64,6 @@ const AdminDashboard = () => {
 
     return (
         <div className="students-container">
-            {/* Add CreatePost form at the top */}
-       
-
             <div className="students-header">
                 <h2>All Student Details</h2>
                 <input
@@ -82,11 +79,11 @@ const AdminDashboard = () => {
                     <thead>
                         <tr>
                             <th>Full Name</th>
-                            <th>Email</th>
-                            <th>Department</th>
-                            <th>Year</th>
-                            <th>CGPA</th>
-                            <th>Arrears</th>
+                            <th>College Email</th>
+                            <th>Dept</th>
+                            <th>Passout Year</th>
+                            <th>UG CGPA</th>
+                            <th>Current Arrears</th>
                             <th>Coding Profiles</th>
                         </tr>
                     </thead>
@@ -94,31 +91,20 @@ const AdminDashboard = () => {
                         {filteredStudents.map((student) => (
                             <tr key={student._id}>
                                 <td>{student.fullName}</td>
-                                <td>{student.email}</td>
-                                <td>{student.department}</td>
-                                <td>{student.year}</td>
-                                <td>{student.cgpa}</td>
-                                <td>{student.arrears}</td>
+                                <td>{student.collegeEmail}</td>
+                                <td>{student.dept}</td>
+                                <td>{student.passoutYear}</td>
+                                <td>{student.ugCgpa}</td>
+                                <td>{student.currentArrears}</td>
                                 <td className="profile-links-cell">
-                                    {student.codingLinks ? (
-                                        student.codingLinks.split(',').filter(link => link.trim()).map((link, index) => {
-                                            let platform = 'Link';
-                                            try {
-                                                let fullLink = link.trim();
-                                                if (!fullLink.startsWith('http')) {
-                                                    fullLink = `https://${fullLink}`;
-                                                }
-                                                const url = new URL(fullLink);
-                                                platform = url.hostname.replace('www.', '').split('.')[0];
-                                                platform = platform.charAt(0).toUpperCase() + platform.slice(1);
-                                            } catch (e) { /* Ignore parsing errors */ }
-                                            
-                                            return (
-                                                <a key={index} href={link.trim()} target="_blank" rel="noopener noreferrer">
-                                                    {platform}
+                                    {student.codingProfiles && Object.values(student.codingProfiles).some(link => link) ? (
+                                        Object.entries(student.codingProfiles)
+                                            .filter(([, link]) => link)
+                                            .map(([platform, link]) => (
+                                                <a key={platform} href={link} target="_blank" rel="noopener noreferrer">
+                                                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
                                                 </a>
-                                            );
-                                        })
+                                            ))
                                     ) : (
                                         'N/A'
                                     )}

@@ -23,7 +23,13 @@ const jobSchema = new mongoose.Schema({
     
     rounds: [roundSchema], // Array to store interview rounds
 
-    applicants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    eligibleStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Students who meet eligibility criteria
+    applicants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    status : {
+        type : String,
+        enum : ['OPEN','IN_PROGRESS','CLOSED'],
+        default : 'OPEN'
+    }
 
 }, { timestamps: true });
 
