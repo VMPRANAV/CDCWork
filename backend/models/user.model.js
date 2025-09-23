@@ -65,7 +65,7 @@ const userSchema = new mongoose.Schema({
         },
         german: {
             knows: { type: Boolean, default: false },
-            level: { type: String, enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Not Appeared', 'Not Applicable'] }
+            level: { type: String, enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Not Applicable'] }
         },
     },
     address: {
@@ -80,7 +80,12 @@ const userSchema = new mongoose.Schema({
         hackerrank: { type: String, trim: true },
         geeksforgeeks: { type: String, trim: true },
         github: { type: String, trim: true }
-    }
+    },
+    isPlaced: { type: Boolean, default: false },
+    company: { type: String, trim: true },
+    package: { type: Number },
+    isProfileComplete : { type: Boolean, default: false },
+    placementDate: { type: Date }
 }, { timestamps: true });
 
 userSchema.pre('save', async function(next) {

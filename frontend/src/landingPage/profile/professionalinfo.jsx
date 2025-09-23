@@ -176,6 +176,14 @@ const ProfessionalDetails = () => {
                     <div><strong>LeetCode:</strong><p>{initialData.codingProfiles?.leetcode || 'N/A'}</p></div>
                     <div><strong>Japanese:</strong><p>{initialData.languages?.japanese?.knows ? `Yes (${initialData.languages.japanese.level || 'N/A'})` : 'No'}</p></div>
                     <div><strong>German:</strong><p>{initialData.languages?.german?.knows ? `Yes (${initialData.languages.german.level || 'N/A'})` : 'No'}</p></div>
+                    <div><strong>Placed:</strong><p>{initialData.isPlaced ? 'Yes' : 'No'}</p></div>
+                    {initialData.isPlaced && (
+                        <>
+                            <div><strong>Company:</strong><p>{initialData.company || 'N/A'}</p></div>
+                            <div><strong>Package:</strong><p>{initialData.package ? `${initialData.package} LPA` : 'N/A'}</p></div>
+                            <div><strong>Placement Date:</strong><p>{initialData.placementDate ? new Date(initialData.placementDate).toLocaleDateString() : 'N/A'}</p></div>
+                        </>
+                    )}
                 </div>
             )}
         </div>
