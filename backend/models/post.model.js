@@ -12,7 +12,7 @@ const postSchema = new mongoose.Schema({
     },
     postedBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Links to the admin who created the post
+        ref: 'Admin', // Links to the admin who created the post
         required: true
     }
 }, { timestamps: true }); // Automatically adds createdAt and updatedAt
