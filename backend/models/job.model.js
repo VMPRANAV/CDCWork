@@ -27,7 +27,12 @@ const jobSchema = new mongoose.Schema({
     },
 
     // --- Application Rounds ---
-    rounds: [roundSchema],
+    rounds: [{
+        roundName: { type: String, required: true },
+        date: { type: Date },
+        venue: { type: String },
+        attendance: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    }],
     
     // --- Management & Status ---
     postedBy: {
