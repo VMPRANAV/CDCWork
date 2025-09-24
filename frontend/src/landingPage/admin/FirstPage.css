@@ -1,8 +1,9 @@
 /* Main container for the dashboard */
 .dashboard-container {
     padding: 40px;
-    background-color: #f0f2f5; /* Light grey background */
+    background-color: #f0f2f5;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
 }
 
 .dashboard-title {
@@ -16,7 +17,7 @@
 .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 30px; /* Space between cards */
+    gap: 30px;
 }
 
 /* Styling for each individual department card */
@@ -30,7 +31,6 @@
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Hover effect to lift the card */
 .department-card:hover {
     transform: translateY(-10px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
@@ -39,5 +39,101 @@
 .card-title {
     margin: 0;
     font-size: 1.5rem;
-    color: #0056b3; /* A nice blue color for the text */
+    color: #0056b3;
+}
+
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    /* align-items: center; <-- We change this */
+    align-items: flex-start; /* Aligns the box to the top */
+    padding-top: 5vh; /* Gives some space from the top */
+    z-index: 1000;
+}
+
+.dialog-box {
+    background-color: white;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 600px;
+    
+    /* --- NEW: Add these three properties --- */
+    max-height: 90vh;      /* Prevents the box from being taller than 90% of the screen */
+    overflow-y: auto;      /* Adds a vertical scrollbar ONLY if needed */
+    display: flex;         /* Helps manage the button at the bottom */
+    flex-direction: column;
+}
+
+/* You might need to adjust the content's flex behavior if you use flexbox inside */
+.dialog-content {
+    /* This ensures the content area is what scrolls, not the button */
+    flex-grow: 1; 
+}
+
+.dialog-title {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 25px;
+    color: #0056b3;
+    font-size: 2rem;
+}
+
+.loading-text, .error-text {
+    font-size: 1.2rem;
+    color: #555;
+    text-align: center;
+    padding: 20px 0;
+}
+
+.error-text {
+    color: #d9534f; /* Red for errors */
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px 25px;
+    text-align: left;
+}
+
+.stat-item {
+    font-size: 1.1rem;
+    color: #333;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-item strong {
+    color: #0056b3;
+    font-size: 1.2rem;
+}
+
+.close-button {
+    display: block;
+    margin: 30px auto 0;
+    padding: 12px 40px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.close-button:hover {
+    background-color: #0056b3;
 }
