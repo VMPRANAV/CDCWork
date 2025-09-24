@@ -64,6 +64,11 @@ const Sidebar = () => {
                         {userRole === 'admin' && (
                             <>
                                 <li>
+                                    <NavLink to = "/admin/firstpage">
+                                        <FaUsersCog /> <span>First Page</span>
+                                    </NavLink>
+                                </li>
+                                <li>
                                     <NavLink to="/admin/dashboard">
                                         <FaUsersCog /> <span>Manage Students</span>
                                     </NavLink>
