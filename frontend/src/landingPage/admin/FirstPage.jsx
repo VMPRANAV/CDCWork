@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import './FirstPage.css';
 import axios from 'axios';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
+import { Doughnut, Bar } from 'react-chartjs-2';
+import { useMemo } from 'react';
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 
 const FirstPage = () => {
@@ -64,6 +69,37 @@ const FirstPage = () => {
         setError(null);
     };
 
+    const placementChartData = useMemo(() => {
+        const notPlaced = stats.totalStudents - stats.placedStudents;
+        return {
+            labels: ['Placed', 'Not Placed'],
+            datasets: [
+                {
+                    label: '# of Students',
+                    data: [stats.placedStudents, notPlaced > 0 ? notPlaced : 0],
+                    backgroundColor: ['#007bff', '#e9ecef'],
+                    borderColor: ['#0056b3', '#ced4da'],
+                    borderWidth: 1,
+                },
+            ],
+        };
+    }, [stats]);
+
+    const packageChartData = useMemo(() => {
+        return {
+            labels: ['Lowest Package', 'Average Package', 'Highest Package'],
+            datasets: [
+                {
+                    label: 'Package (in LPA)',
+                    data: [stats.minPackage, stats.avgPackage, stats.maxPackage],
+                    backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 1,
+                },
+            ],
+        };
+    }, [stats]);
+
     return (
         <div className="dashboard-container">
             <h1 className="dashboard-title">Department Placement Overview</h1>
@@ -108,6 +144,16 @@ const FirstPage = () => {
                                     <div className="stat-item">
                                         <span>Lowest Package:</span>
                                         <strong>{stats?.minPackage ?? 0} LPA</strong>
+                                    </div>
+                                    <div className="charts-container">
+                                        <div className="chart-wrapper">
+                                            <h3>Placement Distribution</h3>
+                                            <Doughnut data={placementChartData} />
+                                        </div>
+                                        <div className="chart-wrapper">
+                                            <h3>Package Overview (LPA)</h3>
+                                            <Bar data={packageChartData} options={{ indexAxis: 'y' }} />
+                                        </div>
                                     </div>
                                 </div>
                             ) : null}

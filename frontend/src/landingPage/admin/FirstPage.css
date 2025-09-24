@@ -42,7 +42,6 @@
     color: #0056b3;
 }
 
-/* Dialog styles */
 .dialog-overlay {
     position: fixed;
     top: 0;
@@ -52,7 +51,9 @@
     background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
-    align-items: center;
+    /* align-items: center; <-- We change this */
+    align-items: flex-start; /* Aligns the box to the top */
+    padding-top: 5vh; /* Gives some space from the top */
     z-index: 1000;
 }
 
@@ -63,6 +64,18 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     width: 90%;
     max-width: 600px;
+    
+    /* --- NEW: Add these three properties --- */
+    max-height: 90vh;      /* Prevents the box from being taller than 90% of the screen */
+    overflow-y: auto;      /* Adds a vertical scrollbar ONLY if needed */
+    display: flex;         /* Helps manage the button at the bottom */
+    flex-direction: column;
+}
+
+/* You might need to adjust the content's flex behavior if you use flexbox inside */
+.dialog-content {
+    /* This ensures the content area is what scrolls, not the button */
+    flex-grow: 1; 
 }
 
 .dialog-title {

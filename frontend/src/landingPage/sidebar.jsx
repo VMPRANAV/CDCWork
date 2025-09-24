@@ -65,7 +65,7 @@ const Sidebar = () => {
                             <>
                                 <li>
                                     <NavLink to = "/admin/firstpage">
-                                        <FaUsersCog /> <span>First Page</span>
+                                        <FaUsersCog /> <span>Dashboard</span>
                                     </NavLink>
                                 </li>
                                 <li>
