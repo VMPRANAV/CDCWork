@@ -13,6 +13,7 @@ import AppLayout from './landingPage/AppLayout';
 import ManagePosts from './landingPage/admin/ManagePosts';
 import AvailableJobs from './landingPage/dashboard/availableJob';
 import ManageApplications from './landingPage/admin/ManageApplications';
+import FirstPage from './landingPage/admin/FirstPage';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -27,6 +28,7 @@ createRoot(document.getElementById('root')).render(
            <Route path ="/student/ViewPost" element={<ViewPost/>}/>
           <Route path="/student/applications" element={<StudentApplications />} />
           <Route path="/student/availableJob" element={<AvailableJobs />} />
+          <Route path="/admin/firstpage" element={<FirstPage/>}/>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/Post"element={<ManagePosts/>}/>
           <Route path="/admin/applications" element={<ManageApplications />} />

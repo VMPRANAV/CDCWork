@@ -1,0 +1,43 @@
+/* Main container for the dashboard */
+.dashboard-container {
+    padding: 40px;
+    background-color: #f0f2f5; /* Light grey background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dashboard-title {
+    text-align: center;
+    margin-bottom: 40px;
+    color: #333;
+    font-size: 2.5rem;
+}
+
+/* Grid layout for the cards */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 30px; /* Space between cards */
+}
+
+/* Styling for each individual department card */
+.department-card {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 30px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Hover effect to lift the card */
+.department-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.card-title {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #0056b3; /* A nice blue color for the text */
+}
