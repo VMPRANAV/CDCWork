@@ -13,8 +13,8 @@ const departmentSchema = new mongoose.Schema({
     packages: {
         //array of strings
     }
-    
+
 }, { timestamps: true });
 
-const Application = mongoose.model('Application', applicationSchema);
-module.exports = Application;
+const Department = mongoose.model('Department', departmentSchema);
+module.exports = Department;
