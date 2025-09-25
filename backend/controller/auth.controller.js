@@ -16,6 +16,11 @@ exports.register = async (req, res) => {
 
     try {
         // Check if user already exists
+        const userExist = await Admin.findOne({ collegeEmail });
+        if (userExist) {
+            return res.status(400).json({ message: 'User with this email already exists.' });
+        }
+
         const userExists = await User.findOne({ collegeEmail });
         if (userExists) {
             return res.status(400).json({ message: 'User with this email already exists.' });
