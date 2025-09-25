@@ -1,4 +1,6 @@
 const User = require('../models/user.model');
+const { cloudinary } = require('../.config/config');
+const fs = require('fs');
 
 // @desc    Get user profile
 // @route   GET /api/users/profile
@@ -50,16 +52,37 @@ exports.uploadResume = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded.' });
         }
+
+        // Upload to Cloudinary as raw file
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            resource_type: "raw",
+            folder: "resumes",
+            public_id: `resume_${req.user._id}_${Date.now()}`,
+        });
+
         // Find the user and update their resumeUrl field
         const user = await User.findById(req.user._id);
-        user.resumeUrl = req.file.path; // The path where multer saved the file
+        user.resumeUrl = result.secure_url;
         await user.save();
+
+        // Clean up temporary file
+        fs.unlinkSync(req.file.path);
+
         res.status(200).json({ 
             message: 'Resume uploaded successfully', 
             resumeUrl: user.resumeUrl 
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Resume upload error:', error);
+        // Clean up temporary file if it exists
+        if (req.file && req.file.path) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (unlinkError) {
+                console.error('Error deleting temporary file:', unlinkError);
+            }
+        }
+        res.status(500).json({ message: 'Server error during resume upload' });
     }
 };
 
@@ -70,15 +93,41 @@ exports.uploadPhoto = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded.' });
         }
+
+        // Upload to Cloudinary as image
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            resource_type: "image",
+            folder: "profile_photos",
+            public_id: `photo_${req.user._id}_${Date.now()}`,
+            transformation: [
+                { width: 400, height: 400, crop: "limit" },
+                { quality: "auto" }
+            ]
+        });
+
+        // Find the user and update their photoUrl field
         const user = await User.findById(req.user._id);
-        user.photoUrl = req.file.path;
+        user.photoUrl = result.secure_url;
         await user.save();
+
+        // Clean up temporary file
+        fs.unlinkSync(req.file.path);
+
         res.status(200).json({ 
             message: 'Photo uploaded successfully', 
             photoUrl: user.photoUrl 
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Photo upload error:', error);
+        // Clean up temporary file if it exists
+        if (req.file && req.file.path) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (unlinkError) {
+                console.error('Error deleting temporary file:', unlinkError);
+            }
+        }
+        res.status(500).json({ message: 'Server error during photo upload' });
     }
 };
 
