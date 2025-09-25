@@ -251,6 +251,132 @@ fieldset legend {
     font-size: 14px;
     cursor: pointer;
 }
+.round-progress-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.round-progress-section h3,
+.advance-round-section h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #1c1c1e;
+}
+
+.round-progress-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.round-progress-item {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.round-progress-item.result-passed {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+.round-progress-item.result-failed {
+    border-color: #fecdd3;
+    background: #fef2f2;
+}
+
+.round-progress-item.result-in_progress {
+    border-color: #fde68a;
+    background: #fffbeb;
+}
+
+.round-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: #0f172a;
+    gap: 1rem;
+}
+
+.round-result {
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.round-attendance-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #374151;
+}
+
+.round-attendance-toggle input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.advance-round-section {
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.advance-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.advance-controls select {
+    min-width: 220px;
+    padding: 10px 14px;
+    border: 1px solid #dfe2e6;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.advance-controls select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.muted-text {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.action-btn.remove-btn {
+    color: #b91c1c;
+    background-color: #fee2e2;
+    border: 1px solid transparent;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.action-btn.remove-btn:hover {
+    background-color: #fecaca;
+    color: #7f1d1d;
+}
 
 .checkbox-label input[type="checkbox"] {
     margin: 0;
