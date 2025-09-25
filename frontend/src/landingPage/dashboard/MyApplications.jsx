@@ -43,8 +43,9 @@ const MyApplications = () => {
                             ? `In ${app.currentRound.roundName}`
                             : (statusRaw.replace(/_/g, ' '));
                         const statusClass = `status-${statusRaw.toLowerCase().replace(/\s+/g, '-')}`;
-                        const appliedDate = app.appliedDate ? new Date(app.appliedDate).toLocaleDateString() : 'Not available';
+                        const appliedDate = app.createdAt ? new Date(app.createdAt).toLocaleDateString() : 'Not available';
                         const currentRoundLabel = app.currentRound?.roundName || 'Not assigned yet';
+                        const lastUpdatedAt = app.updatedAt ? new Date(app.updatedAt).toLocaleString() : null;
 
                         return (
                             <div key={app._id} className="application-card">
@@ -53,6 +54,9 @@ const MyApplications = () => {
                                     <p className="company-name">{app.job?.companyName || 'Company Not Available'}</p>
                                     <p className="applied-date">Applied on: {appliedDate}</p>
                                     <p className="round-status">Current round: {currentRoundLabel}</p>
+                                    {lastUpdatedAt && (
+                                        <p className="last-updated">Last updated: {lastUpdatedAt}</p>
+                                    )}
                                     {app.job?.jobDescription && (
                                         <p className="job-description">
                                             {app.job.jobDescription.substring(0, 100)}...

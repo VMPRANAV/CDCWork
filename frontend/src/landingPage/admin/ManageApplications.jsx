@@ -1,26 +1,89 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 // We can reuse the CSS from the AllStudents page
 import './AdminDashboard.css';
 
 // This is a new component for the Modal
-const UpdateModal = ({ application, onClose, onUpdate }) => {
+const UpdateModal = ({
+    application,
+    onClose,
+    onUpdate,
+    onMarkAttendance,
+    onAdvanceRound,
+    jobRounds = []
+}) => {
     const [finalStatus, setFinalStatus] = useState(application.finalStatus || 'in_process');
     const [notes, setNotes] = useState(application.notes || '');
+    const [isSavingStatus, setIsSavingStatus] = useState(false);
+    const [attendanceLoadingRound, setAttendanceLoadingRound] = useState(null);
+    const [isAdvancing, setIsAdvancing] = useState(false);
 
-    const handleSubmit = (e) => {
+    useEffect(() => {
+        setFinalStatus(application.finalStatus || 'in_process');
+        setNotes(application.notes || '');
+    }, [application]);
+
+    const currentSequence = application.currentRoundSequence ?? 0;
+
+    const jobRoundMap = useMemo(() => {
+        const map = new Map();
+        jobRounds.forEach((round) => {
+            if (round?._id) {
+                map.set(round._id.toString(), round);
+            }
+        });
+        return map;
+    }, [jobRounds]);
+
+    const nextRoundOptions = useMemo(
+        () => jobRounds.filter((round) => (round.sequence ?? 0) > currentSequence),
+        [jobRounds, currentSequence]
+    );
+
+    const [selectedNextRound, setSelectedNextRound] = useState(nextRoundOptions[0]?._id || '');
+
+    useEffect(() => {
+        setSelectedNextRound(nextRoundOptions[0]?._id || '');
+    }, [nextRoundOptions]);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onUpdate(application._id, { finalStatus, notes });
+        if (isSavingStatus) {
+            return;
+        }
+        try {
+            setIsSavingStatus(true);
+            await onUpdate(application._id, { finalStatus, notes });
+        } finally {
+            setIsSavingStatus(false);
+        }
     };
 
-    const statusLabel = (value) => {
-        switch (value) {
-            case 'placed':
-                return 'Placed';
-            case 'rejected':
-                return 'Rejected';
-            default:
-                return 'In Process';
+    const handleAttendanceToggle = async (roundId, attended) => {
+        if (!roundId || !onMarkAttendance) {
+            return;
+        }
+        const roundKey = roundId.toString();
+        if (attendanceLoadingRound === roundKey) {
+            return;
+        }
+        try {
+            setAttendanceLoadingRound(roundKey);
+            await onMarkAttendance(application._id, roundId, attended);
+        } finally {
+            setAttendanceLoadingRound(null);
+        }
+    };
+
+    const handleAdvance = async () => {
+        if (!selectedNextRound || !onAdvanceRound || isAdvancing) {
+            return;
+        }
+        try {
+            setIsAdvancing(true);
+            await onAdvanceRound(application._id, selectedNextRound);
+        } finally {
+            setIsAdvancing(false);
         }
     };
 
@@ -36,27 +99,75 @@ const UpdateModal = ({ application, onClose, onUpdate }) => {
                     <h3>Round Progress</h3>
                     {application.roundProgress && application.roundProgress.length > 0 ? (
                         <ul className="round-progress-list">
-                            {application.roundProgress.map((entry) => (
-                                <li key={`${entry.round}-${entry.result}`} className={`round-progress-item result-${entry.result}`}>
-                                    <div>
-                                        <strong>{entry.round?.roundName || 'Round'}</strong>
-                                        {entry.round?.sequence !== undefined && ` (Round ${entry.round.sequence})`}
-                                    </div>
-                                    <div className="round-result">
-                                        Result: {entry.result}
-                                        {entry.attendance ? ' · Attended' : ' · Not Attended'}
-                                    </div>
-                                </li>
-                            ))}
+                            {application.roundProgress.map((entry) => {
+                                const roundId = entry.round?._id || entry.round;
+                                const roundKey = roundId?.toString();
+                                const roundDoc = (roundKey && jobRoundMap.get(roundKey)) || entry.round;
+                                const roundName = roundDoc?.roundName || entry.round?.roundName || 'Round';
+                                const roundSequence = roundDoc?.sequence ?? entry.round?.sequence;
+                                const isUpdatingAttendance = attendanceLoadingRound === roundKey;
+
+                                return (
+                                    <li
+                                        key={`${roundKey}-${entry.result}-${entry.attendance}`}
+                                        className={`round-progress-item result-${entry.result}`}
+                                    >
+                                        <div className="round-progress-header">
+                                            <strong>{roundName}</strong>
+                                            {roundSequence !== undefined && ` (Round ${roundSequence})`}
+                                        </div>
+                                        <div className="round-result">
+                                            Result: {entry.result}
+                                        </div>
+                                        <label className="round-attendance-toggle">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!entry.attendance}
+                                                onChange={(e) => handleAttendanceToggle(roundId, e.target.checked)}
+                                                disabled={isUpdatingAttendance}
+                                            />
+                                            {isUpdatingAttendance ? 'Updating...' : 'Attended'}
+                                        </label>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     ) : (
                         <p className="muted-text">No round activity recorded yet.</p>
                     )}
                 </div>
+                <div className="advance-round-section">
+                    <h3>Advance Application</h3>
+                    {nextRoundOptions.length > 0 ? (
+                        <div className="advance-controls">
+                            <select
+                                value={selectedNextRound}
+                                onChange={(e) => setSelectedNextRound(e.target.value)}
+                                disabled={isAdvancing}
+                            >
+                                {nextRoundOptions.map((round) => (
+                                    <option key={round._id} value={round._id}>
+                                        {round.sequence ? `Round ${round.sequence}: ` : ''}{round.roundName || 'Unnamed round'}
+                                    </option>
+                                ))}
+                            </select>
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={handleAdvance}
+                                disabled={!selectedNextRound || isAdvancing}
+                            >
+                                {isAdvancing ? 'Advancing...' : 'Move to Selected Round'}
+                            </button>
+                        </div>
+                    ) : (
+                        <p className="muted-text">No upcoming rounds available for this job.</p>
+                    )}
+                </div>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label>Final Status</label>
-                        <select value={finalStatus} onChange={(e) => setFinalStatus(e.target.value)}>
+                        <select value={finalStatus} onChange={(e) => setFinalStatus(e.target.value)} disabled={isSavingStatus}>
                             <option value="in_process">In Process</option>
                             <option value="rejected">Rejected</option>
                             <option value="placed">Placed</option>
@@ -67,13 +178,12 @@ const UpdateModal = ({ application, onClose, onUpdate }) => {
                         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows="3"></textarea>
                     </div>
                     <div className="modal-actions">
-                        <button type="submit" className="btn-primary">Save Changes</button>
+                        <button type="submit" className="btn-primary" disabled={isSavingStatus}>
+                            {isSavingStatus ? 'Saving...' : 'Save Changes'}
+                        </button>
                         <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
                     </div>
                 </form>
-                <p className="muted-text small-text">
-                    For attendance and round progression, use the dedicated actions within the application table.
-                </p>
             </div>
         </div>
     );
@@ -623,15 +733,12 @@ const ManageApplications = () => {
         fetchAllApplications();
     }, []);
     useEffect(() => {
-        // A safer filtering logic
-        const results = applications.filter(app => {
-            const term = searchTerm.toLowerCase();
-            
-            // Check each field for existence before trying to search it
-            const studentMatch = app.student?.fullName && app.student.fullName.toLowerCase().includes(term);
-            const companyMatch = app.companyName && app.companyName.toLowerCase().includes(term);
-            const jobMatch = app.jobTitle && app.jobTitle.toLowerCase().includes(term);
-    
+        const term = searchTerm.toLowerCase();
+        const results = applications.filter((app) => {
+            const studentMatch = app.student?.fullName?.toLowerCase().includes(term);
+            const companyMatch = app.job?.companyName?.toLowerCase().includes(term);
+            const jobMatch = app.job?.jobTitle?.toLowerCase().includes(term);
+
             return studentMatch || companyMatch || jobMatch;
         });
         setFilteredApplications(results);
@@ -659,10 +766,44 @@ const ManageApplications = () => {
         try {
             const { data: newApp } = await axios.put(`http://localhost:3002/api/applications/${appId}`, updatedData, config);
             // Update the application in the local state
-            setApplications(applications.map(app => (app._id === appId ? newApp : app)));
-            setSelectedApp(null); // Close the modal
+            setApplications((prev) => prev.map((app) => (app._id === appId ? newApp : app)));
+            setSelectedApp((prev) => (prev && prev._id === appId ? newApp : prev));
+            setSelectedApp(null);
         } catch (err) {
             setError("Update failed. Please try again.");
+        }
+    };
+
+    const handleMarkAttendance = async (appId, roundId, attended) => {
+        try {
+            const { data } = await axios.put(
+                `http://localhost:3002/api/applications/${appId}/attendance`,
+                { roundId, attended },
+                config
+            );
+            setApplications((prev) => prev.map((app) => (app._id === appId ? data : app)));
+            setSelectedApp((prev) => (prev && prev._id === appId ? data : prev));
+            return data;
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to update attendance.');
+            throw err;
+        }
+    };
+
+    const handleAdvanceRound = async (appId, nextRoundId) => {
+        try {
+            const { data } = await axios.post(
+                `http://localhost:3002/api/applications/${appId}/advance`,
+                { nextRoundId },
+                config
+            );
+            setApplications((prev) => prev.map((app) => (app._id === appId ? data : app)));
+            setSelectedApp((prev) => (prev && prev._id === appId ? data : prev));
+            setSelectedApp(null);
+            return data;
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to advance application.');
+            throw err;
         }
     };
 
@@ -736,9 +877,8 @@ const ManageApplications = () => {
                 try {
                     const { data } = await axios.get('http://localhost:3002/api/jobs', config);
                     const allJobs = [
-                        ...(data.open || []),
-                        ...(data.in_progress || []),
-                        ...(data.closed || [])
+                        ...(data.private || []),
+                        ...(data.public || [])
                     ];
                     setJobs(allJobs);
                 } catch (err) {
@@ -789,9 +929,9 @@ const ManageApplications = () => {
                     {filteredApplications.map((app) => (
                         <tr key={app._id}>
                             <td>{app.student?.fullName || 'N/A'}</td>
-                            <td>{app.companyName}</td>
-                            <td>{app.jobTitle}</td>
-                            <td>{app.status}</td>
+                            <td>{app.job?.companyName || 'N/A'}</td>
+                            <td>{app.job?.jobTitle || 'N/A'}</td>
+                            <td>{app.finalStatus?.replace('_', ' ') || 'N/A'}</td>
                             <td>
                                 <button className="update-btn" onClick={() => setSelectedApp(app)}>Update</button>
                             </td>
@@ -878,6 +1018,9 @@ const ManageApplications = () => {
                     application={selectedApp}
                     onClose={() => setSelectedApp(null)}
                     onUpdate={handleUpdate}
+                    onMarkAttendance={handleMarkAttendance}
+                    onAdvanceRound={handleAdvanceRound}
+                    jobRounds={(jobs.find((job) => job._id === selectedApp.job?._id)?.rounds) || []}
                 />
             )}
 

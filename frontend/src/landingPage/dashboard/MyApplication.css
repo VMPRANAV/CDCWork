@@ -119,6 +119,12 @@
     margin-top: 10px;
 }
 
+.last-updated {
+    font-size: 0.75rem;
+    color: #a0aec0;
+    margin-top: 4px;
+}
+
 /* Status Pill Styling */
 .status-pill {
     padding: 6px 12px;
