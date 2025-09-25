@@ -37,25 +37,34 @@ const MyApplications = () => {
 
             <div className="applications-list">
                 {applications.length > 0 ? (
-                    applications.map((app) => (
-                        <div key={app._id} className="application-card">
-                            <div className="card-content">
-                                <h3>{app.job?.jobTitle}</h3>
-                                <p className="company-name">{app.job?.companyName}</p>
-                                <p className="applied-date">
-                                    Applied on: {new Date(app.appliedDate).toLocaleDateString()}
-                                </p>
-                                {app.job?.jobDescription && (
-                                    <p className="job-description">
-                                        {app.job.jobDescription.substring(0, 100)}...
-                                    </p>
-                                )}
+                    applications.map((app) => {
+                        const statusRaw = app.currentRound?.roundName ? 'in_process' : (app.finalStatus || app.status || 'in_process');
+                        const statusLabel = app.currentRound?.roundName
+                            ? `In ${app.currentRound.roundName}`
+                            : (statusRaw.replace(/_/g, ' '));
+                        const statusClass = `status-${statusRaw.toLowerCase().replace(/\s+/g, '-')}`;
+                        const appliedDate = app.appliedDate ? new Date(app.appliedDate).toLocaleDateString() : 'Not available';
+                        const currentRoundLabel = app.currentRound?.roundName || 'Not assigned yet';
+
+                        return (
+                            <div key={app._id} className="application-card">
+                                <div className="card-content">
+                                    <h3>{app.job?.jobTitle || 'Job Title Not Available'}</h3>
+                                    <p className="company-name">{app.job?.companyName || 'Company Not Available'}</p>
+                                    <p className="applied-date">Applied on: {appliedDate}</p>
+                                    <p className="round-status">Current round: {currentRoundLabel}</p>
+                                    {app.job?.jobDescription && (
+                                        <p className="job-description">
+                                            {app.job.jobDescription.substring(0, 100)}...
+                                        </p>
+                                    )}
+                                </div>
+                                <div className={`status-pill ${statusClass}`}>
+                                    {statusLabel}
+                                </div>
                             </div>
-                            <div className={`status-pill ${app.status.toLowerCase().replace(' ', '-')}`}>
-                                {app.status}
-                            </div>
-                        </div>
-                    ))
+                        );
+                    })
                 ) : (
                     !loading && <p>You have not applied to any jobs yet. Visit the Available Jobs section to find opportunities.</p>
                 )}
