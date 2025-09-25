@@ -10,6 +10,7 @@ const postSchema = new mongoose.Schema({
         type: String,
         required: true
     }
+
 }, { timestamps: true }); // Automatically adds createdAt and updatedAt
 
 const Post = mongoose.model('Post', postSchema);

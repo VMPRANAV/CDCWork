@@ -3,6 +3,7 @@ const { PORT , MONGO_URL } = require('./.config/config');
 const mongoose = require("mongoose")
 const cors = require('cors');
 const path = require('path');
+const { startRoundProcessing } = require('./services/roundProcessing.service');
 
 
 // Import routes
@@ -23,12 +24,11 @@ app.use(express.urlencoded({ extended: true })); // To parse URL-encoded bodies
 // Make the 'uploads' folder publicly accessible
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-main()
-.then(() => console.log("MongoDB connected"))
-.catch(err => console.log(err));
+main().catch(err => console.error(err));
 
 async function main() {
     await mongoose.connect(MONGO_URL);
+    startRoundProcessing();
 }
 
 
@@ -40,6 +40,4 @@ app.use('/api/posts', postRoutes);
 app.use('/api/jobs',jobRoutes);
 app.use('/api/departments', departmentRoutes);
 
-app.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
-});
+app.listen(PORT);

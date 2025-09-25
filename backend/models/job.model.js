@@ -1,11 +1,6 @@
 const mongoose = require('mongoose');
 
-const roundSchema = new mongoose.Schema({
-    roundName: { type: String, required: true },
-    date: { type: Date },
-    venue: { type: String },
-    attendance: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
-});
+const roundSchema = require('./round.model');
 
 const jobSchema = new mongoose.Schema({
     // --- Core Details ---
@@ -28,10 +23,8 @@ const jobSchema = new mongoose.Schema({
 
     // --- Application Rounds ---
     rounds: [{
-        roundName: { type: String, required: true },
-        date: { type: Date },
-        venue: { type: String },
-        attendance: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Round'
     }],
     
     // --- Management & Status ---

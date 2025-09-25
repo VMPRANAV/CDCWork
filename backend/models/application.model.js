@@ -11,12 +11,39 @@ const applicationSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    status: {
+    currentRound: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Round'
+    },
+    currentRoundSequence: { type: Number },
+    finalStatus: {
         type: String,
-        enum: ['Applied', 'Shortlisted', 'Technical Round', 'HR Round', 'Rejected', 'Placed'],
-        default: 'Applied'
-    }
+        enum: ['in_process', 'rejected', 'placed'],
+        default: 'in_process'
+    },
+    roundProgress: [{
+        round: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Round',
+            required: true
+        },
+        attendance: {
+            type: Boolean,
+            default: false
+        },
+        result: {
+            type: String,
+            enum: ['pending', 'selected', 'rejected'],
+            default: 'pending'
+        },
+        decidedAt: { type: Date },
+        notes: { type: String }
+    }],
+    notes: { type: String }
 }, { timestamps: true });
+
+applicationSchema.index({ job: 1, student: 1 }, { unique: true });
+applicationSchema.index({ 'roundProgress.round': 1, job: 1 });
 
 const Application = mongoose.model('Application', applicationSchema);
 module.exports = Application;
