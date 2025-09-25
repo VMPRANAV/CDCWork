@@ -18,6 +18,7 @@ const ProfessionalDetails = () => {
     const [formData, setFormData] = useState({ codingProfiles: {}, languages: { japanese: {}, german: {} } });
     const [initialData, setInitialData] = useState({ codingProfiles: {}, languages: { japanese: {}, german: {} } });
     const [isEditing, setIsEditing] = useState(false);
+    const [uploading, setUploading] = useState({ resume: false, photo: false });
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -54,6 +55,42 @@ const ProfessionalDetails = () => {
                 }
             }
         }));
+    };
+
+    const handleFileUpload = async (file, type) => {
+        if (!file) return;
+
+        const token = localStorage.getItem('authToken');
+        const formDataUpload = new FormData();
+        formDataUpload.append(type === 'resume' ? 'resume' : 'photo', file);
+
+        const config = {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                role: "user",
+                'Content-Type': 'multipart/form-data'
+            }
+        };
+
+        setUploading(prev => ({ ...prev, [type]: true }));
+
+        try {
+            const endpoint = type === 'resume' ? 'upload-resume' : 'upload-photo';
+            const response = await axios.post(`http://localhost:3002/api/users/${endpoint}`, formDataUpload, config);
+            
+            const urlField = type === 'resume' ? 'resumeUrl' : 'photoUrl';
+            const newUrl = response.data[urlField];
+            
+            setFormData(prev => ({ ...prev, [urlField]: newUrl }));
+            setInitialData(prev => ({ ...prev, [urlField]: newUrl }));
+            
+            alert(`${type === 'resume' ? 'Resume' : 'Photo'} uploaded successfully!`);
+        } catch (error) {
+            console.error(`${type} upload error:`, error);
+            alert(`Failed to upload ${type}. Please try again.`);
+        } finally {
+            setUploading(prev => ({ ...prev, [type]: false }));
+        }
     };
 
     const handleSave = async (e) => {
@@ -133,12 +170,30 @@ const ProfessionalDetails = () => {
 
                     <fieldset className="full-width">
                         <legend>Documents & Photo</legend>
-                        <label htmlFor="resumeUrl">Resume URL</label>
-                        <input id="resumeUrl" name="resumeUrl" value={formData.resumeUrl || ''} onChange={handleChange} placeholder="Link to Resume PDF" />
+                        
+                        <label htmlFor="resumeFile">Upload Resume (PDF)</label>
+                        <input 
+                            id="resumeFile" 
+                            type="file" 
+                            accept=".pdf"
+                            onChange={(e) => handleFileUpload(e.target.files[0], 'resume')}
+                            disabled={uploading.resume}
+                        />
+                        {uploading.resume && <p>Uploading resume...</p>}
+                        {formData.resumeUrl && (
+                            <p>Current resume: <a href={formData.resumeUrl} target="_blank" rel="noopener noreferrer">View Resume</a></p>
+                        )}
 
-                        <label htmlFor="photoUrl">Photo URL</label>
-                        <input id="photoUrl" name="photoUrl" value={formData.photoUrl || ''} onChange={handleChange} placeholder="Link to Profile Photo" />
-                        {formData.photoUrl ? (
+                        <label htmlFor="photoFile">Upload Profile Photo</label>
+                        <input 
+                            id="photoFile" 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => handleFileUpload(e.target.files[0], 'photo')}
+                            disabled={uploading.photo}
+                        />
+                        {uploading.photo && <p>Uploading photo...</p>}
+                        {formData.photoUrl && (
                             <div className="photo-preview">
                                 <img
                                     src={formData.photoUrl}
@@ -147,7 +202,7 @@ const ProfessionalDetails = () => {
                                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                 />
                             </div>
-                        ) : null}
+                        )}
                     </fieldset>
 
                     <div className="form-actions">
@@ -157,7 +212,6 @@ const ProfessionalDetails = () => {
                 </form>
             ) : (
                 <div className="info-grid">
-                    {/* 2. Added Photo and Resume to the 'view' mode */}
                     <strong>Profile picture:</strong>
                         <p>
                             {initialData.photoUrl ? 
