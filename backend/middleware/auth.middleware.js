@@ -17,25 +17,25 @@ exports.protect = async (req, res, next) => {
     return res.status(401).json({ message: "Not authorized, no token" });
   }
 
+  let decoded;
   try {
-    if (req.headers.role === "user") {
-      const decoded = jwt.verify(token, JWT_USER_SECRET);
-      req.user = await User.findById(decoded.id).select("-password");
-    } else {
-      const decoded = jwt.verify(token, JWT_ADMIN_SECRET);
-      // Use Admin model instead of User model for admin authentication
+    decoded = jwt.verify(token, JWT_USER_SECRET);
+    req.user = await User.findById(decoded.id).select("-password");
+  } catch (err) {
+    try {
+      decoded = jwt.verify(token, JWT_ADMIN_SECRET);
       req.user = await Admin.findById(decoded.id).select("-password");
+    } catch (err2) {
+      return res.status(401).json({ message: "Not authorized, token failed" });
     }
-
-    // Check if user exists after database lookup
-    if (!req.user) {
-      return res.status(401).json({ message: "Not authorized, user not found" });
-    }
-
-    next();
-  } catch (error) {
-    res.status(401).json({ message: "Not authorized, token failed" });
   }
+
+  // Check if user exists after database lookup
+  if (!req.user) {
+    return res.status(401).json({ message: "Not authorized, user not found" });
+  }
+
+  next();
 };
 
 exports.authorize = (...roles) => {
@@ -43,7 +43,7 @@ exports.authorize = (...roles) => {
     // Add null check for req.user
     if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({
-        message: `User role '${req.user?.role || 'unknown'}' is not authorized to access this route.`,
+        message: `User role '${req.user?.role || "unknown"}' is not authorized to access this route.`,
       });
     }
     next();

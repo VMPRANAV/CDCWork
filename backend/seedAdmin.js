@@ -8,8 +8,6 @@ const User = require('./models/user.model');
 const MONGO = MONGO_URL || "mongodb://127.0.0.1:27017/CDCWork";
 
 async function seedStudents() {
-  console.log('Seeding test students...');
-
   const testStudents = [
     {
       firstName: 'John',
@@ -81,19 +79,15 @@ async function seedStudents() {
     try {
       const existingStudent = await User.findOne({ collegeEmail: studentData.collegeEmail });
       if (existingStudent) {
-        console.log(`Student ${studentData.collegeEmail} already exists`);
         continue;
       }
 
       const student = new User(studentData);
       await student.save();
-      console.log(`Created student: ${student.fullName} (${student.dept})`);
     } catch (error) {
       console.error(`Error creating student ${studentData.collegeEmail}:`, error.message);
     }
   }
-
-  console.log('Student seeding completed!');
 }
 
 async function main() {
@@ -131,30 +125,20 @@ async function main() {
 
     const response = await Admin.findOne({collegeEmail});
     if(response ){
-        console.log("Admin already Exist");
         return;
     }
 
 
     const admin = new Admin({
-        collegeEmail,
         password,
         role : "admin"
     })
 
     await admin.save();
-
-    console.log("Admin user created/updated:", {
-      id: admin._id,
-      name: admin.name,
-      collegeEmail: admin.collegeEmail,
-      role: admin.role,
-    });
   } catch (e) {
     rl.close();
     console.error("Error:", e);
   } finally {
-    await mongoose.disconnect();
     process.exit(0);
   }
 }

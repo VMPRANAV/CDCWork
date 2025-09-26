@@ -13,6 +13,7 @@ import AppLayout from './landingPage/AppLayout';
 import ManagePosts from './landingPage/admin/ManagePosts';
 import AvailableJobs from './landingPage/dashboard/availableJob';
 import ManageApplications from './landingPage/admin/ManageApplications';
+import AttendanceManager from './landingPage/admin/AttendanceManager';
 import FirstPage from './landingPage/admin/FirstPage';
 
 createRoot(document.getElementById('root')).render(
@@ -32,6 +33,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/Post"element={<ManagePosts/>}/>
           <Route path="/admin/applications" element={<ManageApplications />} />
+          <Route path="/admin/attendance" element={<AttendanceManager />} />
 
         </Route>
       </Routes>

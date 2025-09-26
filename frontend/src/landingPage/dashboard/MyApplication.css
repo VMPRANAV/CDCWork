@@ -119,18 +119,125 @@
     margin-top: 10px;
 }
 
-/* Status Pill Styling */
-.status-pill {
-    padding: 6px 12px;
-    border-radius: 9999px;
-    font-weight: 600;
-    font-size: 0.8rem;
-    white-space: nowrap;
+.attendance-box {
+    margin-top: 1rem;
+    padding: 1.25rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background-color: #f9fafb;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
-.status-pill.applied { background-color: #e0e7ff; color: #3730a3; }
-.status-pill.online-assessment { background-color: #dbeafe; color: #1e40af; }
-.status-pill.technical-interview { background-color: #cffafe; color: #0e7490; }
-.status-pill.hr-interview { background-color: #fef3c7; color: #92400e; }
-.status-pill.offer-received { background-color: #dcfce7; color: #166534; }
-.status-pill.rejected { background-color: #fee2e2; color: #991b1b; }
+.attendance-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.attendance-box-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: #1a202c;
+}
+
+.attendance-status-tag {
+    background-color: #d1fae5;
+    color: #065f46;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.attendance-session-pill {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #047857;
+    margin: 0;
+}
+
+.attendance-session-pill.inactive {
+    color: #9ca3af;
+}
+
+.attendance-offline-hint {
+    font-size: 0.85rem;
+    color: #1f2937;
+    margin: 0;
+}
+
+.attendance-instructions {
+    font-size: 0.9rem;
+    color: #4b5563;
+    margin: 0;
+}
+
+.attendance-input-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.attendance-input-row input {
+    flex: 1;
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12rem;
+}
+
+.attendance-input-row .btn-secondary {
+    padding: 0.55rem 1.1rem;
+}
+
+.attendance-action-buttons {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.attendance-action-buttons .btn-link {
+    font-size: 0.9rem;
+}
+
+.qr-scanner-container {
+    border: 1px dashed #cbd5f5;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #ffffff;
+    max-width: 360px;
+}
+
+.attendance-feedback {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.attendance-feedback.info {
+    color: #1d4ed8;
+}
+
+.attendance-feedback.success {
+    color: #047857;
+}
+
+.attendance-feedback.error {
+    color: #b91c1c;
+}
+
+.attendance-status-text {
+    color: #047857;
+    font-weight: 600;
+    margin: 0;
+}
+
+.last-updated {
+    font-size: 0.75rem;
+    color: #a0aec0;
+    margin-top: 4px;
+}

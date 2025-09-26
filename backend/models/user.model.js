@@ -85,7 +85,23 @@ const userSchema = new mongoose.Schema({
     company: { type: String, trim: true },
     package: { type: Number },
     isProfileComplete : { type: Boolean, default: false },
-    placementDate: { type: Date }
+    placementDate: { type: Date },
+    rejectionHistory: [{
+        job: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Job'
+        },
+        round: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Round'
+        },
+        application: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Application'
+        },
+        reason: { type: String, trim: true },
+        rejectedAt: { type: Date, default: Date.now }
+    }]
 }, { timestamps: true });
 
 userSchema.pre('save', async function(next) {
