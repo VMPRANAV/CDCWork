@@ -587,3 +587,388 @@ fieldset legend {
     border: 1px solid #e5e7eb;
     font-size: 0.9rem;
 }
+
+.student-details-modal {
+    max-width: 650px;
+    position: relative;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #6b7280;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.modal-close-btn:hover {
+    color: #111827;
+}
+
+.student-details-header {
+    margin-bottom: 1rem;
+}
+
+.student-details-header h3 {
+    margin: 0;
+    font-size: 1.35rem;
+    color: #1c1c1e;
+}
+
+.student-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.85rem;
+}
+
+.student-details-grid p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #374151;
+}
+
+.student-details-grid p strong {
+    color: #111827;
+}
+
+.student-details-links {
+    margin-top: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.student-details-links a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.student-details-links a:hover {
+    text-decoration: underline;
+}
+
+.student-details-media {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.student-details-media img {
+    max-width: 160px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+}
+
+/* Attendance Manager */
+.attendance-manager-layout {
+    display: grid;
+    grid-template-columns: minmax(260px, 320px) 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.attendance-manager-column {
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.attendance-manager-column h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #1f2937;
+}
+
+.attendance-manager-column > p.muted-text {
+    margin: 0;
+}
+
+.simple-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.list-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+    padding: 0.85rem 1rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    text-align: left;
+    color: #1f2937;
+    transition: all 0.18s ease;
+}
+
+.list-btn:hover {
+    border-color: #94a3b8;
+    background: #eef2ff;
+}
+
+.list-btn.active {
+    background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+    border-color: #3b82f6;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.18);
+}
+
+.list-btn .list-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.list-btn .list-subtitle {
+    font-size: 0.82rem;
+    color: #6b7280;
+}
+
+.list-btn .status-badge {
+    align-self: flex-start;
+}
+
+.session-column {
+    position: relative;
+}
+
+.session-rounds {
+    display: grid;
+    grid-template-columns: minmax(220px, 260px) 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.session-rounds-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.session-controls-card {
+    background: #f9fafb;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    padding: 1.25rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.session-controls-grid {
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.session-controls-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: #4b5563;
+}
+
+.session-controls-grid select {
+    padding: 0.6rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    font-size: 0.9rem;
+}
+
+.session-controls-grid .checkbox-inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.87rem;
+}
+
+.session-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.session-actions .btn-primary,
+.session-actions .btn-danger {
+    min-width: 140px;
+}
+
+.session-error {
+    margin: 0;
+    color: #dc2626;
+    font-size: 0.88rem;
+}
+
+.session-active-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #dbeafe;
+    padding: 1.25rem;
+    box-shadow: 0 12px 24px rgba(30, 64, 175, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.session-meta {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    font-size: 0.92rem;
+    color: #1e3a8a;
+}
+
+.session-active-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.session-active-actions {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.btn-compact {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.85rem;
+    min-width: auto;
+}
+
+.qr-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px dashed #93c5fd;
+}
+
+.offline-code-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.offline-code-text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #1f2937;
+}
+
+.offline-used-at {
+    font-size: 0.82rem;
+    color: #6b7280;
+}
+
+.fullscreen-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    z-index: 1200;
+}
+
+.fullscreen-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 2.25rem 2.5rem;
+    width: min(92vw, 560px);
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    box-shadow: 0 36px 72px rgba(15, 23, 42, 0.24);
+}
+
+.fullscreen-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.fullscreen-card-header h3 {
+    margin: 0;
+    font-size: 1.35rem;
+    color: #1f2937;
+}
+
+.fullscreen-qr-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+.fullscreen-meta {
+    margin: 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.fullscreen-code-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: 0.25rem;
+    color: #111827;
+    text-transform: uppercase;
+}
+
+.fullscreen-countdown {
+    font-size: 1rem;
+    color: #1e3a8a;
+}
+
+@media (max-width: 1024px) {
+    .attendance-manager-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .session-rounds {
+        grid-template-columns: 1fr;
+    }
+
+    .session-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 640px) {
+    .attendance-manager-column {
+        padding: 1.1rem;
+    }
+
+    .fullscreen-card {
+        padding: 1.5rem;
+    }
+
+    .fullscreen-code-value {
+        font-size: 2rem;
+        letter-spacing: 0.18rem;
+    }
+}

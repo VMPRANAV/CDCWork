@@ -1,6 +1,7 @@
 const Application = require('../models/application.model');
 const Job = require('../models/job.model');
 const Round = require('../models/round.model');
+const User = require('../models/user.model');
 
 const populateApplication = (query) =>
     query
@@ -196,6 +197,8 @@ exports.markAttendance = async (req, res) => {
         }
 
         progress.attendance = attended;
+        progress.attendanceMethod = 'admin_toggle';
+        progress.attendanceMarkedAt = attended ? new Date() : undefined;
 
         if (!attended && round.autoRejectAbsent) {
             progress.result = 'rejected';
@@ -203,9 +206,32 @@ exports.markAttendance = async (req, res) => {
             application.finalStatus = 'rejected';
             application.currentRound = undefined;
             application.currentRoundSequence = undefined;
-        } else if (attended && progress.result === 'pending') {
-            progress.result = 'selected';
-            progress.decidedAt = new Date();
+
+            await User.findByIdAndUpdate(application.student, {
+                $push: {
+                    rejectionHistory: {
+                        job: application.job,
+                        round: round._id,
+                        application: application._id,
+                        reason: 'Absent from round',
+                        rejectedAt: new Date()
+                    }
+                }
+            });
+        } else if (attended) {
+            if (progress.result === 'pending') {
+                progress.result = 'selected';
+                progress.decidedAt = new Date();
+            }
+
+            await User.findByIdAndUpdate(application.student, {
+                $pull: {
+                    rejectionHistory: {
+                        application: application._id,
+                        round: round._id
+                    }
+                }
+            });
         }
 
         await application.save();

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 // We can reuse the CSS from the AllStudents page
 import './AdminDashboard.css';
+import { useNavigate } from 'react-router-dom';
 
 // This is a new component for the Modal
 const UpdateModal = ({
@@ -17,6 +18,7 @@ const UpdateModal = ({
     const [isSavingStatus, setIsSavingStatus] = useState(false);
     const [attendanceLoadingRound, setAttendanceLoadingRound] = useState(null);
     const [isAdvancing, setIsAdvancing] = useState(false);
+    const [selectedNextRound, setSelectedNextRound] = useState('');
 
     useEffect(() => {
         setFinalStatus(application.finalStatus || 'in_process');
@@ -35,12 +37,9 @@ const UpdateModal = ({
         return map;
     }, [jobRounds]);
 
-    const nextRoundOptions = useMemo(
-        () => jobRounds.filter((round) => (round.sequence ?? 0) > currentSequence),
-        [jobRounds, currentSequence]
-    );
-
-    const [selectedNextRound, setSelectedNextRound] = useState(nextRoundOptions[0]?._id || '');
+    const nextRoundOptions = useMemo(() => {
+        return jobRounds.filter((round) => (round.sequence ?? 0) > currentSequence);
+    }, [jobRounds, currentSequence]);
 
     useEffect(() => {
         setSelectedNextRound(nextRoundOptions[0]?._id || '');
@@ -101,7 +100,7 @@ const UpdateModal = ({
                         <ul className="round-progress-list">
                             {application.roundProgress.map((entry) => {
                                 const roundId = entry.round?._id || entry.round;
-                                const roundKey = roundId?.toString();
+                                const roundKey = roundId ? roundId.toString() : '';
                                 const roundDoc = (roundKey && jobRoundMap.get(roundKey)) || entry.round;
                                 const roundName = roundDoc?.roundName || entry.round?.roundName || 'Round';
                                 const roundSequence = roundDoc?.sequence ?? entry.round?.sequence;
@@ -188,8 +187,6 @@ const UpdateModal = ({
         </div>
     );
 };
-
-// Create Job Modal component
 const CreateJobModal = ({ onClose, onJobCreated }) => {
     const [formData, setFormData] = useState({
         companyName: '',
@@ -715,6 +712,7 @@ const ManageApplications = () => {
     const [eligibleStudents, setEligibleStudents] = useState([]); // To store eligible students for a job
     const [showEligibleStudentsModal, setShowEligibleStudentsModal] = useState(false); // To show/hide eligible students modal
 
+    const navigate = useNavigate();
     const token = localStorage.getItem('authToken');
     const config = { headers: { Authorization: `Bearer ${token}` } };
     
@@ -900,7 +898,12 @@ const ManageApplications = () => {
     return (
         <div className="students-container">
            <div className="students-header">
-                <button className="btn-primary create-job-btn" onClick={() => setShowCreateJobModal(true)}>Create Job</button>
+                <div className="students-header-actions">
+                    <button className="btn-secondary" onClick={() => navigate('/admin/attendance')}>
+                        Manage Attendance
+                    </button>
+                    <button className="btn-primary create-job-btn" onClick={() => setShowCreateJobModal(true)}>Create Job</button>
+                </div>
                 <h2>Manage All Applications</h2>
                 {/* The search bar input field */}
                 <input

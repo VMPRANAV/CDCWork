@@ -37,7 +37,13 @@ const applicationSchema = new mongoose.Schema({
             default: 'pending'
         },
         decidedAt: { type: Date },
-        notes: { type: String }
+        notes: { type: String },
+        attendanceMethod: {
+            type: String,
+            enum: ['admin_toggle', 'qr_code', 'offline_code'],
+            default: 'admin_toggle'
+        },
+        attendanceMarkedAt: { type: Date }
     }],
     notes: { type: String }
 }, { timestamps: true });

@@ -43,6 +43,25 @@ const roundSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     }],
+    attendanceSession: {
+        status: {
+            type: String,
+            enum: ['inactive', 'active'],
+            default: 'inactive'
+        },
+        startedAt: { type: Date },
+        startedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        refreshIntervalSeconds: { type: Number },
+        currentCode: { type: String },
+        currentCodeHash: { type: String },
+        codeExpiresAt: { type: Date },
+        sessionSecret: { type: String },
+        offlineCodeHash: { type: String },
+        offlineCodeUsedAt: { type: Date }
+    },
     processedAt: { type: Date },
     status: {
         type: String,

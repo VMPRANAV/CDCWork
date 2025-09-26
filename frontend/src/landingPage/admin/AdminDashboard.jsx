@@ -3,6 +3,95 @@ import axios from 'axios';
 import './AdminDashboard.css';
 import { useNavigate } from 'react-router-dom';
 
+const StudentDetailsModal = ({ student, loading, onClose }) => {
+    if (!student) {
+        return null;
+    }
+
+    const placementStatus = student.isPlaced
+        ? `Placed at ${student.company || 'N/A'}${student.package ? ` (${student.package} LPA)` : ''}`
+        : 'Not Placed';
+
+    const infoRows = [
+        { label: 'Email', value: student.collegeEmail },
+        { label: 'Department', value: student.dept },
+        { label: 'Passout Year', value: student.passoutYear },
+        { label: 'UG CGPA', value: student.ugCgpa },
+        { label: 'Current Arrears', value: student.currentArrears },
+        { label: 'History of Arrears', value: student.historyOfArrears },
+        { label: 'Roll No', value: student.rollNo },
+        { label: 'University Reg Number', value: student.universityRegNumber },
+        { label: 'Phone', value: student.phone },
+        { label: 'Residence', value: student.residence },
+        { label: 'Placement Status', value: placementStatus }
+    ].filter((row) => row.value !== undefined && row.value !== null && row.value !== '');
+
+    const codingProfiles = student.codingProfiles || {};
+    const hasProfiles = Object.values(codingProfiles).some(Boolean);
+
+    return (
+        <div className="modal-backdrop" onClick={onClose}>
+            <div
+                className="modal-content student-details-modal"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <button className="modal-close-btn" aria-label="Close" onClick={onClose}>
+                    ×
+                </button>
+                {loading ? (
+                    <p>Loading details...</p>
+                ) : student.error ? (
+                    <p className="error-message">{student.error}</p>
+                ) : (
+                    <>
+                        <div className="student-details-header">
+                            <h3>{student.fullName || 'Student Details'}</h3>
+                        </div>
+                        {infoRows.length > 0 && (
+                            <div className="student-details-grid">
+                                {infoRows.map(({ label, value }) => (
+                                    <p key={label}>
+                                        <strong>{label}:</strong> {value}
+                                    </p>
+                                ))}
+                            </div>
+                        )}
+                        {hasProfiles && (
+                            <div className="student-details-links">
+                                <strong>Coding Profiles:</strong>
+                                {Object.entries(codingProfiles)
+                                    .filter(([, link]) => link)
+                                    .map(([platform, link]) => (
+                                        <a key={platform} href={link} target="_blank" rel="noopener noreferrer">
+                                            {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                                        </a>
+                                    ))}
+                            </div>
+                        )}
+                        <div className="student-details-media">
+                            {student.resumeUrl && (
+                                <p>
+                                    <strong>Resume:</strong>{' '}
+                                    <a href={student.resumeUrl} target="_blank" rel="noopener noreferrer">
+                                        View Resume
+                                    </a>
+                                </p>
+                            )}
+                            {student.photoUrl && (
+                                <div>
+                                    <strong>Photo:</strong>
+                                    <br />
+                                    <img src={student.photoUrl} alt={`${student.fullName || 'Student'} profile`} />
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const [students, setStudents] = useState([]);
@@ -55,8 +144,8 @@ const AdminDashboard = () => {
 
     
     const handleStudentClick = async (studentId) => {
+        setSelectedStudent({ _id: studentId });
         setDetailsLoading(true);
-        setSelectedStudent(null);
         try {
             const token = localStorage.getItem('authToken');
             const config = {
@@ -74,8 +163,10 @@ const AdminDashboard = () => {
         }
     };
 
-    // NEW: Close card
-    const handleCloseCard = () => setSelectedStudent(null);
+    const handleCloseModal = () => {
+        setSelectedStudent(null);
+        setDetailsLoading(false);
+    };
 
     if (loading) return <p>Loading students...</p>;
     if (error) return <p className="error-message">{error}</p>;
@@ -141,56 +232,12 @@ const AdminDashboard = () => {
                 </table>
             </div>
 
-            {/* NEW: Student Details Card */}
             {selectedStudent && (
-                <div className="student-details-card-overlay" onClick={handleCloseCard}>
-                    <div className="student-details-card" onClick={e => e.stopPropagation()}>
-                        <button className="close-btn" onClick={handleCloseCard}>×</button>
-                        {detailsLoading ? (
-                            <p>Loading details...</p>
-                        ) : selectedStudent.error ? (
-                            <p className="error-message">{selectedStudent.error}</p>
-                        ) : (
-                            <div>
-                                <h3>{selectedStudent.fullName}</h3>
-                                <p><strong>Email:</strong> {selectedStudent.collegeEmail}</p>
-                                <p><strong>Department:</strong> {selectedStudent.dept}</p>
-                                <p><strong>Passout Year:</strong> {selectedStudent.passoutYear}</p>
-                                <p><strong>UG CGPA:</strong> {selectedStudent.ugCgpa}</p>
-                                <p><strong>Current Arrears:</strong> {selectedStudent.currentArrears}</p>
-                                <p><strong>History of Arrears:</strong> {selectedStudent.historyOfArrears}</p>
-                                <p><strong>Roll No:</strong> {selectedStudent.rollNo}</p>
-                                <p><strong>University Reg Number:</strong> {selectedStudent.universityRegNumber}</p>
-                                <p><strong>Phone:</strong> {selectedStudent.phone}</p>
-                                <p><strong>Residence:</strong> {selectedStudent.residence}</p>
-                                <p><strong>Placement Status:</strong> {selectedStudent.isPlaced ? `Placed at ${selectedStudent.company} (${selectedStudent.package} LPA)` : 'Not Placed'}</p>
-                                <p><strong>Coding Profiles:</strong></p>
-                                <ul>
-                                    {selectedStudent.codingProfiles && Object.entries(selectedStudent.codingProfiles).map(([platform, link]) =>
-                                        link ? (
-                                            <li key={platform}>
-                                                <a href={link} target="_blank" rel="noopener noreferrer">
-                                                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                                                </a>
-                                            </li>
-                                        ) : null
-                                    )}
-                                </ul>
-                                {selectedStudent.resumeUrl && (
-                                    <p>
-                                        <strong>Resume:</strong> <a href={selectedStudent.resumeUrl} target="_blank" rel="noopener noreferrer">View</a>
-                                    </p>
-                                )}
-                                {selectedStudent.photoUrl && (
-                                    <div>
-                                        <strong>Photo:</strong><br />
-                                        <img src={selectedStudent.photoUrl} alt="Profile" style={{ maxWidth: '120px', borderRadius: '8px' }} />
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <StudentDetailsModal
+                    student={selectedStudent}
+                    loading={detailsLoading}
+                    onClose={handleCloseModal}
+                />
             )}
         </div>
     );
