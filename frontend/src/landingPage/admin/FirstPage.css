@@ -9,39 +9,79 @@
 .dashboard-title {
     text-align: center;
     margin-bottom: 40px;
-    color: #333;
+    color: #1a253c;
     font-size: 2.5rem;
+    font-weight: 700;
 }
 
-/* Grid layout for the cards */
+/* Card Grid Styles */
 .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 30px;
 }
 
-/* Styling for each individual department card */
 .department-card {
     background-color: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 30px 20px;
-    text-align: center;
-    cursor: pointer;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-top: 4px solid #007bff;
+    cursor: pointer;
 }
 
 .department-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid #e9ecef;
 }
 
 .card-title {
     margin: 0;
     font-size: 1.5rem;
-    color: #0056b3;
+    font-weight: 600;
+    color: #1a253c;
 }
 
+.card-stats {
+    display: flex;
+    justify-content: space-around;
+    padding: 25px 15px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: #5a6a85;
+}
+
+.stat-icon {
+    font-size: 1.75rem;
+    margin-bottom: 10px;
+    color: #007bff;
+}
+
+.stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1a253c;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-top: 5px;
+}
+
+/* Dialog Box Styles */
 .dialog-overlay {
     position: fixed;
     top: 0;
@@ -51,9 +91,8 @@
     background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
-    /* align-items: center; <-- We change this */
-    align-items: flex-start; /* Aligns the box to the top */
-    padding-top: 5vh; /* Gives some space from the top */
+    align-items: flex-start;
+    padding-top: 5vh;
     z-index: 1000;
 }
 
@@ -64,18 +103,14 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     width: 90%;
     max-width: 600px;
-    
-    /* --- NEW: Add these three properties --- */
-    max-height: 90vh;      /* Prevents the box from being taller than 90% of the screen */
-    overflow-y: auto;      /* Adds a vertical scrollbar ONLY if needed */
-    display: flex;         /* Helps manage the button at the bottom */
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
     flex-direction: column;
 }
 
-/* You might need to adjust the content's flex behavior if you use flexbox inside */
 .dialog-content {
-    /* This ensures the content area is what scrolls, not the button */
-    flex-grow: 1; 
+    flex-grow: 1;
 }
 
 .dialog-title {
@@ -86,17 +121,6 @@
     font-size: 2rem;
 }
 
-.loading-text, .error-text {
-    font-size: 1.2rem;
-    color: #555;
-    text-align: center;
-    padding: 20px 0;
-}
-
-.error-text {
-    color: #d9534f; /* Red for errors */
-}
-
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -104,7 +128,8 @@
     text-align: left;
 }
 
-.stat-item {
+/* This selector was missing from your original file, but is used in the JSX */
+.stat-item-dialog {
     font-size: 1.1rem;
     color: #333;
     padding: 10px;
@@ -115,11 +140,37 @@
     align-items: center;
 }
 
-.stat-item strong {
+.stat-item-dialog strong {
     color: #0056b3;
     font-size: 1.2rem;
 }
 
+/* Chart Styles */
+.charts-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 30px;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+}
+
+.chart-wrapper {
+    flex: 1;
+    min-width: 250px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.chart-wrapper h3 {
+    margin-bottom: 15px;
+    font-size: 1rem;
+    color: #555;
+    font-weight: 600;
+}
+
+/* UI State Styles */
 .close-button {
     display: block;
     margin: 30px auto 0;
@@ -136,4 +187,15 @@
 
 .close-button:hover {
     background-color: #0056b3;
+}
+
+.loading-text, .error-text {
+    text-align: center;
+    font-size: 1.5rem;
+    color: #5a6a85;
+    margin-top: 100px;
+}
+
+.error-text {
+    color: #d9534f;
 }

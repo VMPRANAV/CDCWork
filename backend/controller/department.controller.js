@@ -80,6 +80,61 @@ const getDepartmentStats = async (req, res) => {
     }
 };
 
+const getAllDepartmentStats = async (req, res) => {
+    try {
+        const pipeline = [
+            // Stage 1: Match only student documents
+            { $match: { role: 'student' } },
+            // Stage 2: Group by department and calculate stats for each group
+            {
+                $group: {
+                    _id: '$dept', // Group by the 'dept' field
+                    totalStudents: { $sum: 1 },
+                    placedStudents: {
+                        $sum: { $cond: [{ $eq: ['$isPlaced', true] }, 1, 0] }
+                    },
+                    avgPackage: {
+                        $avg: { $cond: [{ $eq: ['$isPlaced', true] }, '$package', null] }
+                    }
+                }
+            },
+            // Stage 3: Reshape the output and calculate percentage
+            {
+                $project: {
+                    _id: 0,
+                    department: '$_id',
+                    totalStudents: 1,
+                    placedStudents: 1,
+                    avgPackage: { $ifNull: ['$avgPackage', 0] },
+                    placedPercentage: {
+                        $cond: [
+                            { $eq: ['$totalStudents', 0] },
+                            0,
+                            { $multiply: [{ $divide: ['$placedStudents', '$totalStudents'] }, 100] }
+                        ]
+                    }
+                }
+            },
+            // Stage 4: Sort the results alphabetically by department name
+            { $sort: { department: 1 } }
+        ];
+
+        const allStats = await User.aggregate(pipeline);
+        
+        // Round the numbers for a cleaner response
+        allStats.forEach(stat => {
+            stat.avgPackage = Math.round(stat.avgPackage * 100) / 100;
+            stat.placedPercentage = Math.round(stat.placedPercentage * 100) / 100;
+        });
+
+        res.status(200).json(allStats);
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};
+
 module.exports = {
-    getDepartmentStats
+    getDepartmentStats,
+    getAllDepartmentStats
 };

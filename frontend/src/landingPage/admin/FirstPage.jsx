@@ -1,162 +1,141 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './FirstPage.css';
 import axios from 'axios';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
-import { useMemo } from 'react';
+import { FiPercent, FiPackage } from 'react-icons/fi';
 
+// Register the Chart.js components you will use
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
-
 const FirstPage = () => {
-    // A constant array of department names
-    const departments = [
-        'AIDS', 'BME', 'CHEM', 'CIVIL', 'CSE', 'AIML',
-        'Cyber Security', 'CSBS', 'ECE', 'EEE', 'IT',
-        'Mechanical', 'Mechatronics'
-    ];
-
-    // State management for the dialog box and its data
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [selectedDept, setSelectedDept] = useState(null);
-    // After
-    const [stats, setStats] = useState({
-        totalStudents: 0,
-        placedStudents: 0,
-        placedPercentage: 0,
-        maxPackage: 0,
-        avgPackage: 0,
-        minPackage: 0,
-    });
-    const [isLoading, setIsLoading] = useState(false);
+    // State for the main dashboard data
+    const [allStats, setAllStats] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // This function is called when a department card is clicked
-    const handleCardClick = async (departmentName) => {
-        setSelectedDept(departmentName);
+    // State for the dialog box
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [selectedDeptStats, setSelectedDeptStats] = useState(null);
+
+    // useEffect hook to fetch all data when the component first loads
+    useEffect(() => {
+        const fetchAllStats = async () => {
+            try {
+                const token = localStorage.getItem('authToken');
+                const config = { headers: { Authorization: `Bearer ${token}` } };
+                const response = await axios.get('/api/departments/all-stats', config);
+                setAllStats(response.data);
+            } catch (err) {
+                setError('Failed to fetch dashboard data. Please try again.');
+                console.error("API Error:", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAllStats();
+    }, []); // The empty array ensures this runs only once on mount
+
+    // --- Dialog Box Functions ---
+    const handleCardClick = (departmentStats) => {
+        setSelectedDeptStats(departmentStats); // Set the data for the clicked department
         setIsDialogOpen(true);
-        setIsLoading(true);
-        setError(null); // Reset previous errors
-
-        try {
-            const token = localStorage.getItem('authToken');
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-            const response = await axios.get(`/api/departments/${departmentName}/stats`, config);
-
-            setStats(response.data);
-
-
-        } catch (err) {
-            setError('Failed to fetch department statistics. Please try again later.');
-            console.error("API Error:", err);
-        } finally {
-            setIsLoading(false);
-        }
     };
 
-    // Closes the dialog and resets the state
     const handleCloseDialog = () => {
         setIsDialogOpen(false);
-        setSelectedDept(null);
-        setStats({
-            totalStudents: 0,
-            placedStudents: 0,
-            placedPercentage: 0,
-            maxPackage: 0,
-            avgPackage: 0,
-            minPackage: 0,
-        });
-        setError(null);
     };
 
+    // --- Chart Data Preparation (depends on the selected department's data) ---
     const placementChartData = useMemo(() => {
-        const notPlaced = stats.totalStudents - stats.placedStudents;
+        if (!selectedDeptStats) return {};
+        const { totalStudents, placedStudents } = selectedDeptStats;
+        const notPlaced = totalStudents - placedStudents;
         return {
             labels: ['Placed', 'Not Placed'],
-            datasets: [
-                {
-                    label: '# of Students',
-                    data: [stats.placedStudents, notPlaced > 0 ? notPlaced : 0],
-                    backgroundColor: ['#007bff', '#e9ecef'],
-                    borderColor: ['#0056b3', '#ced4da'],
-                    borderWidth: 1,
-                },
-            ],
+            datasets: [{
+                data: [placedStudents, notPlaced > 0 ? notPlaced : 0],
+                backgroundColor: ['#007bff', '#e9ecef'],
+                borderColor: ['#ffffff', '#ffffff'],
+                borderWidth: 2,
+            }],
         };
-    }, [stats]);
+    }, [selectedDeptStats]);
 
     const packageChartData = useMemo(() => {
+        if (!selectedDeptStats) return {};
+        const { minPackage, avgPackage, maxPackage } = selectedDeptStats;
         return {
-            labels: ['Lowest Package', 'Average Package', 'Highest Package'],
-            datasets: [
-                {
-                    label: 'Package (in LPA)',
-                    data: [stats.minPackage, stats.avgPackage, stats.maxPackage],
-                    backgroundColor: 'rgba(0, 123, 255, 0.6)',
-                    borderColor: 'rgba(0, 123, 255, 1)',
-                    borderWidth: 1,
-                },
-            ],
+            labels: ['Lowest', 'Average', 'Highest'],
+            datasets: [{
+                label: 'Package (in LPA)',
+                data: [minPackage, avgPackage, maxPackage],
+                backgroundColor: 'rgba(0, 123, 255, 0.7)',
+                borderColor: 'rgba(0, 123, 255, 1)',
+                borderWidth: 1,
+            }],
         };
-    }, [stats]);
+    }, [selectedDeptStats]);
+
+    // --- Render Logic ---
+    if (isLoading) {
+        return <div className="dashboard-container"><p className="loading-text">Loading Dashboard...</p></div>;
+    }
+
+    if (error) {
+        return <div className="dashboard-container"><p className="error-text">{error}</p></div>;
+    }
 
     return (
         <div className="dashboard-container">
             <h1 className="dashboard-title">Department Placement Overview</h1>
             <div className="card-grid">
-                {departments.map((dept) => (
-                    <div
-                        key={dept}
-                        className="department-card"
-                        onClick={() => handleCardClick(dept)}
-                    >
-                        <h2 className="card-title">{dept}</h2>
+                {allStats.map((stat) => (
+                    <div key={stat.department} className="department-card" onClick={() => handleCardClick(stat)}>
+                        <div className="card-header">
+                            <h2 className="card-title">{stat.department}</h2>
+                        </div>
+                        <div className="card-stats">
+                            <div className="stat-item">
+                                <FiPercent className="stat-icon" />
+                                <span className="stat-value">{stat.placedPercentage.toFixed(2)}%</span>
+                                <span className="stat-label">Placed</span>
+                            </div>
+                            <div className="stat-item">
+                                <FiPackage className="stat-icon" />
+                                <span className="stat-value">{stat.avgPackage.toFixed(2)} LPA</span>
+                                <span className="stat-label">Avg. Package</span>
+                            </div>
+                        </div>
                     </div>
                 ))}
             </div>
 
             {/* Render the Dialog Box conditionally */}
-            {isDialogOpen && (
-                <div className="dialog-overlay">
-                    <div className="dialog-box">
-                        <h2 className="dialog-title">{selectedDept} Statistics</h2>
+            {isDialogOpen && selectedDeptStats && (
+                <div className="dialog-overlay" onClick={handleCloseDialog}>
+                    <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="dialog-title">{selectedDeptStats.department} Statistics</h2>
                         <div className="dialog-content">
-                            {isLoading ? (
-                                <p className="loading-text">Loading...</p>
-                            ) : error ? (
-                                <p className="error-text">{error}</p>
-                            ) : stats ? (
-                                <div className="stats-grid">
-                                    <div className="stat-item"><span>Total Students:</span> <strong>{stats?.totalStudents ?? 0}</strong></div>
-                                    <div className="stat-item"><span>Placed Students:</span> <strong>{stats?.placedStudents ?? 0}</strong></div>
-                                    <div className="stat-item">
-                                        <span>Placement Rate:</span>
-                                        <strong>{(stats?.placedPercentage ?? 0).toFixed(2)}%</strong>
-                                    </div>
-                                    <div className="stat-item">
-                                        <span>Highest Package:</span>
-                                        <strong>{stats?.maxPackage ?? 0} LPA</strong>
-                                    </div>
-                                    <div className="stat-item">
-                                        <span>Average Package:</span>
-                                        <strong>{(stats?.avgPackage ?? 0).toFixed(2)} LPA</strong>
-                                    </div>
-                                    <div className="stat-item">
-                                        <span>Lowest Package:</span>
-                                        <strong>{stats?.minPackage ?? 0} LPA</strong>
-                                    </div>
-                                    <div className="charts-container">
-                                        <div className="chart-wrapper">
-                                            <h3>Placement Distribution</h3>
-                                            <Doughnut data={placementChartData} />
-                                        </div>
-                                        <div className="chart-wrapper">
-                                            <h3>Package Overview (LPA)</h3>
-                                            <Bar data={packageChartData} options={{ indexAxis: 'y' }} />
-                                        </div>
-                                    </div>
+                            <div className="stats-grid">
+                                <div className="stat-item-dialog"><span>Total Students:</span> <strong>{selectedDeptStats.totalStudents}</strong></div>
+                                <div className="stat-item-dialog"><span>Placed Students:</span> <strong>{selectedDeptStats.placedStudents}</strong></div>
+                                <div className="stat-item-dialog"><span>Placement Rate:</span> <strong>{selectedDeptStats.placedPercentage.toFixed(2)}%</strong></div>
+                                <div className="stat-item-dialog"><span>Highest Package:</span> <strong>{selectedDeptStats.maxPackage} LPA</strong></div>
+                                <div className="stat-item-dialog"><span>Average Package:</span> <strong>{selectedDeptStats.avgPackage.toFixed(2)} LPA</strong></div>
+                                <div className="stat-item-dialog"><span>Lowest Package:</span> <strong>{selectedDeptStats.minPackage} LPA</strong></div>
+                            </div>
+                            <div className="charts-container">
+                                <div className="chart-wrapper">
+                                    <h3>Placement Distribution</h3>
+                                    <Doughnut data={placementChartData} />
                                 </div>
-                            ) : null}
+                                <div className="chart-wrapper">
+                                    <h3>Package Overview (LPA)</h3>
+                                    <Bar data={packageChartData} options={{ indexAxis: 'y' }} />
+                                </div>
+                            </div>
                         </div>
                         <button onClick={handleCloseDialog} className="close-button">Close</button>
                     </div>
