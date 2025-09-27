@@ -12,7 +12,7 @@ import {
 const navItems = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { name: 'Students', href: '/admin/students', icon: Users },
-  { name: 'Companies', href: '/admin/companies', icon: Briefcase },
+  { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
   { name: 'Applications', href: '/admin/applications', icon: FileText },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];

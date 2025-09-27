@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useStudents } from '@/hooks/useStudents';
 import { StatsCards } from '@/components/admin/dashboard/StatsCards';
 import { StudentsTable } from '@/components/admin/dashboard/StudentsTable';

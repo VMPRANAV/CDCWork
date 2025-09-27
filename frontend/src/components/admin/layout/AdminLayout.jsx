@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { Toaster } from 'sonner';
 
 export function AdminLayout() {
   return (
@@ -13,7 +12,6 @@ export function AdminLayout() {
           <Outlet />
         </main>
       </div>
-      <Toaster position="top-right" richColors />
     </div>
   );
 }
