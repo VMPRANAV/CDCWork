@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import './signup.css';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from 'sonner';
+import collegeLogo from '../../assets/kprietLogo.png';
 
 const SignupForm = () => {
     const navigate = useNavigate();
@@ -13,7 +18,7 @@ const SignupForm = () => {
         password: '',
         confirmPassword: ''
     });
-    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -21,68 +26,151 @@ const SignupForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setIsLoading(true);
+
         if (formData.password !== formData.confirmPassword) {
-            return setError('Passwords do not match.');
+            toast.error('Passwords do not match', {
+                description: 'Please make sure your passwords match.',
+                duration: 5000,
+            });
+            setIsLoading(false);
+            return;
         }
 
         try {
             const { firstName, middleName, lastName, collegeEmail, password } = formData;
             const response = await axios.post('http://localhost:3002/api/auth/register', {
-                firstName, middleName, lastName, collegeEmail, password
+                firstName,
+                middleName,
+                lastName,
+                collegeEmail,
+                password
             });
-            
-            // Log the user in immediately
+
             const { token, data } = response.data;
             localStorage.setItem('authToken', token);
             localStorage.setItem('user', JSON.stringify(data));
 
-            // Redirect to the profile page for onboarding
-            alert("Account created! Please complete your profile.");
-            navigate('/student/profile'); 
-            
+            toast.success('Account created successfully!', {
+                description: 'Please complete your profile to continue.',
+                duration: 5000,
+            });
+
+            // Navigate to profile page after a short delay
+            setTimeout(() => {
+                navigate('/student/profile');
+            }, 1000);
+
         } catch (err) {
-            setError(err.response?.data?.message || 'Registration failed.');
+            toast.error('Registration failed', {
+                description: err.response?.data?.message || 'Please check your information and try again.',
+                duration: 5000,
+            });
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="signup-container">
-            <form className="signup-form" onSubmit={handleSubmit}>
-                <h2>Create Student Account</h2>
-                {error && <p className="error-message">{error}</p>}
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+            <Card className="w-full max-w-2xl">
+                <CardHeader className="space-y-1 text-center">
+                    <div className="flex justify-center mb-4">
+                        <img src={collegeLogo} alt="KPRIET Logo" className="h-16" />
+                    </div>
+                    <CardTitle className="text-2xl font-bold">Create Student Account</CardTitle>
+                    <CardDescription>
+                        KPR Institute of Engineering and Technology
+                    </CardDescription>
+                </CardHeader>
+                <form onSubmit={handleSubmit}>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="firstName">First Name</Label>
+                                <Input
+                                    id="firstName"
+                                    name="firstName"
+                                    value={formData.firstName}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <Label htmlFor="middleName">Middle Name (Optional)</Label>
+                                <Input
+                                    id="middleName"
+                                    name="middleName"
+                                    value={formData.middleName}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <Label htmlFor="lastName">Last Name</Label>
+                                <Input
+                                    id="lastName"
+                                    name="lastName"
+                                    value={formData.lastName}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+                        </div>
 
-                <div className="form-grid">
-                    <div className="input-group">
-                        <label>First Name</label>
-                        <input name="firstName" value={formData.firstName} onChange={handleChange} required />
-                    </div>
-                    <div className="input-group">
-                        <label>Middle Name (Optional)</label>
-                        <input name="middleName" value={formData.middleName} onChange={handleChange} />
-                    </div>
-                    <div className="input-group full-width">
-                        <label>Last Name</label>
-                        <input name="lastName" value={formData.lastName} onChange={handleChange} required />
-                    </div>
-                    <div className="input-group full-width">
-                        <label>College Email</label>
-                        <input type="email" name="collegeEmail" value={formData.collegeEmail} onChange={handleChange} required />
-                    </div>
-                    <div className="input-group">
-                        <label>Password</label>
-                        <input type="password" name="password" value={formData.password} onChange={handleChange} required />
-                    </div>
-                    <div className="input-group">
-                        <label>Confirm Password</label>
-                        <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
-                    </div>
-                </div>
-                <button type="submit" className="signup-button">Register</button>
-                <div className="form-footer">
-                    Already have an account? <Link to="/">Login</Link>
-                </div>
-            </form>
+                        <div className="space-y-2">
+                            <Label htmlFor="collegeEmail">College Email</Label>
+                            <Input
+                                id="collegeEmail"
+                                name="collegeEmail"
+                                type="email"
+                                placeholder="e.g., 23it066@kpriet.ac.in"
+                                value={formData.collegeEmail}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Password</Label>
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                                <Input
+                                    id="confirmPassword"
+                                    name="confirmPassword"
+                                    type="password"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col space-y-4 mt-4">
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? 'Creating Account...' : 'Create Account'}
+                        </Button>
+                        <div className="text-sm text-center text-muted-foreground">
+                            Already have an account?{' '}
+                            <Link to="/" className="text-primary hover:underline">
+                                Login
+                            </Link>
+                        </div>
+                    </CardFooter>
+                </form>
+            </Card>
         </div>
     );
 };
