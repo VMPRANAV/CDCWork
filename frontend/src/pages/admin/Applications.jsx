@@ -91,17 +91,17 @@ function ApplicationDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl sm:max-w-5xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl sm:max-w-5xl max-h-[80vh] overflow-y-auto scrollbar-stable">
+        <DialogHeader className="pb-2">
           <DialogTitle>Application Details</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-6 md:grid-cols-2 grid-cols-1">
+        <div className="grid gap-4 md:grid-cols-2 grid-cols-1">
           <div className="space-y-4">
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Applicant</CardTitle>
+              <CardHeader className="pb-1">
+                <CardTitle className="text-md">Applicant</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
+              <CardContent className="space-y-2 text-sm pt-0">
                 <div>
                   <p className="font-medium">{application.student?.fullName || 'Unknown Student'}</p>
                   <p className="text-muted-foreground">{application.student?.collegeEmail}</p>
@@ -114,10 +114,10 @@ function ApplicationDetailsDialog({
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-1">
                 <CardTitle className="text-base">Job</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
+              <CardContent className="space-y-2 text-sm pt-0">
                 <div>
                   <p className="font-medium">{application.job?.jobTitle || 'Unknown Role'}</p>
                   <p className="text-muted-foreground">{application.job?.companyName || 'Unknown Company'}</p>
@@ -137,10 +137,10 @@ function ApplicationDetailsDialog({
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-1">
                 <CardTitle className="text-base">Update Status</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-0">
                 <form className="space-y-3" onSubmit={handleStatusSubmit}>
                   <p className="text-xs text-muted-foreground">
                     Setting status to <strong>Placed</strong> or <strong>Rejected</strong> will close this application and
@@ -175,10 +175,10 @@ function ApplicationDetailsDialog({
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-1">
                 <CardTitle className="text-base">Finalize Outcome</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-0">
                 <form className="space-y-3" onSubmit={handleFinalize}>
                   <div className="space-y-1">
                     <label className="text-xs font-medium">Outcome</label>
@@ -210,10 +210,10 @@ function ApplicationDetailsDialog({
 
           <div className="space-y-4">
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-1">
                 <CardTitle className="text-base">Round Progress</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 max-h-[24rem] overflow-y-auto pr-1">
+              <CardContent className="space-y-4 pt-0  mr-4 max-h-[24rem] overflow-y-auto pr-1">
                 {roundProgress.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No rounds recorded yet.</p>
                 ) : (
@@ -244,7 +244,7 @@ function ApplicationDetailsDialog({
                           <Button
                             type="button"
                             size="sm"
-                            variant="outline"
+                            variant={attended ? 'destructive' : 'outline'}
                             onClick={() => onToggleAttendance(roundId, !attended)}
                           >
                             {attended ? 'Mark Absent' : 'Mark Attended'}
@@ -257,11 +257,11 @@ function ApplicationDetailsDialog({
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="mt-4">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Advance to Next Round</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4 pt-0">
                 {!application.currentRound ? (
                   <p className="text-sm text-muted-foreground">
                     This application is no longer assigned to a round. Set status back to <strong>In Process</strong>

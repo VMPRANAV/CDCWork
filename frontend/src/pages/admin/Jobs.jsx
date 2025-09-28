@@ -14,6 +14,7 @@ import { useJobs, getInitialJobForm } from '@/hooks/useJobs';
 import { useStudents } from '@/hooks/useStudents';
 import { cn } from '@/lib/utils';
 import { Plus, Pencil, Users, Eye, Send } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 const DEPARTMENTS = [
   'AIDS',
@@ -42,8 +43,7 @@ const blankRound = () => ({
   instructions: '',
   sequence: undefined,
   isAttendanceMandatory: true,
-  autoAdvanceOnAttendance: false,
-  autoRejectAbsent: true
+  autoAdvanceOnAttendance: false
 });
 
 function sanitizeJobPayload(form) {
@@ -65,8 +65,7 @@ function sanitizeJobPayload(form) {
     instructions: round.instructions,
     sequence: round.sequence ?? index + 1,
     isAttendanceMandatory: round.isAttendanceMandatory ?? true,
-    autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false,
-    autoRejectAbsent: round.autoRejectAbsent ?? true
+    autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false
   }));
 
   return {
@@ -109,8 +108,7 @@ function buildFormFromJob(job) {
       instructions: round.instructions || '',
       sequence: round.sequence,
       isAttendanceMandatory: round.isAttendanceMandatory ?? true,
-      autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false,
-      autoRejectAbsent: round.autoRejectAbsent ?? true
+      autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false
     }))
   };
 }
@@ -134,13 +132,46 @@ export function Jobs() {
   const { students: allStudents } = useStudents();
 
   const [activeTab, setActiveTab] = useState('private');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState('created-desc');
   const [isJobDialogOpen, setJobDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [jobForm, setJobForm] = useState(getInitialJobForm());
   const [eligibleDialogJob, setEligibleDialogJob] = useState(null);
   const [studentToAdd, setStudentToAdd] = useState('');
 
-  const jobList = useMemo(() => jobs[activeTab] || [], [jobs, activeTab]);
+  const filteredSortedJobs = useMemo(() => {
+    const list = jobs[activeTab] || [];
+    const query = searchQuery.trim().toLowerCase();
+
+    const filtered = query
+      ? list.filter((job) =>
+          [job.jobTitle, job.companyName, job.salary]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(query))
+        )
+      : list;
+
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortOption) {
+        case 'eligible-desc':
+          return (b.eligibleCount ?? 0) - (a.eligibleCount ?? 0);
+        case 'eligible-asc':
+          return (a.eligibleCount ?? 0) - (b.eligibleCount ?? 0);
+        case 'title-asc':
+          return a.jobTitle.localeCompare(b.jobTitle);
+        case 'title-desc':
+          return b.jobTitle.localeCompare(a.jobTitle);
+        case 'created-asc':
+          return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        case 'created-desc':
+        default:
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+    });
+
+    return sorted;
+  }, [jobs, activeTab, searchQuery, sortOption]);
 
   const availableStudentsToAdd = useMemo(() => {
     if (!eligibleDialogJob) return [];
@@ -314,25 +345,53 @@ export function Jobs() {
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid grid-cols-2 max-w-sm">
-              <TabsTrigger value="private">Draft Jobs</TabsTrigger>
-              <TabsTrigger value="public">Published Jobs</TabsTrigger>
+              <TabsTrigger value="private">Draft Jobs ({jobs.private?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="public">Published Jobs ({jobs.public?.length ?? 0})</TabsTrigger>
             </TabsList>
-            <TabsContent value="private" className="mt-4 space-y-4">
+            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="w-full md:max-w-sm">
+                <Input
+                  placeholder="Search jobs"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium uppercase text-muted-foreground">Sort by</span>
+                <Select value={sortOption} onValueChange={setSortOption}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="created-desc">Newest first</SelectItem>
+                    <SelectItem value="created-asc">Oldest first</SelectItem>
+                    <SelectItem value="title-asc">Job title A-Z</SelectItem>
+                    <SelectItem value="title-desc">Job title Z-A</SelectItem>
+                    <SelectItem value="eligible-desc">Most eligible students</SelectItem>
+                    <SelectItem value="eligible-asc">Fewest eligible students</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <TabsContent value="private" className="mt-4 grid md:grid-cols-2">
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading jobs...</p>
-              ) : jobList.length === 0 ? (
-                <div className="text-center py-12 border rounded-lg bg-muted/20">
+              ) : filteredSortedJobs.length === 0 ? (
+                <div className="text-center py-12 border rounded-lg bg-muted/20 md:col-span-2">
                   <Users className="mx-auto h-12 w-12 text-muted-foreground" />
                   <h3 className="mt-3 text-base font-semibold">No draft jobs</h3>
                   <p className="text-sm text-muted-foreground">Create a job to start assigning students.</p>
                 </div>
               ) : (
-                jobList.map((job) => (
+                filteredSortedJobs.map((job) => (
                   <Card key={job._id} className="border border-muted">
                     <CardHeader className="flex flex-row justify-between items-start gap-4">
-                      <div>
+                      <div className="space-y-1">
                         <CardTitle className="text-xl">{job.jobTitle}</CardTitle>
                         <p className="text-sm text-muted-foreground">{job.companyName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Eligible students: <span className="font-semibold">{job.eligibleCount ?? 0}</span>
+                        </p>
                       </div>
                       <Badge variant="secondary">Draft</Badge>
                     </CardHeader>
@@ -393,22 +452,25 @@ export function Jobs() {
                 ))
               )}
             </TabsContent>
-            <TabsContent value="public" className="mt-4 space-y-4">
+            <TabsContent value="public" className="mt-4 grid md:grid-cols-2 gap-x-4">
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading jobs...</p>
-              ) : jobList.length === 0 ? (
-                <div className="text-center py-12 border rounded-lg bg-muted/20">
+              ) : filteredSortedJobs.length === 0 ? (
+                <div className="text-center py-12 border rounded-lg bg-muted/20 md:col-span-2">
                   <Users className="mx-auto h-12 w-12 text-muted-foreground" />
                   <h3 className="mt-3 text-base font-semibold">No published jobs</h3>
                   <p className="text-sm text-muted-foreground">Publish a job to make it visible to students.</p>
                 </div>
               ) : (
-                jobList.map((job) => (
+                filteredSortedJobs.map((job) => (
                   <Card key={job._id} className="border border-muted">
                     <CardHeader className="flex flex-row justify-between items-start gap-4">
-                      <div>
+                      <div className="space-y-1">
                         <CardTitle className="text-xl">{job.jobTitle}</CardTitle>
                         <p className="text-sm text-muted-foreground">{job.companyName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Eligible students: <span className="font-semibold">{job.eligibleCount ?? 0}</span>
+                        </p>
                       </div>
                       <Badge variant="default">Published</Badge>
                     </CardHeader>
@@ -638,7 +700,7 @@ export function Jobs() {
                       <CardContent className="pt-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <h4 className="text-sm font-semibold">Round {index + 1}</h4>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => removeRoundField(index)}>
+                          <Button type="button" variant="destructive" size="sm" onClick={() => removeRoundField(index)}>
                             Remove
                           </Button>
                         </div>
@@ -717,6 +779,26 @@ export function Jobs() {
                               rows={2}
                               value={round.instructions}
                               onChange={(e) => updateRoundField(index, 'instructions', e.target.value)}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between rounded-md border border-dashed border-border/60 px-3 py-2">
+                            <div>
+                              <p className="text-xs font-medium">Attendance mandatory</p>
+                              <p className="text-[11px] text-muted-foreground">Absent students are automatically rejected</p>
+                            </div>
+                            <Switch
+                              checked={round.isAttendanceMandatory}
+                              onCheckedChange={(checked) => updateRoundField(index, 'isAttendanceMandatory', checked)}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between rounded-md border border-dashed border-border/60 px-3 py-2">
+                            <div>
+                              <p className="text-xs font-medium">Auto-advance when attended</p>
+                              <p className="text-[11px] text-muted-foreground">Marks attendees as selected automatically</p>
+                            </div>
+                            <Switch
+                              checked={round.autoAdvanceOnAttendance}
+                              onCheckedChange={(checked) => updateRoundField(index, 'autoAdvanceOnAttendance', checked)}
                             />
                           </div>
                         </div>
@@ -806,7 +888,7 @@ export function Jobs() {
                           <TableCell className="text-right">
                             <Button
                               size="sm"
-                              variant="ghost"
+                              variant="destructive"
                               onClick={() => handleRemoveEligibleStudent(student._id)}
                             >
                               Remove

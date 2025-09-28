@@ -55,7 +55,19 @@ export function useJobs() {
         headers: adminHeaders,
         signal: abortController.current.signal
       });
-      setJobs(response.data ?? { private: [], public: [] });
+      const mapJobs = (list = []) => list.map((job) => ({
+        ...job,
+        eligibleCount: typeof job.eligibleCount === 'number'
+          ? job.eligibleCount
+          : Array.isArray(job.eligibleStudents)
+            ? job.eligibleStudents.length
+            : 0
+      }));
+
+      setJobs({
+        private: mapJobs(response.data?.private),
+        public: mapJobs(response.data?.public)
+      });
     } catch (err) {
       if (!axios.isCancel(err)) {
         console.error('Failed to fetch jobs', err);

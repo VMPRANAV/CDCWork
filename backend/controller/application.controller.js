@@ -200,7 +200,7 @@ exports.markAttendance = async (req, res) => {
         progress.attendanceMethod = 'admin_toggle';
         progress.attendanceMarkedAt = attended ? new Date() : undefined;
 
-        if (!attended && round.autoRejectAbsent) {
+        if (!attended && round.isAttendanceMandatory) {
             progress.result = 'rejected';
             progress.decidedAt = new Date();
             application.finalStatus = 'rejected';

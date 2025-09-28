@@ -10,6 +10,37 @@ body {
   color: var(--foreground);
 }
 
+/* Scrollbar Styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 0.6rem;
+  height: 0.6rem;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.scrollbar-stable {
+  scrollbar-gutter: stable both-edges;
+}
+
 /* --- Main App Layout --- */
 .main-content {
   margin-left: 250px; /* MUST be the same as the sidebar's width */
@@ -208,6 +239,9 @@ body {
   --sidebar-accent-foreground: oklch(0.21 0.034 264.665);
   --sidebar-border: oklch(0.928 0.006 264.531);
   --sidebar-ring: oklch(0.707 0.022 261.325);
+  --scrollbar-track: oklch(0.97 0.01 261.3);
+  --scrollbar-thumb: oklch(0.84 0.015 261.3);
+  --scrollbar-thumb-hover: oklch(0.74 0.02 261.3);
 }
 
 .dark {
@@ -242,6 +276,9 @@ body {
   --sidebar-accent-foreground: oklch(0.985 0.002 247.839);
   --sidebar-border: oklch(0.32 0.015 261.3);
   --sidebar-ring: oklch(0.55 0.025 264.364);
+  --scrollbar-track: oklch(0.24 0.02 261.3);
+  --scrollbar-thumb: oklch(0.38 0.025 261.3);
+  --scrollbar-thumb-hover: oklch(0.48 0.03 261.3);
 }
 
 @layer base {

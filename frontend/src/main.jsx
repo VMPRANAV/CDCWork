@@ -3,17 +3,18 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
 import { Toaster } from 'sonner';
+import { ThemeProvider } from './components/theme-provider';
+
 // Student Components
 import ProfilePage from './landingPage/profile/profilePage';
 import DashBoardPage from './landingPage/dashboard/dashBoardPage';
 import StudentApplications from './landingPage/dashboard/MyApplications';
 import ViewPost from './landingPage/dashboard/ViewPost';
 import AvailableJobs from './landingPage/dashboard/availableJob';
-import { ThemeProvider } from './components/theme-provider';
 
 // Auth Components
-import Login from './landingPage/authentication/login';
-import SignUp from './landingPage/authentication/signup';
+import Login from './pages/authentication/login';
+import SignUp from './pages/authentication/signup';
 
 // Layouts
 import AppLayout from './landingPage/AppLayout';
@@ -25,7 +26,7 @@ import { Students } from '@/pages/admin/Students';
 import { Jobs } from '@/pages/admin/Jobs';
 import ManagePosts from './landingPage/admin/ManagePosts';
 import { Applications } from '@/pages/admin/Applications';
-import AttendanceManager from './landingPage/admin/AttendanceManager';
+import { Attendance } from '@/pages/admin/Attendance';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -54,7 +55,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/admin/jobs" element={<Jobs />} />
           <Route path="/admin/posts" element={<ManagePosts />} />
           <Route path="/admin/applications" element={<Applications />} />
-          <Route path="/admin/attendance" element={<AttendanceManager />} />
+          <Route path="/admin/attendance" element={<Attendance />} />
         </Route>
         
         {/* 404 Route */}
