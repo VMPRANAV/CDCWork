@@ -272,7 +272,7 @@ exports.advanceApplication = async (req, res) => {
 
         const currentRoundId = application.currentRound?.toString();
         if (!currentRoundId) {
-            return res.status(400).json({ message: 'Application is not currently in a round.' });
+            return res.status(400).json({ message: 'Application is not currently in a round. Set status back to in_process before advancing.' });
         }
 
         const currentProgress = application.roundProgress.find((entry) => entry.round.toString() === currentRoundId);

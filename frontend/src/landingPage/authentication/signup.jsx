@@ -72,8 +72,8 @@ const SignupForm = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <Card className="w-full max-w-2xl">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background via-background/95 to-background p-4 text-foreground">
+            <Card className="w-full max-w-2xl border border-border/60 bg-card/95 shadow-xl backdrop-blur">
                 <CardHeader className="space-y-1 text-center">
                     <div className="flex justify-center mb-4">
                         <img src={collegeLogo} alt="KPRIET Logo" className="h-16" />

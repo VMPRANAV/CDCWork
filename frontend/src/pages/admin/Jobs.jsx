@@ -416,7 +416,35 @@ export function Jobs() {
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                         {job.jobDescription}
                       </p>
+                      <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                        <div>
+                          <span className="font-medium">Salary:</span> {job.salary || 'Not specified'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Passout Year:</span> {job.eligibility?.passoutYear || 'N/A'}
+                        </div>
+                        <div>
+                          <span className="font-medium">CGPA Required:</span> {job.eligibility?.minCgpa ?? 0}
+                        </div>
+                        <div>
+                          <span className="font-medium">Max Arrears:</span> {job.eligibility?.maxArrears ?? 0}
+                        </div>
+                      </div>
                       <div className="flex flex-wrap gap-2">
+                        {(job.eligibility?.allowedDepartments || []).map((dept) => (
+                          <Badge key={dept}>{dept}</Badge>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => handleOpenEdit(job)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit Job
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"

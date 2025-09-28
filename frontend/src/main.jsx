@@ -9,6 +9,7 @@ import DashBoardPage from './landingPage/dashboard/dashBoardPage';
 import StudentApplications from './landingPage/dashboard/MyApplications';
 import ViewPost from './landingPage/dashboard/ViewPost';
 import AvailableJobs from './landingPage/dashboard/availableJob';
+import { ThemeProvider } from './components/theme-provider';
 
 // Auth Components
 import Login from './landingPage/authentication/login';
@@ -23,11 +24,12 @@ import { Dashboard } from '@/pages/admin/Dashboard';
 import { Students } from '@/pages/admin/Students';
 import { Jobs } from '@/pages/admin/Jobs';
 import ManagePosts from './landingPage/admin/ManagePosts';
-import ManageApplications from './landingPage/admin/ManageApplications';
+import { Applications } from '@/pages/admin/Applications';
 import AttendanceManager from './landingPage/admin/AttendanceManager';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <ThemeProvider>
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
@@ -51,7 +53,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/admin/students" element={<Students />} />
           <Route path="/admin/jobs" element={<Jobs />} />
           <Route path="/admin/posts" element={<ManagePosts />} />
-          <Route path="/admin/applications" element={<ManageApplications />} />
+          <Route path="/admin/applications" element={<Applications />} />
           <Route path="/admin/attendance" element={<AttendanceManager />} />
         </Route>
         
@@ -60,5 +62,6 @@ createRoot(document.getElementById('root')).render(
       </Routes>
     <Toaster position="bottom-right"/>
     </BrowserRouter>
+    </ThemeProvider>
   </StrictMode>,
 )
