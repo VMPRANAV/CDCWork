@@ -1,6 +1,5 @@
-import { Bell, Search } from 'lucide-react';
+import { Bell, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   DropdownMenu, 
@@ -11,16 +10,23 @@ import {
 import { ThemeSwitcher } from "@/components/theme-switcher";
 
 
-export function Header() {
+export function Header({ sidebarOpen = true, onToggleSidebar }) {
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-6 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#0f172a]/95 dark:text-zinc-100">
-      <div className="relative w-full max-w-md">
-        <Search className="absolute w-4 h-4 text-gray-400 left-3 top-1/2 -translate-y-1/2 dark:text-zinc-400" />
-        <Input
-          type="search"
-          placeholder="Search..."
-          className="w-full pl-10 bg-white text-gray-900 dark:bg-[#111c32] dark:text-zinc-100 dark:placeholder:text-zinc-500 border border-transparent focus:border-primary/40"
-        />
+      <div className="flex items-center gap-2">
+        {onToggleSidebar && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-gray-600 hover:text-gray-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+            onClick={onToggleSidebar}
+            aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          >
+            {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+          </Button>
+        )}
+        <span className="text-lg font-semibold">Admin Panel</span>
       </div>
       <div className="flex items-center space-x-4">
         <Button variant="ghost" size="icon" className="relative text-gray-600 hover:text-gray-900 dark:text-zinc-300 dark:hover:text-zinc-100">

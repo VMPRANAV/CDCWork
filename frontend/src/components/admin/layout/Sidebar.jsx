@@ -16,6 +16,7 @@ const navItems = [
   { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
   { name: 'Applications', href: '/admin/applications', icon: FileText },
   { name: 'Attendance', href: '/admin/attendance', icon: QrCode },
+  { name: 'Posts', href: '/admin/posts', icon: FileText },
 ];
 export function Sidebar() {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export function Sidebar() {
     <div className="hidden md:flex md:flex-shrink-0 bg-white dark:bg-transparent">
       <div className="flex flex-col w-64 border-r border-gray-200 bg-white text-gray-900 dark:border-white/10 dark:bg-[#0f172a] dark:text-zinc-100">
         <div className="flex items-center h-16 px-4 border-b border-gray-200 dark:border-white/10">
-          <h1 className="text-xl font-bold text-primary dark:text-zinc-100">Admin Panel</h1>
+          <h1 className="text-xl font-bold text-primary dark:text-zinc-100">Placement Cell</h1>
         </div>
         <div className="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
           <nav className="flex-1 space-y-1">

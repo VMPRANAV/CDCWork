@@ -24,7 +24,7 @@ import { AdminLayout } from '@/components/admin/layout/AdminLayout';
 import { Dashboard } from '@/pages/admin/Dashboard';
 import { Students } from '@/pages/admin/Students';
 import { Jobs } from '@/pages/admin/Jobs';
-import ManagePosts from './landingPage/admin/ManagePosts';
+import { Posts } from '@/pages/admin/Posts';
 import { Applications } from '@/pages/admin/Applications';
 import { Attendance } from '@/pages/admin/Attendance';
 
@@ -53,7 +53,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/students" element={<Students />} />
           <Route path="/admin/jobs" element={<Jobs />} />
-          <Route path="/admin/posts" element={<ManagePosts />} />
+          <Route path="/admin/posts" element={<Posts />} />
           <Route path="/admin/applications" element={<Applications />} />
           <Route path="/admin/attendance" element={<Attendance />} />
         </Route>
