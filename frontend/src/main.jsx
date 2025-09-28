@@ -6,19 +6,19 @@ import { Toaster } from 'sonner';
 import { ThemeProvider } from './components/theme-provider';
 
 // Student Components
-import ProfilePage from './landingPage/profile/profilePage';
-import DashBoardPage from './landingPage/dashboard/dashBoardPage';
-import StudentApplications from './landingPage/dashboard/MyApplications';
-import ViewPost from './landingPage/dashboard/ViewPost';
-import AvailableJobs from './landingPage/dashboard/availableJob';
+import StudentDashboard from '@/pages/student/Dashboard';
+import Profile from '@/pages/student/Profile';
+import StudentApplications from '@/pages/student/Applications';
+import StudentPosts from '@/pages/student/Posts';
+import AvailableJobs from '@/pages/student/AvailableJobs';
 
 // Auth Components
 import Login from './pages/authentication/login';
 import SignUp from './pages/authentication/signup';
 
 // Layouts
-import AppLayout from './landingPage/AppLayout';
 import { AdminLayout } from '@/components/admin/layout/AdminLayout';
+import { StudentLayout } from '@/components/student/layout/StudentLayout';
 
 // Admin Pages
 import { Dashboard } from '@/pages/admin/Dashboard';
@@ -39,10 +39,10 @@ createRoot(document.getElementById('root')).render(
         <Route path="/signup" element={<SignUp />} />
         
         {/* Student Routes */}
-        <Route element={<AppLayout />}>
-          <Route path="/student/dashboard" element={<DashBoardPage />} />
-          <Route path="/student/profile" element={<ProfilePage />} />
-          <Route path="/student/ViewPost" element={<ViewPost/>} />
+        <Route element={<StudentLayout />}>
+          <Route path="/student/dashboard" element={<StudentDashboard />} />
+          <Route path="/student/profile" element={<Profile />} />
+          <Route path="/student/posts" element={<StudentPosts />} />
           <Route path="/student/applications" element={<StudentApplications />} />
           <Route path="/student/availableJob" element={<AvailableJobs />} />
         </Route>
