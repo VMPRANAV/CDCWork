@@ -11,6 +11,8 @@ import Profile from '@/pages/student/Profile';
 import StudentApplications from '@/pages/student/Applications';
 import StudentPosts from '@/pages/student/Posts';
 import AvailableJobs from '@/pages/student/AvailableJobs';
+import MyProfile from '@/pages/student/MyProfile';
+import Settings from '@/pages/student/Settings';
 
 // Auth Components
 import Login from './pages/authentication/login';
@@ -42,9 +44,11 @@ createRoot(document.getElementById('root')).render(
         <Route element={<StudentLayout />}>
           <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/student/profile" element={<Profile />} />
+          <Route path="/student/my-profile" element={<MyProfile />} />
           <Route path="/student/posts" element={<StudentPosts />} />
           <Route path="/student/applications" element={<StudentApplications />} />
           <Route path="/student/availableJob" element={<AvailableJobs />} />
+          <Route path="/student/settings" element={<Settings />} />
         </Route>
         
         {/* Admin Routes */}

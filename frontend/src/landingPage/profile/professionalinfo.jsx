@@ -83,6 +83,17 @@ const ProfessionalDetails = () => {
             
             setFormData(prev => ({ ...prev, [urlField]: newUrl }));
             setInitialData(prev => ({ ...prev, [urlField]: newUrl }));
+
+            // If photo uploaded, sync localStorage.user and notify headers to refresh avatar
+            if (type === 'photo' && newUrl) {
+                try {
+                    const userRaw = localStorage.getItem('user');
+                    const userObj = userRaw ? JSON.parse(userRaw) : {};
+                    userObj.photoUrl = newUrl; // cloudinary URL from backend
+                    localStorage.setItem('user', JSON.stringify(userObj));
+                    window.dispatchEvent(new Event('user-updated'));
+                } catch {}
+            }
             
             alert(`${type === 'resume' ? 'Resume' : 'Photo'} uploaded successfully!`);
         } catch (error) {
