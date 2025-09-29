@@ -17,7 +17,7 @@ const processExpiredRounds = async () => {
 
     try {
         const rounds = await Round.find({
-            autoRejectAbsent: true,
+            isAttendanceMandatory: true,
             scheduledAt: { $lte: now },
             processedAt: { $exists: false },
             status: { $in: ['scheduled', 'in_progress'] }
@@ -52,7 +52,7 @@ const processExpiredRounds = async () => {
                         continue;
                     }
 
-                    if (!progress.attendance) {
+                    if (round.isAttendanceMandatory && !progress.attendance) {
                         progress.result = 'rejected';
                         progress.decidedAt = new Date();
                         application.finalStatus = 'rejected';

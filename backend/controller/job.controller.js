@@ -63,8 +63,7 @@ const normalizeRoundPayload = (round, jobId, fallbackSequence) => ({
     venue: round.venue,
     instructions: round.instructions,
     isAttendanceMandatory: round.isAttendanceMandatory ?? true,
-    autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false,
-    autoRejectAbsent: round.autoRejectAbsent ?? true
+    autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false
 });
 
 const syncJobRounds = async (job, roundsPayload, session) => {
@@ -253,9 +252,18 @@ exports.getJobs = async (req, res) => {
         const privateJobs = await Job.find({ status: 'private' }).populate('rounds');
         const publicJobs = await Job.find({ status: 'public' }).populate('rounds');
 
+        const addEligibleCount = (jobs) =>
+            jobs.map((jobDoc) => {
+                const job = typeof jobDoc.toObject === 'function' ? jobDoc.toObject() : jobDoc;
+                return {
+                    ...job,
+                    eligibleCount: Array.isArray(job.eligibleStudents) ? job.eligibleStudents.length : 0
+                };
+            });
+
         res.status(200).json({
-            private: privateJobs,
-            public: publicJobs
+            private: addEligibleCount(privateJobs),
+            public: addEligibleCount(publicJobs)
         });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching jobs', error: error.message });
@@ -265,11 +273,21 @@ exports.getJobs = async (req, res) => {
 // @desc    Get eligible students for a specific job (Admin only)
 exports.getEligibleStudentsForJob = async (req, res) => {
     try {
-        const job = await Job.findById(req.params.jobId).populate('eligibleStudents', 'fullName collegeEmail dept ugCgpa currentArrears');
+        const job = await Job.findById(req.params.jobId).select('eligibleStudents');
         if (!job) {
             return res.status(404).json({ message: 'Job not found' });
         }
-        res.status(200).json(job.eligibleStudents);
+
+        const eligibleIds = job.eligibleStudents ?? [];
+        if (eligibleIds.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        const eligibleStudents = await User.find({
+            _id: { $in: eligibleIds }
+        }).select('fullName collegeEmail dept ugCgpa currentArrears isPlaced package');
+
+        res.status(200).json(eligibleStudents);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching eligible students', error: error.message });
     }
@@ -329,8 +347,12 @@ exports.updateEligibleStudents = async (req, res) => {
         job.eligibleStudents = Array.from(currentIds);
         await job.save();
 
-        const populatedJob = await Job.findById(job._id).populate('eligibleStudents', 'fullName collegeEmail dept');
-        res.status(200).json(populatedJob.eligibleStudents);
+        const eligibleIds = job.eligibleStudents ?? [];
+        const eligibleStudents = eligibleIds.length === 0
+            ? []
+            : await User.find({ _id: { $in: eligibleIds } }).select('fullName collegeEmail dept ugCgpa currentArrears isPlaced package');
+
+        res.status(200).json(eligibleStudents);
     } catch (error) {
         console.error('Error updating eligible students:', error);
         res.status(400).json({ message: error.message });

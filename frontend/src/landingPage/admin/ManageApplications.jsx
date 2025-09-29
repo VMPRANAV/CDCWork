@@ -227,8 +227,7 @@ const CreateJobModal = ({ onClose, onJobCreated }) => {
         venue: '',
         instructions: '',
         isAttendanceMandatory: true,
-        autoAdvanceOnAttendance: false,
-        autoRejectAbsent: true
+        autoAdvanceOnAttendance: false
     });
 
     const handleAddRound = () => {
@@ -390,8 +389,7 @@ const JobEditModal = ({ job, onClose, onUpdate }) => {
         venue: round.venue || '',
         instructions: round.instructions || '',
         isAttendanceMandatory: round.isAttendanceMandatory ?? true,
-        autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false,
-        autoRejectAbsent: round.autoRejectAbsent ?? true
+        autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false
     }));
 
     const [formData, setFormData] = useState({
@@ -437,8 +435,7 @@ const JobEditModal = ({ job, onClose, onUpdate }) => {
                     venue: '',
                     instructions: '',
                     isAttendanceMandatory: true,
-                    autoAdvanceOnAttendance: false,
-                    autoRejectAbsent: true
+                    autoAdvanceOnAttendance: false
                 }
             ]
         }));
@@ -626,10 +623,6 @@ const JobEditModal = ({ job, onClose, onUpdate }) => {
                                     <label className="checkbox-inline">
                                         <input type="checkbox" checked={round.isAttendanceMandatory} onChange={(e) => handleRoundToggle(index, 'isAttendanceMandatory', e.target.checked)} />
                                         Attendance Mandatory
-                                    </label>
-                                    <label className="checkbox-inline">
-                                        <input type="checkbox" checked={round.autoRejectAbsent} onChange={(e) => handleRoundToggle(index, 'autoRejectAbsent', e.target.checked)} />
-                                        Auto Reject Absent
                                     </label>
                                     <label className="checkbox-inline">
                                         <input type="checkbox" checked={round.autoAdvanceOnAttendance} onChange={(e) => handleRoundToggle(index, 'autoAdvanceOnAttendance', e.target.checked)} />

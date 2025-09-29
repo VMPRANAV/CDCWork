@@ -27,18 +27,8 @@ const roundSchema = new mongoose.Schema({
     scheduledAt: { type: Date },
     venue: { type: String },
     instructions: { type: String },
-    isAttendanceMandatory: {
-        type: Boolean,
-        default: true
-    },
-    autoAdvanceOnAttendance: {
-        type: Boolean,
-        default: false
-    },
-    autoRejectAbsent: {
-        type: Boolean,
-        default: true
-    },
+    isAttendanceMandatory: { type: Boolean, default: true },
+    autoAdvanceOnAttendance: { type: Boolean, default: false },
     attendance: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
