@@ -1,9 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ClipboardList, Briefcase, User } from 'lucide-react';
 
-import CodingProfile from '@/landingPage/dashboard/codingProfile';
+import CodingProfile from '@/pages/student/CodingProfile';
 import { MinimalApplicationsWidget } from '@/pages/student/widgets/MinimalApplicationsWidget';
 import { LiveAttendanceWidget } from '@/pages/student/widgets/LiveAttendanceWidget';
 

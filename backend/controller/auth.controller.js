@@ -20,12 +20,6 @@ exports.register = async (req, res) => {
         if (userExist) {
             return res.status(400).json({ message: 'User with this email already exists.' });
         }
-
-        const userExists = await User.findOne({ collegeEmail });
-        if (userExists) {
-            return res.status(400).json({ message: 'User with this email already exists.' });
-        }
-
         // Construct fullName
         const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
 
@@ -125,7 +119,7 @@ exports.login = async (req, res) => {
         name: user.fullName,
         collegeEmail: user.collegeEmail,
         role: user.role,
-        codingLinks: user.codingLinks,
+        codingProfiles: user.codingProfiles,
       },
     });
   } catch (error) {
