@@ -34,6 +34,59 @@ const normalizeProfile = (data = {}) => ({
   address: data.address || {},
 });
 
+// Remove empty values and coerce numeric fields before sending to API
+function cleanForUpdate(input) {
+  const numericPaths = new Set([
+    'passoutYear',
+    'ugCgpa',
+    'historyOfArrears',
+    'currentArrears',
+    'education.tenth.percentage',
+    'education.tenth.passingYear',
+    'education.twelth.percentage',
+    'education.twelth.passingYear',
+    'education.diploma.percentage',
+    'education.diploma.passingYear',
+  ]);
+
+  const toNumber = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
+
+  const walk = (obj, path = '') => {
+    if (obj == null) return undefined;
+
+    if (Array.isArray(obj)) {
+      const arr = obj
+        .map((v, i) => walk(v, path ? `${path}.${i}` : String(i)))
+        .filter((v) => v !== undefined);
+      return arr.length ? arr : undefined;
+    }
+
+    if (typeof obj !== 'object') {
+      if (obj === '') return undefined;
+      if (numericPaths.has(path)) {
+        const num = toNumber(obj);
+        return Number.isFinite(num) ? num : undefined;
+      }
+      return obj;
+    }
+
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const childPath = path ? `${path}.${k}` : k;
+      const cleaned = walk(v, childPath);
+      if (
+        cleaned !== undefined &&
+        !(typeof cleaned === 'object' && !Array.isArray(cleaned) && Object.keys(cleaned).length === 0)
+      ) {
+        out[k] = cleaned;
+      }
+    }
+    return Object.keys(out).length ? out : undefined;
+  };
+
+  return walk(input) || {};
+}
+
 const languageLevels = {
   japanese: ['N5', 'N4', 'N3', 'N2', 'N1', 'Not Applicable'],
   german: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Not Appeared', 'Not Applicable'],
@@ -211,7 +264,8 @@ export function StudentProfile() {
 
   const persistProfile = async (payload, successMessage) => {
     try {
-      const { data } = await axios.put('http://localhost:3002/api/users/profile', payload, {
+      const cleanPayload = cleanForUpdate(payload);
+      const { data } = await axios.put('http://localhost:3002/api/users/profile', cleanPayload, {
         headers,
       });
       setProfile(normalizeProfile(data));
@@ -996,7 +1050,7 @@ export function StudentProfile() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address_state">State</Label>
+                  <Label htmlFor="address_state">States</Label>
                   <Input
                     id="address_state"
                     value={contactDraft.address?.state ?? ''}
