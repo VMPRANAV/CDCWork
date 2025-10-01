@@ -1050,7 +1050,7 @@ export function StudentProfile() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address_state">State</Label>
+                  <Label htmlFor="address_state">States</Label>
                   <Input
                     id="address_state"
                     value={contactDraft.address?.state ?? ''}

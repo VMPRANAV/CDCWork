@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
     }
 });
 
-// File filter to accept only PDFs for resumes and images for photos
+// File filter to accept only PDFs for resumes and images for photo
 const fileFilter = (req, file, cb) => {
     if (file.fieldname === 'resume' && file.mimetype === 'application/pdf') {
         cb(null, true);

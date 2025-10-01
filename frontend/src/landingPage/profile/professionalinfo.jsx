@@ -190,7 +190,7 @@ const ProfessionalDetails = () => {
                             onChange={(e) => handleFileUpload(e.target.files[0], 'resume')}
                             disabled={uploading.resume}
                         />
-                        {uploading.resume && <p>Uploading resume...</p>}
+                        {uploading.resume && <p>Uploading resume..</p>}
                         {formData.resumeUrl && (
                             <p>Current resume: <a href={formData.resumeUrl} target="_blank" rel="noopener noreferrer">View Resume</a></p>
                         )}

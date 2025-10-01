@@ -111,7 +111,7 @@ export default function MyProfile() {
         <CardContent className="space-y-4">
           {loading ? (
             <div className="space-y-3">
-              <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+              <div className="h-5 w-40 animate-pulse rounded bg-muted" />
               <div className="h-4 w-64 animate-pulse rounded bg-muted" />
               <div className="h-4 w-52 animate-pulse rounded bg-muted" />
             </div>
@@ -136,7 +136,7 @@ export default function MyProfile() {
 
       {viewerOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-51 flex items-center justify-center bg-black/80 p-4"
           onClick={() => setViewerOpen(false)}
           role="dialog"
           aria-modal="true"

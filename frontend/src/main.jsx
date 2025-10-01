@@ -68,5 +68,5 @@ createRoot(document.getElementById('root')).render(
     <Toaster position="bottom-right"/>
     </BrowserRouter>
     </ThemeProvider>
-  </StrictMode>,
+  </StrictMode>
 )

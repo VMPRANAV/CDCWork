@@ -96,7 +96,7 @@ export function StudentHeader({ sidebarOpen = true, onToggleSidebar }) {
             onClick={onToggleSidebar}
             aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           >
-            {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+            {sidebarOpen ? <PanelLeftClose className="h-5 w-4" /> : <PanelLeftOpen className="h-5 w-5" />}
           </Button>
         )}
         <span className="text-lg font-semibold">Student Portal</span>

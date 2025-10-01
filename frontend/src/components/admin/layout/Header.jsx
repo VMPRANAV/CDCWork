@@ -82,7 +82,7 @@ export function Header({ sidebarOpen = true, onToggleSidebar }) {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end">
+          <DropdownMenuContent className="w-57" align="end">
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuItem className="text-red-600">Logout</DropdownMenuItem>

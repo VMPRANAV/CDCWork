@@ -230,7 +230,7 @@ export default function Settings() {
                 {/* Inline success banner */}
                 {!loading && profile && (
                   <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-200">
-                    Your account details are synced.
+                    Your account details.
                   </div>
                 )}
 
