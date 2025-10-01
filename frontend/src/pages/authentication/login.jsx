@@ -67,7 +67,7 @@ const LoginForm = () => {
                     <div className="flex justify-center mb-4">
                         <img src={collegeLogo} alt="KPRIET Logo" className="h-16" />
                     </div>
-                    <CardTitle className="text-2xl font-bold">Placement Cell Login</CardTitle>
+                    <CardTitle className="text-2xl font-bold">CDC Login</CardTitle>
                     <CardDescription>
                         KPR Institute of Engineering and Technology
                     </CardDescription>

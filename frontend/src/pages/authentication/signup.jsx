@@ -164,7 +164,7 @@ const SignupForm = () => {
                         </Button>
                         <div className="text-sm text-center text-muted-foreground">
                             Already have an account?{' '}
-                            <Link to="/" className="text-primary hover:underline">
+                            <Link to="/login" className="text-primary hover:underline">
                                 Login
                             </Link>
                         </div>

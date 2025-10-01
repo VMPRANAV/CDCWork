@@ -1,0 +1,62 @@
+/* The main white card container for the profiles */
+.profile-card {
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+}
+
+/* Header inside the white card ("My Coding Profiles 🚀") */
+.card-header h3 {
+    color: #333; /* Dark and visible text */
+    font-size: 1.3rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee; /* A subtle separator */
+}
+
+/* Container for the links */
+.links-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+/* Individual link button */
+.profile-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background-color: #f0f7ff;
+    border: 1px solid #e5e7eb; /* Subtle default border */
+    border-radius: 8px;
+    text-decoration: none;
+    color: #111827; /* Dark text color */
+    transition: all 0.2s ease-in-out;
+}
+
+.profile-link:hover {
+    border-color: #007aff;
+    background-color: #007aff;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+}
+
+.profile-link:hover .platform-icon,
+.profile-link:hover .platform-name {
+    color: #ffffff; /* Make icon and text white on hover */
+}
+
+.platform-icon {
+    font-size: 1.5rem;
+    color: #007aff; /* Blue icon by default */
+}
+
+.platform-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+}
