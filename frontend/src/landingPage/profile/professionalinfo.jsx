@@ -83,6 +83,17 @@ const ProfessionalDetails = () => {
             
             setFormData(prev => ({ ...prev, [urlField]: newUrl }));
             setInitialData(prev => ({ ...prev, [urlField]: newUrl }));
+
+            // If photo uploaded, sync localStorage.user and notify headers to refresh avatar
+            if (type === 'photo' && newUrl) {
+                try {
+                    const userRaw = localStorage.getItem('user');
+                    const userObj = userRaw ? JSON.parse(userRaw) : {};
+                    userObj.photoUrl = newUrl; // cloudinary URL from backend
+                    localStorage.setItem('user', JSON.stringify(userObj));
+                    window.dispatchEvent(new Event('user-updated'));
+                } catch {}
+            }
             
             alert(`${type === 'resume' ? 'Resume' : 'Photo'} uploaded successfully!`);
         } catch (error) {
@@ -179,7 +190,7 @@ const ProfessionalDetails = () => {
                             onChange={(e) => handleFileUpload(e.target.files[0], 'resume')}
                             disabled={uploading.resume}
                         />
-                        {uploading.resume && <p>Uploading resume...</p>}
+                        {uploading.resume && <p>Uploading resume..</p>}
                         {formData.resumeUrl && (
                             <p>Current resume: <a href={formData.resumeUrl} target="_blank" rel="noopener noreferrer">View Resume</a></p>
                         )}

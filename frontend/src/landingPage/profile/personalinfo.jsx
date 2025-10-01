@@ -15,7 +15,7 @@ const PersonalDetails = () => {
                 const { data } = await axios.get('http://localhost:3002/api/users/profile', config);
                 setFormData(data);
                 setInitialData(data);
-            } catch (error) { console.error("Failed to fetch profile", error); }
+            } catch (error) { console.error("Failed to fetch profiles", error); }
         };
         fetchProfile();
     }, []);
