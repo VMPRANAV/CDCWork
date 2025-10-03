@@ -55,7 +55,7 @@ const roundSchema = new mongoose.Schema({
     processedAt: { type: Date },
     status: {
         type: String,
-        enum: ['scheduled', 'in_progress', 'completed', 'closed'],
+        enum: ['scheduled', 'in-progress', 'completed', 'cancelled', 'postponed'],
         default: 'scheduled'
     }
 }, { timestamps: true });
@@ -64,4 +64,4 @@ roundSchema.index({ job: 1, sequence: 1 }, { unique: true });
 
 const Round = mongoose.model('Round', roundSchema);
 
-module.exports = Round; 
+module.exports = Round;
