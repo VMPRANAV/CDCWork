@@ -10,7 +10,7 @@ const jobSchema = new mongoose.Schema({
     salary: { type: String, trim: true },
     locations: [{ type: String }],
     fileLink: { type: String }, // For attaching PDFs or other documents
-    
+   
     // --- Eligibility Criteria ---
     eligibility: {
         minCgpa: { type: Number, default: 0 },

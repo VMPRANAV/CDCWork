@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { useJobs, getInitialJobForm } from '@/hooks/useJobs';
 import { useStudents } from '@/hooks/useStudents';
 import { cn } from '@/lib/utils';
-import { Plus, Pencil, Users, Eye, Send } from 'lucide-react';
+import { Plus, Pencil, Users, Eye, Send, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 const DEPARTMENTS = [
@@ -33,6 +33,21 @@ const DEPARTMENTS = [
 ];
 
 const ROUND_MODES = ['online', 'offline', 'hybrid'];
+
+const MONTHS = [
+  { name: 'January', value: 0 },
+  { name: 'February', value: 1 },
+  { name: 'March', value: 2 },
+  { name: 'April', value: 3 },
+  { name: 'May', value: 4 },
+  { name: 'June', value: 5 },
+  { name: 'July', value: 6 },
+  { name: 'August', value: 7 },
+  { name: 'September', value: 8 },
+  { name: 'October', value: 9 },
+  { name: 'November', value: 10 },
+  { name: 'December', value: 11 }
+];
 
 const blankRound = () => ({
   roundName: '',
@@ -134,6 +149,8 @@ export function Jobs() {
   const [activeTab, setActiveTab] = useState('private');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState('created-desc');
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [showMonthGrid, setShowMonthGrid] = useState(false);
   const [isJobDialogOpen, setJobDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [jobForm, setJobForm] = useState(getInitialJobForm());
@@ -144,6 +161,7 @@ export function Jobs() {
     const list = jobs[activeTab] || [];
     const query = searchQuery.trim().toLowerCase();
 
+    // First filter by search query
     const filtered = query
       ? list.filter((job) =>
           [job.jobTitle, job.companyName, job.salary]
@@ -152,7 +170,17 @@ export function Jobs() {
         )
       : list;
 
-    const sorted = [...filtered].sort((a, b) => {
+    // Then filter by selected month if applicable
+    const monthFiltered = selectedMonth !== null
+      ? filtered.filter((job) => {
+          if (!job.createdAt) return false;
+          const jobMonth = new Date(job.createdAt).getMonth();
+          return jobMonth === selectedMonth;
+        })
+      : filtered;
+
+    // Finally sort the results
+    const sorted = [...monthFiltered].sort((a, b) => {
       switch (sortOption) {
         case 'eligible-desc':
           return (b.eligibleCount ?? 0) - (a.eligibleCount ?? 0);
@@ -171,13 +199,49 @@ export function Jobs() {
     });
 
     return sorted;
-  }, [jobs, activeTab, searchQuery, sortOption]);
+  }, [jobs, activeTab, searchQuery, sortOption, selectedMonth]);
+
+  // Get job counts by month for the current tab
+  const jobCountsByMonth = useMemo(() => {
+    const list = jobs[activeTab] || [];
+    const counts = {};
+    
+    MONTHS.forEach(month => {
+      counts[month.value] = list.filter(job => {
+        if (!job.createdAt) return false;
+        return new Date(job.createdAt).getMonth() === month.value;
+      }).length;
+    });
+    
+    return counts;
+  }, [jobs, activeTab]);
 
   const availableStudentsToAdd = useMemo(() => {
     if (!eligibleDialogJob) return [];
     const eligibleIds = new Set((eligibleStudents || []).map((student) => student._id));
     return (allStudents || []).filter((student) => !eligibleIds.has(student._id));
   }, [allStudents, eligibleStudents, eligibleDialogJob]);
+
+  const handleSortChange = (value) => {
+    if (value === 'by-month') {
+      setShowMonthGrid(true);
+    } else {
+      setSortOption(value);
+      setSelectedMonth(null);
+      setShowMonthGrid(false);
+    }
+  };
+
+  const handleMonthSelect = (monthValue) => {
+    setSelectedMonth(monthValue);
+    setShowMonthGrid(false);
+    setSortOption('created-desc'); // Default sort within the month
+  };
+
+  const clearMonthFilter = () => {
+    setSelectedMonth(null);
+    setSortOption('created-desc');
+  };
 
   const handleOpenCreate = () => {
     setEditingJob(null);
@@ -358,29 +422,86 @@ export function Jobs() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium uppercase text-muted-foreground">Sort by</span>
-                <Select value={sortOption} onValueChange={setSortOption}>
+                <Select value={selectedMonth !== null ? `month-${selectedMonth}` : sortOption} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-48">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="by-month">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4" />
+                        Sort by Month
+                      </div>
+                    </SelectItem>
                     <SelectItem value="created-desc">Newest first</SelectItem>
                     <SelectItem value="created-asc">Oldest first</SelectItem>
                     <SelectItem value="title-asc">Job title A-Z</SelectItem>
                     <SelectItem value="title-desc">Job title Z-A</SelectItem>
                     <SelectItem value="eligible-desc">Most eligible students</SelectItem>
                     <SelectItem value="eligible-asc">Fewest eligible students</SelectItem>
+                    
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {/* Month filter indicator */}
+            {selectedMonth !== null && (
+              <div className="mt-3 flex items-center gap-2">
+                <Badge variant="outline" className="gap-2">
+                  <CalendarIcon className="h-3 w-3" />
+                  {MONTHS[selectedMonth]?.name} jobs ({filteredSortedJobs.length})
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-transparent"
+                    onClick={clearMonthFilter}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              </div>
+            )}
+
+            {/* Month Grid Overlay */}
+            {showMonthGrid && (
+              <div className="mt-4 p-4 border rounded-lg bg-muted/20">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Select Month</h3>
+                  <Button variant="ghost" size="sm" onClick={() => setShowMonthGrid(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {MONTHS.map((month) => (
+                    <Button
+                      key={month.value}
+                      variant="outline"
+                      className="flex flex-col items-center justify-center h-20 hover:bg-primary/10"
+                      onClick={() => handleMonthSelect(month.value)}
+                    >
+                      <span className="font-medium">{month.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {jobCountsByMonth[month.value]} jobs
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <TabsContent value="private" className="mt-4 grid md:grid-cols-2">
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading jobs...</p>
               ) : filteredSortedJobs.length === 0 ? (
                 <div className="text-center py-12 border rounded-lg bg-muted/20 md:col-span-2">
                   <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-3 text-base font-semibold">No draft jobs</h3>
-                  <p className="text-sm text-muted-foreground">Create a job to start assigning students.</p>
+                  <h3 className="mt-3 text-base font-semibold">
+                    {selectedMonth !== null ? `No draft jobs in ${MONTHS[selectedMonth]?.name}` : 'No draft jobs'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedMonth !== null ? 'Try selecting a different month or create a new job.' : 'Create a job to start assigning students.'}
+                  </p>
                 </div>
               ) : (
                 filteredSortedJobs.map((job) => (
@@ -392,6 +513,11 @@ export function Jobs() {
                         <p className="text-xs text-muted-foreground">
                           Eligible students: <span className="font-semibold">{job.eligibleCount ?? 0}</span>
                         </p>
+                        {job.createdAt && (
+                          <p className="text-xs text-muted-foreground">
+                            Created: {format(new Date(job.createdAt), 'MMM dd, yyyy')}
+                          </p>
+                        )}
                       </div>
                       <Badge variant="secondary">Draft</Badge>
                     </CardHeader>
@@ -458,8 +584,12 @@ export function Jobs() {
               ) : filteredSortedJobs.length === 0 ? (
                 <div className="text-center py-12 border rounded-lg bg-muted/20 md:col-span-2">
                   <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-3 text-base font-semibold">No published jobs</h3>
-                  <p className="text-sm text-muted-foreground">Publish a job to make it visible to students.</p>
+                  <h3 className="mt-3 text-base font-semibold">
+                    {selectedMonth !== null ? `No published jobs in ${MONTHS[selectedMonth]?.name}` : 'No published jobs'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedMonth !== null ? 'Try selecting a different month or publish a job.' : 'Publish a job to make it visible to students.'}
+                  </p>
                 </div>
               ) : (
                 filteredSortedJobs.map((job) => (
@@ -471,6 +601,11 @@ export function Jobs() {
                         <p className="text-xs text-muted-foreground">
                           Eligible students: <span className="font-semibold">{job.eligibleCount ?? 0}</span>
                         </p>
+                        {job.createdAt && (
+                          <p className="text-xs text-muted-foreground">
+                            Created: {format(new Date(job.createdAt), 'MMM dd, yyyy')}
+                          </p>
+                        )}
                       </div>
                       <Badge variant="default">Published</Badge>
                     </CardHeader>
