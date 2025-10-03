@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Job = require('../models/job.model');
 const Round = require('../models/round.model');
 const User = require('../models/user.model');
-
+const excel = require('exceljs');
 // --- No changes needed in helper functions ---
 const checkStudentEligibility = (student, criteria) => {
     if (!student.isProfileComplete) {
@@ -288,5 +288,64 @@ exports.updateEligibleStudents = async (req, res) => {
     } catch (error) {
         console.error('Error updating eligible students:', error);
         res.status(400).json({ message: error.message });
+    }
+};
+exports.downloadEligibleStudents = async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.jobId)
+            .populate({
+                path: 'eligibleStudents',
+                select: 'fullName collegeEmail dept ugCgpa currentArrears isPlaced package',
+            });
+
+        if (!job) {
+            return res.status(404).json({ message: 'Job not found' });
+        }
+
+        const workbook = new excel.Workbook();
+        const worksheet = workbook.addWorksheet('Eligible Students');
+
+        // Define columns and set header styles
+        worksheet.columns = [
+            { header: 'Full Name', key: 'fullName', width: 30 },
+            { header: 'College Email', key: 'collegeEmail', width: 35 },
+            { header: 'Department', key: 'dept', width: 15 },
+            { header: 'CGPA', key: 'ugCgpa', width: 10 },
+            { header: 'Current Arrears', key: 'currentArrears', width: 18 },
+            { header: 'Placed', key: 'isPlaced', width: 12 },
+            { header: 'Package (LPA)', key: 'package', width: 18 },
+        ];
+        worksheet.getRow(1).font = { bold: true };
+
+        // Add student data to the worksheet
+        const studentsData = job.eligibleStudents.map(student => ({
+            fullName: student.fullName,
+            collegeEmail: student.collegeEmail,
+            dept: student.dept,
+            ugCgpa: student.ugCgpa,
+            currentArrears: student.currentArrears ?? 0,
+            isPlaced: student.isPlaced ? 'Yes' : 'No',
+            package: student.package,
+        }));
+
+        worksheet.addRows(studentsData);
+
+        // Set response headers to trigger a file download in the browser
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="Eligible_Students-${job.companyName.replace(/\s/g, '_')}.xlsx"`
+        );
+
+        // Write the workbook to the response stream and end the response
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (error) {
+        console.error('Error downloading eligible students:', error);
+        res.status(500).json({ message: 'Server error while generating the Excel file.' });
     }
 };

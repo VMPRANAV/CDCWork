@@ -225,6 +225,49 @@ export function useJobs() {
     }));
   }, []);
 
+  const downloadEligibleStudents = useCallback(
+    async (jobId, companyName) => {
+      try {
+        const response = await axios.get(`${API_BASE}/jobs/${jobId}/eligible-students/download`, {
+          headers: adminHeaders,
+          responseType: 'blob' // Important for file downloads
+        });
+
+        // Get filename from response headers
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = `Eligible_Students-${companyName.replace(/\s/g, '_')}.xlsx`;
+        
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast.success('Excel file downloaded successfully');
+      } catch (err) {
+        console.error('Failed to download Excel file', err);
+        toast.error('Failed to download Excel file', {
+          description: err.response?.data?.message
+        });
+        throw err;
+      }
+    },
+    [adminHeaders]
+  );
+
   return {
     jobs,
     loading,
@@ -244,6 +287,7 @@ export function useJobs() {
     eligibleStudents,
     eligibleLoading,
     updateEligibleStudents,
+    downloadEligibleStudents, // Add this new function
     addRound,
     removeRound,
     updateRound

@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { useJobs, getInitialJobForm } from '@/hooks/useJobs';
 import { useStudents } from '@/hooks/useStudents';
 import { cn } from '@/lib/utils';
-import { Plus, Pencil, Users, Eye, Send, Calendar as CalendarIcon, X, CircleDot } from 'lucide-react';
+import { Plus, Pencil, Users, Eye, Send, Calendar as CalendarIcon, X, CircleDot, Download  } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 const DEPARTMENTS = [
@@ -141,7 +141,8 @@ export function Jobs() {
     fetchEligibleStudents,
     eligibleStudents,
     eligibleLoading,
-    updateEligibleStudents
+    updateEligibleStudents,
+    downloadEligibleStudents // Add this
   } = useJobs();
 
   const { students: allStudents } = useStudents();
@@ -409,6 +410,16 @@ export function Jobs() {
       return;
     }
     await publishJob(job._id);
+  };
+  const handleDownloadExcel = async () => {
+    if (!eligibleDialogJob) return;
+    
+    try {
+      await downloadEligibleStudents(eligibleDialogJob._id, eligibleDialogJob.companyName);
+    } catch (error) {
+      // Error is already handled in the hook with toast
+      console.error('Download failed:', error);
+    }
   };
 
   useEffect(() => {
@@ -1109,7 +1120,7 @@ export function Jobs() {
         </DialogContent>
       </Dialog>
 
-      {/* Eligible Students Dialog - remains the same */}
+      {/* Eligible Students Dialog */}
       <Dialog open={Boolean(eligibleDialogJob)} onOpenChange={(open) => !open && handleCloseEligibleDialog()}>
         <DialogContent className="max-w-4xl sm:max-w-5xl">
           <DialogHeader>
@@ -1122,22 +1133,28 @@ export function Jobs() {
                   <h3 className="text-lg font-semibold">{eligibleDialogJob.jobTitle}</h3>
                   <p className="text-sm text-muted-foreground">{eligibleDialogJob.companyName}</p>
                 </div>
-                <div className="flex gap-2">
-                  <Select value={studentToAdd} onValueChange={setStudentToAdd}>
-                    <SelectTrigger className="w-[220px]">
-                      <SelectValue placeholder="Add student..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-64">
-                      {availableStudentsToAdd.map((student) => (
-                        <SelectItem key={student._id} value={student._id}>
-                          {student.fullName || 'Unnamed'} ({student.rollNo || 'N/A'})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={handleAddEligibleStudent} disabled={!studentToAdd}>
-                    Add
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" onClick={handleDownloadExcel} className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Download Excel
                   </Button>
+                  <div className="flex gap-2">
+                    <Select value={studentToAdd} onValueChange={setStudentToAdd}>
+                      <SelectTrigger className="w-[220px]">
+                        <SelectValue placeholder="Add student..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {availableStudentsToAdd.map((student) => (
+                          <SelectItem key={student._id} value={student._id}>
+                            {student.fullName || 'Unnamed'} ({student.rollNo || 'N/A'})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleAddEligibleStudent} disabled={!studentToAdd}>
+                      Add
+                    </Button>
+                  </div>
                 </div>
               </div>
               {eligibleLoading ? (
