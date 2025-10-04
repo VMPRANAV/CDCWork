@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { useJobs, getInitialJobForm } from '@/hooks/useJobs';
 import { useStudents } from '@/hooks/useStudents';
 import { cn } from '@/lib/utils';
-import { Plus, Pencil, Users, Eye, Send } from 'lucide-react';
+import { Plus, Pencil, Users, Eye, Send, Calendar as CalendarIcon, X, CircleDot, Download  } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 const DEPARTMENTS = [
@@ -34,10 +34,34 @@ const DEPARTMENTS = [
 
 const ROUND_MODES = ['online', 'offline', 'hybrid'];
 
+const ROUND_STATUS = [
+  { value: 'scheduled', label: 'Scheduled', color: 'bg-blue-100 text-blue-800' },
+  { value: 'in-progress', label: 'In Progress', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-800' },
+  { value: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-800' },
+  { value: 'postponed', label: 'Postponed', color: 'bg-orange-100 text-orange-800' }
+];
+
+const MONTHS = [
+  { name: 'January', value: 0 },
+  { name: 'February', value: 1 },
+  { name: 'March', value: 2 },
+  { name: 'April', value: 3 },
+  { name: 'May', value: 4 },
+  { name: 'June', value: 5 },
+  { name: 'July', value: 6 },
+  { name: 'August', value: 7 },
+  { name: 'September', value: 8 },
+  { name: 'October', value: 9 },
+  { name: 'November', value: 10 },
+  { name: 'December', value: 11 }
+];
+
 const blankRound = () => ({
   roundName: '',
   type: '',
   mode: '',
+  status: 'scheduled',
   scheduledAt: null,
   venue: '',
   instructions: '',
@@ -46,8 +70,30 @@ const blankRound = () => ({
   autoAdvanceOnAttendance: false
 });
 
+// Update the getLocalInitialJobForm function
+const getLocalInitialJobForm = () => ({
+  companyName: '',
+  jobTitle: '',
+  companyDescription: '',
+  jobDescription: '',
+  salary: '',
+  locations: [''],
+  attachmentLinks: [''], // Changed from fileLink and attachments
+  eligibility: {
+    minCgpa: '',
+    minTenthPercent: '',
+    minTwelfthPercent: '',
+    passoutYear: '',
+    allowedDepartments: [],
+    maxArrears: ''
+  },
+  rounds: []
+});
+
+// Update sanitizeJobPayload function
 function sanitizeJobPayload(form) {
   const locations = (form.locations || []).map((loc) => loc.trim()).filter(Boolean);
+  const attachmentLinks = (form.attachmentLinks || []).map((link) => link.trim()).filter(Boolean);
   const eligibility = {
     minTenthPercent: form.eligibility.minTenthPercent ? Number(form.eligibility.minTenthPercent) : 0,
     minTwelfthPercent: form.eligibility.minTwelfthPercent ? Number(form.eligibility.minTwelfthPercent) : 0,
@@ -55,42 +101,42 @@ function sanitizeJobPayload(form) {
     allowedDepartments: form.eligibility.allowedDepartments || [],
     maxArrears: form.eligibility.maxArrears ? Number(form.eligibility.maxArrears) : 0
   };
+  
 
-  const rounds = (form.rounds || []).map((round, index) => ({
-    roundName: round.roundName,
-    type: round.type,
-    mode: round.mode ?? '',
-    scheduledAt: round.scheduledAt ? new Date(round.scheduledAt).toISOString() : null,
-    venue: round.venue,
-    instructions: round.instructions,
-    sequence: round.sequence ?? index + 1,
-    isAttendanceMandatory: round.isAttendanceMandatory ?? true,
-    autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false
-  }));
+
 
   return {
     companyName: form.companyName,
     jobTitle: form.jobTitle,
+    companyDescription: form.companyDescription,
     jobDescription: form.jobDescription,
     salary: form.salary,
     locations,
-    fileLink: form.fileLink,
-    eligibility,
-    rounds
+    attachmentLinks,
+    eligibility
   };
 }
 
+function sanitizeRoundsPayload(rounds) {
+  return rounds.map(round => ({
+    ...round,
+
+    scheduledAt: round.scheduledAt ? new Date(round.scheduledAt) : null
+  }));
+}
+// Update buildFormFromJob function
 function buildFormFromJob(job) {
-  const base = getInitialJobForm();
+  const base = getLocalInitialJobForm();
   if (!job) return base;
   return {
     ...base,
     companyName: job.companyName || '',
     jobTitle: job.jobTitle || '',
+    companyDescription: job.companyDescription || '',
     jobDescription: job.jobDescription || '',
     salary: job.salary || '',
     locations: job.locations && job.locations.length ? job.locations : [''],
-    fileLink: job.fileLink || '',
+    attachmentLinks: job.attachmentLinks && job.attachmentLinks.length ? job.attachmentLinks : [''],
     eligibility: {
       minCgpa: job.eligibility?.minCgpa ?? '',
       minTenthPercent: job.eligibility?.minTenthPercent ?? '',
@@ -98,18 +144,7 @@ function buildFormFromJob(job) {
       passoutYear: job.eligibility?.passoutYear ?? '',
       allowedDepartments: job.eligibility?.allowedDepartments || [],
       maxArrears: job.eligibility?.maxArrears ?? ''
-    },
-    rounds: (job.rounds || []).map((round) => ({
-      roundName: round.roundName || '',
-      type: round.type || '',
-      mode: round.mode || '',
-      scheduledAt: round.scheduledAt ? new Date(round.scheduledAt) : null,
-      venue: round.venue || '',
-      instructions: round.instructions || '',
-      sequence: round.sequence,
-      isAttendanceMandatory: round.isAttendanceMandatory ?? true,
-      autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false
-    }))
+    }
   };
 }
 
@@ -126,24 +161,39 @@ export function Jobs() {
     fetchEligibleStudents,
     eligibleStudents,
     eligibleLoading,
-    updateEligibleStudents
+    updateEligibleStudents,
+    downloadEligibleStudents,
+    uploadingFiles,
+    handleFileUpload,
+    handleAttachmentFileUpload,
+    uploadingAttachments
   } = useJobs();
 
   const { students: allStudents } = useStudents();
 
-  const [activeTab, setActiveTab] = useState('private');
+  // Add the missing state variable
+
+  // Changed: Set default tab to 'public' instead of 'private'
+  const [activeTab, setActiveTab] = useState('public');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState('created-desc');
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [showMonthGrid, setShowMonthGrid] = useState(false);
   const [isJobDialogOpen, setJobDialogOpen] = useState(false);
+  const [isRoundsDialogOpen, setRoundsDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
+  const [roundsEditingJob, setRoundsEditingJob] = useState(null);
   const [jobForm, setJobForm] = useState(getInitialJobForm());
+  const [roundsForm, setRoundsForm] = useState([]);
   const [eligibleDialogJob, setEligibleDialogJob] = useState(null);
   const [studentToAdd, setStudentToAdd] = useState('');
+
 
   const filteredSortedJobs = useMemo(() => {
     const list = jobs[activeTab] || [];
     const query = searchQuery.trim().toLowerCase();
 
+    // First filter by search query
     const filtered = query
       ? list.filter((job) =>
           [job.jobTitle, job.companyName, job.salary]
@@ -152,7 +202,17 @@ export function Jobs() {
         )
       : list;
 
-    const sorted = [...filtered].sort((a, b) => {
+    // Then filter by selected month if applicable
+    const monthFiltered = selectedMonth !== null
+      ? filtered.filter((job) => {
+          if (!job.createdAt) return false;
+          const jobMonth = new Date(job.createdAt).getMonth();
+          return jobMonth === selectedMonth;
+        })
+      : filtered;
+
+    // Finally sort the results
+    const sorted = [...monthFiltered].sort((a, b) => {
       switch (sortOption) {
         case 'eligible-desc':
           return (b.eligibleCount ?? 0) - (a.eligibleCount ?? 0);
@@ -171,7 +231,22 @@ export function Jobs() {
     });
 
     return sorted;
-  }, [jobs, activeTab, searchQuery, sortOption]);
+  }, [jobs, activeTab, searchQuery, sortOption, selectedMonth]);
+
+  // Get job counts by month for the current tab
+  const jobCountsByMonth = useMemo(() => {
+    const list = jobs[activeTab] || [];
+    const counts = {};
+    
+    MONTHS.forEach(month => {
+      counts[month.value] = list.filter(job => {
+        if (!job.createdAt) return false;
+        return new Date(job.createdAt).getMonth() === month.value;
+      }).length;
+    });
+    
+    return counts;
+  }, [jobs, activeTab]);
 
   const availableStudentsToAdd = useMemo(() => {
     if (!eligibleDialogJob) return [];
@@ -179,9 +254,30 @@ export function Jobs() {
     return (allStudents || []).filter((student) => !eligibleIds.has(student._id));
   }, [allStudents, eligibleStudents, eligibleDialogJob]);
 
+  const handleSortChange = (value) => {
+    if (value === 'by-month') {
+      setShowMonthGrid(true);
+    } else {
+      setSortOption(value);
+      setSelectedMonth(null);
+      setShowMonthGrid(false);
+    }
+  };
+
+  const handleMonthSelect = (monthValue) => {
+    setSelectedMonth(monthValue);
+    setShowMonthGrid(false);
+    setSortOption('created-desc'); // Default sort within the month
+  };
+
+  const clearMonthFilter = () => {
+    setSelectedMonth(null);
+    setSortOption('created-desc');
+  };
+
   const handleOpenCreate = () => {
     setEditingJob(null);
-    setJobForm(getInitialJobForm());
+    setJobForm(getLocalInitialJobForm()); // Use local function
     setJobDialogOpen(true);
   };
 
@@ -189,6 +285,23 @@ export function Jobs() {
     setEditingJob(job);
     setJobForm(buildFormFromJob(job));
     setJobDialogOpen(true);
+  };
+
+  const handleOpenRounds = (job) => {
+    setRoundsEditingJob(job);
+    setRoundsForm(job.rounds ? job.rounds.map((round) => ({
+      roundName: round.roundName || '',
+      type: round.type || '',
+      mode: round.mode || '',
+      status: round.status || 'scheduled',
+      scheduledAt: round.scheduledAt ? new Date(round.scheduledAt) : null,
+      venue: round.venue || '',
+      instructions: round.instructions || '',
+      sequence: round.sequence,
+      isAttendanceMandatory: round.isAttendanceMandatory ?? true,
+      autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false
+    })) : []);
+    setRoundsDialogOpen(true);
   };
 
   const handleJobFormChange = (field, value) => {
@@ -249,40 +362,81 @@ export function Jobs() {
   };
 
   const addRoundField = () => {
-    setJobForm((prev) => ({
-      ...prev,
-      rounds: [...prev.rounds, blankRound()]
-    }));
+    setRoundsForm((prev) => [...prev, blankRound()]);
   };
 
   const updateRoundField = (index, field, value) => {
-    setJobForm((prev) => ({
-      ...prev,
-      rounds: prev.rounds.map((round, i) => (i === index ? { ...round, [field]: value } : round))
-    }));
+    setRoundsForm((prev) => 
+      prev.map((round, i) => (i === index ? { ...round, [field]: value } : round))
+    );
   };
 
   const removeRoundField = (index) => {
+    setRoundsForm((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Add attachment link handlers
+  const handleAttachmentLinkChange = (index, value) => {
+    setJobForm((prev) => {
+      const next = [...prev.attachmentLinks];
+      next[index] = value;
+      return {
+        ...prev,
+        attachmentLinks: next
+      };
+    });
+  };
+
+  const addAttachmentLinkField = () => {
     setJobForm((prev) => ({
       ...prev,
-      rounds: prev.rounds.filter((_, i) => i !== index)
+      attachmentLinks: [...prev.attachmentLinks, '']
     }));
   };
 
+  const removeAttachmentLinkField = (index) => {
+    setJobForm((prev) => ({
+      ...prev,
+      attachmentLinks: prev.attachmentLinks.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Update the job form submission
   const handleSubmitJob = async (event) => {
     event?.preventDefault();
+    
     const payload = sanitizeJobPayload(jobForm);
+    
     if (!payload.eligibility.passoutYear) {
       return;
     }
+    if (!payload.companyDescription) {
+      return;
+    }
+    
     if (editingJob) {
       await updateJob(editingJob._id, payload);
     } else {
       await createJob(payload);
     }
+    
     setJobDialogOpen(false);
     setEditingJob(null);
-    setJobForm(getInitialJobForm());
+    setJobForm(getLocalInitialJobForm());
+  };
+
+  const handleSubmitRounds = async (event) => {
+    event?.preventDefault();
+    if (!roundsEditingJob) return;
+    
+    const payload = {
+      rounds: sanitizeRoundsPayload(roundsForm)
+    };
+    
+    await updateJob(roundsEditingJob._id, payload);
+    setRoundsDialogOpen(false);
+    setRoundsEditingJob(null);
+    setRoundsForm([]);
   };
 
   const handleOpenEligibleDialog = useCallback(
@@ -318,10 +472,36 @@ export function Jobs() {
     }
     await publishJob(job._id);
   };
-
+  const handleDownloadExcel = async () => {
+    if (!eligibleDialogJob) return;
+    
+    try {
+      await downloadEligibleStudents(eligibleDialogJob._id, eligibleDialogJob.companyName);
+    } catch (error) {
+      // Error is already handled in the hook with toast
+      console.error('Download failed:', error);
+    }
+  };
+ 
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  // Add handler for attachment file upload
+  const handleAttachmentUpload = async (files) => {
+    try {
+      const uploadedFiles = await handleAttachmentFileUpload(files);
+      
+      // Add uploaded file URLs to attachment links
+      const newLinks = uploadedFiles.map(file => file.url);
+      setJobForm((prev) => ({
+        ...prev,
+        attachmentLinks: [...prev.attachmentLinks.filter(link => link.trim()), ...newLinks]
+      }));
+    } catch (error) {
+      // Error already handled in the hook
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -344,9 +524,10 @@ export function Jobs() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            {/* Changed: Switched order - Published Jobs first, Draft Jobs second */}
             <TabsList className="grid grid-cols-2 max-w-sm">
-              <TabsTrigger value="private">Draft Jobs ({jobs.private?.length ?? 0})</TabsTrigger>
               <TabsTrigger value="public">Published Jobs ({jobs.public?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="private">Draft Jobs ({jobs.private?.length ?? 0})</TabsTrigger>
             </TabsList>
             <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="w-full md:max-w-sm">
@@ -358,11 +539,17 @@ export function Jobs() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium uppercase text-muted-foreground">Sort by</span>
-                <Select value={sortOption} onValueChange={setSortOption}>
+                <Select value={selectedMonth !== null ? `month-${selectedMonth}` : sortOption} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-48">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="by-month">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4" />
+                        Sort by Month
+                      </div>
+                    </SelectItem>
                     <SelectItem value="created-desc">Newest first</SelectItem>
                     <SelectItem value="created-asc">Oldest first</SelectItem>
                     <SelectItem value="title-asc">Job title A-Z</SelectItem>
@@ -373,27 +560,114 @@ export function Jobs() {
                 </Select>
               </div>
             </div>
-            <TabsContent value="private" className="mt-4 grid md:grid-cols-2">
+
+            {/* Month filter indicator */}
+            {selectedMonth !== null && (
+              <div className="mt-3 flex items-center gap-2">
+                <Badge variant="outline" className="gap-2">
+                  <CalendarIcon className="h-3 w-3" />
+                  {MONTHS[selectedMonth]?.name} jobs ({filteredSortedJobs.length})
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-transparent"
+                    onClick={clearMonthFilter}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              </div>
+            )}
+
+            {/* Month Grid Overlay */}
+            {showMonthGrid && (
+              <div className="mt-4 p-4 border rounded-lg bg-muted/20">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Select Month</h3>
+                  <Button variant="ghost" size="sm" onClick={() => setShowMonthGrid(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {MONTHS.map((month) => (
+                    <Button
+                      key={month.value}
+                      variant="outline"
+                      className="flex flex-col items-center justify-center h-20 hover:bg-primary/10"
+                      onClick={() => handleMonthSelect(month.value)}
+                    >
+                      <span className="font-medium">{month.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {jobCountsByMonth[month.value]} jobs
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Changed: Switched TabsContent order - public first */}
+            <TabsContent value="public" className="mt-4 grid md:grid-cols-2 gap-x-4">
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading jobs...</p>
               ) : filteredSortedJobs.length === 0 ? (
                 <div className="text-center py-12 border rounded-lg bg-muted/20 md:col-span-2">
                   <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-3 text-base font-semibold">No draft jobs</h3>
-                  <p className="text-sm text-muted-foreground">Create a job to start assigning students.</p>
+                  <h3 className="mt-3 text-base font-semibold">
+                    {selectedMonth !== null ? `No published jobs in ${MONTHS[selectedMonth]?.name}` : 'No published jobs'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedMonth !== null ? 'Try selecting a different month or publish a job.' : 'Publish a job to make it visible to students.'}
+                  </p>
                 </div>
               ) : (
                 filteredSortedJobs.map((job) => (
                   <Card key={job._id} className="border border-muted">
                     <CardHeader className="flex flex-row justify-between items-start gap-4">
                       <div className="space-y-1">
-                        <CardTitle className="text-xl">{job.jobTitle}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{job.companyName}</p>
+                        <CardTitle className="text-xl">{job.companyName}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{job.jobTitle}</p>
+                        {/* Add company description display */}
+                        {job.companyDescription && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{job.companyDescription}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           Eligible students: <span className="font-semibold">{job.eligibleCount ?? 0}</span>
                         </p>
+                        {job.createdAt && (
+                          <p className="text-xs text-muted-foreground">
+                            Created: {format(new Date(job.createdAt), 'MMM dd, yyyy')}
+                          </p>
+                        )}
                       </div>
-                      <Badge variant="secondary">Draft</Badge>
+                      {/* Modified: Show badges in top right corner */}
+                      <div className="flex flex-col gap-2 items-end">
+                        <Badge variant="default">Published</Badge>
+                        {/* Added: Show current round status */}
+                        {job.rounds && job.rounds.length > 0 && (
+                          (() => {
+                            // Find the current active round (in-progress) or the latest scheduled round
+                            const currentRound = job.rounds.find(round => round.status === 'in-progress') ||
+                                                job.rounds.find(round => round.status === 'scheduled') ||
+                                                job.rounds.sort((a, b) => (b.sequence ?? 0) - (a.sequence ?? 0))[0];
+                            
+                            if (currentRound) {
+                              return (
+                                <Badge 
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs",
+                                    ROUND_STATUS.find(s => s.value === currentRound.status)?.color || "bg-gray-100 text-gray-800"
+                                  )}
+                                >
+                                  {currentRound.roundName || 'Round'}: {ROUND_STATUS.find(s => s.value === currentRound.status)?.label || currentRound.status || 'Scheduled'}
+                                </Badge>
+                              );
+                            }
+                            return null;
+                          })()
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap">
@@ -418,10 +692,160 @@ export function Jobs() {
                           <Badge key={dept}>{dept}</Badge>
                         ))}
                       </div>
+                      
+                      {/* Removed: Round status display section */}
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => handleOpenEdit(job)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit Job
+                        </Button>
+                        <Button size="sm" variant="outline" className="gap-2" onClick={() => handleOpenRounds(job)}>
+                          <CircleDot className="h-4 w-4" />
+                          Rounds Update
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => handleOpenEligibleDialog(job)}
+                        >
+                          <Eye className="h-4 w-4" />
+                          Eligible Students
+                        </Button>
+                      </div>
+                    </CardContent>
+
+                    {/* Display attachment links */}
+                    {job.attachmentLinks && job.attachmentLinks.length > 0 && (
+                      <CardContent className="pt-0">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Attachment Links:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {job.attachmentLinks.map((link, index) => (
+                              <a
+                                key={index}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                              >
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd"/>
+                                </svg>
+                                Link {index + 1}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      </CardContent>
+                    )}
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="private" className="mt-4 grid md:grid-cols-2">
+              {loading ? (
+                <p className="text-sm text-muted-foreground">Loading jobs...</p>
+              ) : filteredSortedJobs.length === 0 ? (
+                <div className="text-center py-12 border rounded-lg bg-muted/20 md:col-span-2">
+                  <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-3 text-base font-semibold">
+                    {selectedMonth !== null ? `No draft jobs in ${MONTHS[selectedMonth]?.name}` : 'No draft jobs'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedMonth !== null ? 'Try selecting a different month or create a new job.' : 'Create a job to start assigning students.'}
+                  </p>
+                </div>
+              ) : (
+                filteredSortedJobs.map((job) => (
+                  <Card key={job._id} className="border border-muted">
+                    <CardHeader className="flex flex-row justify-between items-start gap-4">
+                      <div className="space-y-1">
+                        <CardTitle className="text-xl">{job.companyName}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{job.jobTitle}</p>
+                        {/* Add company description display */}
+                        {job.companyDescription && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{job.companyDescription}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Eligible students: <span className="font-semibold">{job.eligibleCount ?? 0}</span>
+                        </p>
+                        {job.createdAt && (
+                          <p className="text-xs text-muted-foreground">
+                            Created: {format(new Date(job.createdAt), 'MMM dd, yyyy')}
+                          </p>
+                        )}
+                      </div>
+                      {/* Modified: Show badges in top right corner for draft jobs */}
+                      <div className="flex flex-col gap-2 items-end">
+                        <Badge variant="secondary">Draft</Badge>
+                        {/* Added: Show current round status for draft jobs */}
+                        {job.rounds && job.rounds.length > 0 && (
+                          (() => {
+                            // Find the current active round (in-progress) or the latest scheduled round
+                            const currentRound = job.rounds.find(round => round.status === 'in-progress') ||
+                                                job.rounds.find(round => round.status === 'scheduled') ||
+                                                job.rounds.sort((a, b) => (b.sequence ?? 0) - (a.sequence ?? 0))[0];
+                            
+                            if (currentRound) {
+                              return (
+                                <Badge 
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs",
+                                    ROUND_STATUS.find(s => s.value === currentRound.status)?.color || "bg-gray-100 text-gray-800"
+                                  )}
+                                >
+                                  {currentRound.roundName || 'Round'}: {ROUND_STATUS.find(s => s.value === currentRound.status)?.label || currentRound.status || 'Scheduled'}
+                                </Badge>
+                              );
+                            }
+                            return null;
+                          })()
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {job.jobDescription}
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                        <div>
+                          <span className="font-medium">Salary:</span> {job.salary || 'Not specified'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Passout Year:</span> {job.eligibility?.passoutYear || 'N/A'}
+                        </div>
+                        <div>
+                          <span className="font-medium">CGPA Required:</span> {job.eligibility?.minCgpa ?? 0}
+                        </div>
+                        <div>
+                          <span className="font-medium">Max Arrears:</span> {job.eligibility?.maxArrears ?? 0}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(job.eligibility?.allowedDepartments || []).map((dept) => (
+                          <Badge key={dept}>{dept}</Badge>
+                        ))}
+                      </div>
+
+                      {/* Removed: Round status display section */}
+
                       <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="outline" className="gap-2" onClick={() => handleOpenEdit(job)}>
                           <Pencil className="h-4 w-4" />
                           Edit Job
+                        </Button>
+                        <Button size="sm" variant="outline" className="gap-2" onClick={() => handleOpenRounds(job)}>
+                          <CircleDot className="h-4 w-4" />
+                          Rounds Update
                         </Button>
                         <Button
                           size="sm"
@@ -448,76 +872,31 @@ export function Jobs() {
                         </p>
                       )}
                     </CardContent>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
-            <TabsContent value="public" className="mt-4 grid md:grid-cols-2 gap-x-4">
-              {loading ? (
-                <p className="text-sm text-muted-foreground">Loading jobs...</p>
-              ) : filteredSortedJobs.length === 0 ? (
-                <div className="text-center py-12 border rounded-lg bg-muted/20 md:col-span-2">
-                  <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-3 text-base font-semibold">No published jobs</h3>
-                  <p className="text-sm text-muted-foreground">Publish a job to make it visible to students.</p>
-                </div>
-              ) : (
-                filteredSortedJobs.map((job) => (
-                  <Card key={job._id} className="border border-muted">
-                    <CardHeader className="flex flex-row justify-between items-start gap-4">
-                      <div className="space-y-1">
-                        <CardTitle className="text-xl">{job.jobTitle}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{job.companyName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Eligible students: <span className="font-semibold">{job.eligibleCount ?? 0}</span>
-                        </p>
-                      </div>
-                      <Badge variant="default">Published</Badge>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                        {job.jobDescription}
-                      </p>
-                      <div className="grid gap-2 sm:grid-cols-2 text-sm">
-                        <div>
-                          <span className="font-medium">Salary:</span> {job.salary || 'Not specified'}
+
+                    {/* Display attachment links */}
+                    {job.attachmentLinks && job.attachmentLinks.length > 0 && (
+                      <CardContent className="pt-0">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Attachment Links:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {job.attachmentLinks.map((link, index) => (
+                              <a
+                                key={index}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                              >
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd"/>
+                                </svg>
+                                Link {index + 1}
+                              </a>
+                            ))}
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Passout Year:</span> {job.eligibility?.passoutYear || 'N/A'}
-                        </div>
-                        <div>
-                          <span className="font-medium">CGPA Required:</span> {job.eligibility?.minCgpa ?? 0}
-                        </div>
-                        <div>
-                          <span className="font-medium">Max Arrears:</span> {job.eligibility?.maxArrears ?? 0}
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {(job.eligibility?.allowedDepartments || []).map((dept) => (
-                          <Badge key={dept}>{dept}</Badge>
-                        ))}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-2"
-                          onClick={() => handleOpenEdit(job)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          Edit Job
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-2"
-                          onClick={() => handleOpenEligibleDialog(job)}
-                        >
-                          <Eye className="h-4 w-4" />
-                          Eligible Students
-                        </Button>
-                      </div>
-                    </CardContent>
+                      </CardContent>
+                    )}
                   </Card>
                 ))
               )}
@@ -526,6 +905,7 @@ export function Jobs() {
         </CardContent>
       </Card>
 
+      {/* Edit Job Dialog - without rounds */}
       <Dialog open={isJobDialogOpen} onOpenChange={setJobDialogOpen}>
         <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
@@ -558,20 +938,119 @@ export function Jobs() {
                     onChange={(e) => handleJobFormChange('salary', e.target.value)}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Attachment Link</label>
-                  <Input
-                    placeholder="Drive / PDF link"
-                    value={jobForm.fileLink}
-                    onChange={(e) => handleJobFormChange('fileLink', e.target.value)}
-                  />
+               
+             <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-muted-foreground">Attachment Links</h3>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={addAttachmentLinkField}>
+                    Add Link
+                  </Button>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      multiple
+                      accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,text/plain"
+                      onChange={(e) => handleAttachmentUpload(e.target.files)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={uploadingAttachments}
+                    />
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      variant="outline" 
+                      disabled={uploadingAttachments}
+                      className="gap-2"
+                    >
+                      {uploadingAttachments ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          Upload Files
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
+              
+              {uploadingAttachments && (
+                <p className="text-xs text-muted-foreground">Uploading files to cloud storage...</p>
+              )}
+              
+              <div className="space-y-3">
+                {jobForm.attachmentLinks.map((link, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium">Attachment Link</label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Drive / PDF link or uploaded file URL"
+                          value={link}
+                          onChange={(e) => handleAttachmentLinkChange(index, e.target.value)}
+                        />
+                        {link && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                          >
+                            <a 
+                              href={link} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {jobForm.attachmentLinks.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeAttachmentLinkField(index)}
+                        className="mt-6"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+              </div>
+              {/* Add Company Description field */}
+              <div>
+                <label className="text-sm font-medium">Company Description</label>
+                <textarea
+                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  rows={3}
+                  placeholder="Brief description about the company..."
+                  value={jobForm.companyDescription}
+                  onChange={(e) => handleJobFormChange('companyDescription', e.target.value)}
+                  required
+                />
+              </div>
+
               <div>
                 <label className="text-sm font-medium">Job Description</label>
                 <textarea
                   className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   rows={4}
+                  placeholder="Detailed job description, responsibilities, requirements..."
                   value={jobForm.jobDescription}
                   onChange={(e) => handleJobFormChange('jobDescription', e.target.value)}
                   required
@@ -684,6 +1163,29 @@ export function Jobs() {
               </div>
             </section>
 
+            {/* Replace the attachment links section with this file upload section */}
+            
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setJobDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {editingJob ? 'Save Changes' : 'Save Draft'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rounds Update Dialog */}
+      <Dialog open={isRoundsDialogOpen} onOpenChange={setRoundsDialogOpen}>
+        <DialogContent className="max-w-4xl overflow-y-auto max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>
+              Update Rounds - {roundsEditingJob?.jobTitle} ({roundsEditingJob?.companyName})
+            </DialogTitle>
+          </DialogHeader>
+          <form className="space-y-6" onSubmit={handleSubmitRounds}>
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-muted-foreground">Rounds</h3>
@@ -691,15 +1193,27 @@ export function Jobs() {
                   Add Round
                 </Button>
               </div>
-              {jobForm.rounds.length === 0 ? (
+              {roundsForm.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No rounds added yet.</p>
               ) : (
                 <div className="space-y-4">
-                  {jobForm.rounds.map((round, index) => (
+                  {roundsForm.map((round, index) => (
                     <Card key={index}>
                       <CardContent className="pt-4 space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-semibold">Round {index + 1}</h4>
+                          <div className="flex items-center gap-3">
+                            <h4 className="text-sm font-semibold">Round {index + 1}</h4>
+                            {round.status && (
+                              <Badge 
+                                className={cn(
+                                  "text-xs font-medium",
+                                  ROUND_STATUS.find(s => s.value === round.status)?.color || "bg-gray-100 text-gray-800"
+                                )}
+                              >
+                                {ROUND_STATUS.find(s => s.value === round.status)?.label || round.status}
+                              </Badge>
+                            )}
+                          </div>
                           <Button type="button" variant="destructive" size="sm" onClick={() => removeRoundField(index)}>
                             Remove
                           </Button>
@@ -740,6 +1254,27 @@ export function Jobs() {
                             </Select>
                           </div>
                           <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium">Status</label>
+                            <Select
+                              value={round.status || 'scheduled'}
+                              onValueChange={(value) => updateRoundField(index, 'status', value)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ROUND_STATUS.map((status) => (
+                                  <SelectItem key={status.value} value={status.value}>
+                                    <div className="flex items-center gap-2">
+                                      <div className={cn("w-2 h-2 rounded-full", status.color.replace('text-', 'bg-').replace('100', '500'))} />
+                                      {status.label}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-1">
                             <label className="text-xs font-medium">Schedule</label>
                             <Popover>
                               <PopoverTrigger asChild>
@@ -772,7 +1307,7 @@ export function Jobs() {
                               onChange={(e) => updateRoundField(index, 'venue', e.target.value)}
                             />
                           </div>
-                          <div>
+                          <div className="md:col-span-2">
                             <label className="text-xs font-medium">Instructions</label>
                             <textarea
                               className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -810,17 +1345,18 @@ export function Jobs() {
             </section>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setJobDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setRoundsDialogOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={saving}>
-                {editingJob ? 'Save Changes' : 'Save Draft'}
+                Update Rounds
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
+      {/* Eligible Students Dialog */}
       <Dialog open={Boolean(eligibleDialogJob)} onOpenChange={(open) => !open && handleCloseEligibleDialog()}>
         <DialogContent className="max-w-4xl sm:max-w-5xl">
           <DialogHeader>
@@ -833,22 +1369,28 @@ export function Jobs() {
                   <h3 className="text-lg font-semibold">{eligibleDialogJob.jobTitle}</h3>
                   <p className="text-sm text-muted-foreground">{eligibleDialogJob.companyName}</p>
                 </div>
-                <div className="flex gap-2">
-                  <Select value={studentToAdd} onValueChange={setStudentToAdd}>
-                    <SelectTrigger className="w-[220px]">
-                      <SelectValue placeholder="Add student..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-64">
-                      {availableStudentsToAdd.map((student) => (
-                        <SelectItem key={student._id} value={student._id}>
-                          {student.fullName || 'Unnamed'} ({student.rollNo || 'N/A'})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={handleAddEligibleStudent} disabled={!studentToAdd}>
-                    Add
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" onClick={handleDownloadExcel} className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Download Excel
                   </Button>
+                  <div className="flex gap-2">
+                    <Select value={studentToAdd} onValueChange={setStudentToAdd}>
+                      <SelectTrigger className="w-[220px]">
+                        <SelectValue placeholder="Add student..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {availableStudentsToAdd.map((student) => (
+                          <SelectItem key={student._id} value={student._id}>
+                            {student.fullName || 'Unnamed'} ({student.rollNo || 'N/A'})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleAddEligibleStudent} disabled={!studentToAdd}>
+                      Add
+                    </Button>
+                  </div>
                 </div>
               </div>
               {eligibleLoading ? (

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getUserProfile, updateUserProfile, getAllStudents, getUserById,uploadResume, uploadPhoto} = require('../controller/user.controller');
-const upload = require('../middleware/multer.middleware');
+const {upload} = require('../middleware/multer.middleware');
 const { protect,authorize } = require('../middleware/auth.middleware');
 
 // All routes here are protected

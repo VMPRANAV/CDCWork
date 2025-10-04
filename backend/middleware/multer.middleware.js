@@ -39,5 +39,50 @@ const upload = multer({
     fileFilter: fileFilter,
     limits: { fileSize: 1024 * 1024 * 5 } // 5MB file size limit
 });
+const jobFileStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadDir = path.join(__dirname, '..', 'uploads', 'job-files');
+        try {
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            }
+            cb(null, uploadDir);
+        } catch (err) {
+            cb(err);
+        }
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'job-file-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
 
-module.exports = upload;
+// File filter for job files (PDF, DOC, DOCX, images)
+const jobFileFilter = (req, file, cb) => {
+    const allowedMimes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'text/plain'
+    ];
+    
+    if (allowedMimes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type! Only PDF, DOC, DOCX, TXT and images are allowed.'), false);
+    }
+};
+
+const uploadJobFiles = multer({
+    storage: jobFileStorage,
+    fileFilter: jobFileFilter,
+    limits: { fileSize: 1024 * 1024 * 10 } // 10MB file size limit
+});
+
+module.exports = {
+    upload,
+    uploadJobFiles,
+};

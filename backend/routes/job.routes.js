@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { createJob, getEligibleJobs, getJobs, getEligibleStudentsForJob, updateJob, publishJob, updateEligibleStudents } = require('../controller/job.controller');
+const { createJob, getEligibleJobs, getJobs, getEligibleStudentsForJob, updateJob, publishJob, updateEligibleStudents, downloadEligibleStudents, uploadJobFiles, uploadJobAttachmentFiles } = require('../controller/job.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
+const { uploadJobFiles: uploadJobFilesMiddleware } = require('../middleware/multer.middleware');
 
 // Admin route to create a new job
 router.route('/').post(protect, authorize('admin'), createJob);
-router.route('/').get(protect,authorize('admin'),getJobs);
+router.route('/').get(protect, authorize('admin'), getJobs);
 
 // Admin route to update a job
 router.route('/:jobId').put(protect, authorize('admin'), updateJob);
@@ -15,11 +16,17 @@ router.route('/:jobId/eligible-students').put(protect, authorize('admin'), updat
 
 // Admin route to get eligible students for a specific job
 router.route('/:jobId/eligible-students').get(protect, authorize('admin'), getEligibleStudentsForJob);
+router.get(
+  '/:jobId/eligible-students/download', protect, authorize('admin'), downloadEligibleStudents);
 
 // Admin route to publish a job
 router.route('/:jobId/publish').post(protect, authorize('admin'), publishJob);
 
 // Student route to see jobs they are eligible for
 router.route('/eligible').get(protect, authorize('student'), getEligibleJobs);
+
+// Add routes for file uploads
+router.post('/upload-files', protect, authorize('admin'), uploadJobFilesMiddleware.array('jobFiles', 10), uploadJobFiles);
+router.post('/upload-attachment-files', protect, authorize('admin'), uploadJobFilesMiddleware.array('attachmentFiles', 10), uploadJobAttachmentFiles);
 
 module.exports = router;

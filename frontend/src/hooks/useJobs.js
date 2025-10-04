@@ -7,10 +7,11 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api
 const initialJobForm = {
   companyName: '',
   jobTitle: '',
+  companyDescription: '',
   jobDescription: '',
   salary: '',
   locations: [''],
-  fileLink: '',
+  attachmentLinks: [''], // Changed from fileLink
   eligibility: {
     minCgpa: '',
     minTenthPercent: '',
@@ -32,6 +33,8 @@ export function useJobs() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [eligibleStudents, setEligibleStudents] = useState([]);
   const [eligibleLoading, setEligibleLoading] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const abortController = useRef(null);
 
   const adminHeaders = useMemo(() => {
@@ -225,29 +228,146 @@ export function useJobs() {
     }));
   }, []);
 
+  const downloadEligibleStudents = useCallback(
+    async (jobId, companyName) => {
+      try {
+        const response = await axios.get(`${API_BASE}/jobs/${jobId}/eligible-students/download`, {
+          headers: adminHeaders,
+          responseType: 'blob' // Important for file downloads
+        });
+
+        // Get filename from response headers
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = `Eligible_Students-${companyName.replace(/\s/g, '_')}.xlsx`;
+        
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast.success('Excel file downloaded successfully');
+      } catch (err) {
+        console.error('Failed to download Excel file', err);
+        toast.error('Failed to download Excel file', {
+          description: err.response?.data?.message
+        });
+        throw err;
+      }
+    },
+    [adminHeaders]
+  );
+
+const handleFileUpload = async (files) => {
+        // This function remains as is, in case it's used elsewhere
+        if (!files || files.length === 0) return [];
+        setUploadingFiles(true);
+        try {
+            const formData = new FormData();
+            Array.from(files).forEach(file => {
+                formData.append('jobFiles', file);
+            });
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE}/jobs/upload-files`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, role: 'admin' },
+                body: formData
+            });
+            if (!response.ok) throw new Error('File upload failed');
+            const data = await response.json();
+            toast.success('Files uploaded successfully');
+            return data.files;
+        } catch (error) {
+            console.error('File upload error:', error);
+            toast.error('File upload failed', { description: error.message || 'Please try again.' });
+            throw error;
+        } finally {
+            setUploadingFiles(false);
+        }
+    };
+const handleAttachmentFileUpload = async (files) => {
+        if (!files || files.length === 0) return [];
+        
+        setUploadingAttachments(true);
+        try {
+            const formData = new FormData();
+            Array.from(files).forEach(file => {
+                // Use the correct field name: 'attachmentFiles'
+                formData.append('attachmentFiles', file);
+            });
+
+            const token = localStorage.getItem('authToken');
+            // Use the correct API endpoint: '/upload-attachment-files'
+            const response = await fetch(`${API_BASE}/jobs/upload-attachment-files`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    role: 'admin'
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Attachment upload failed');
+            }
+
+            const data = await response.json();
+            toast.success('Attachments uploaded successfully');
+            return data.files; // This will contain the Cloudinary URLs
+        } catch (error) {
+            console.error('Attachment upload error:', error);
+            toast.error('Attachment upload failed', {
+                description: error.message || 'Please try again.'
+            });
+            throw error; // Re-throw to be caught by the component if needed
+        } finally {
+            setUploadingAttachments(false);
+        }
+    };
+
   return {
-    jobs,
-    loading,
-    error,
-    jobForm,
-    setJobForm,
-    resetJobForm,
-    saving,
-    publishing,
-    createJob,
-    updateJob,
-    publishJob,
-    fetchJobs,
-    selectedJob,
-    setSelectedJob,
-    fetchEligibleStudents,
-    eligibleStudents,
-    eligibleLoading,
-    updateEligibleStudents,
-    addRound,
-    removeRound,
-    updateRound
-  };
+        jobs,
+        loading,
+        error,
+        jobForm,
+        setJobForm,
+        resetJobForm,
+        saving,
+        publishing,
+        createJob,
+        updateJob,
+        publishJob,
+        fetchJobs,
+        selectedJob,
+        setSelectedJob,
+        fetchEligibleStudents,
+        eligibleStudents,
+        eligibleLoading,
+        updateEligibleStudents,
+        downloadEligibleStudents,
+        addRound,
+        removeRound,
+        updateRound,
+        handleFileUpload,
+        uploadingFiles,
+        // ADDED: Export the new function and its state
+        handleAttachmentFileUpload,
+        uploadingAttachments,
+    };
 }
 
 export function getInitialJobForm() {
