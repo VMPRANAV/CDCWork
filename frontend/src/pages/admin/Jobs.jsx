@@ -70,8 +70,30 @@ const blankRound = () => ({
   autoAdvanceOnAttendance: false
 });
 
+// Update the getLocalInitialJobForm function
+const getLocalInitialJobForm = () => ({
+  companyName: '',
+  jobTitle: '',
+  companyDescription: '',
+  jobDescription: '',
+  salary: '',
+  locations: [''],
+  attachmentLinks: [''], // Changed from fileLink and attachments
+  eligibility: {
+    minCgpa: '',
+    minTenthPercent: '',
+    minTwelfthPercent: '',
+    passoutYear: '',
+    allowedDepartments: [],
+    maxArrears: ''
+  },
+  rounds: []
+});
+
+// Update sanitizeJobPayload function
 function sanitizeJobPayload(form) {
   const locations = (form.locations || []).map((loc) => loc.trim()).filter(Boolean);
+  const attachmentLinks = (form.attachmentLinks || []).map((link) => link.trim()).filter(Boolean);
   const eligibility = {
     minTenthPercent: form.eligibility.minTenthPercent ? Number(form.eligibility.minTenthPercent) : 0,
     minTwelfthPercent: form.eligibility.minTwelfthPercent ? Number(form.eligibility.minTwelfthPercent) : 0,
@@ -79,44 +101,42 @@ function sanitizeJobPayload(form) {
     allowedDepartments: form.eligibility.allowedDepartments || [],
     maxArrears: form.eligibility.maxArrears ? Number(form.eligibility.maxArrears) : 0
   };
+  
+
+
 
   return {
     companyName: form.companyName,
     jobTitle: form.jobTitle,
+    companyDescription: form.companyDescription,
     jobDescription: form.jobDescription,
     salary: form.salary,
     locations,
-    fileLink: form.fileLink,
+    attachmentLinks,
     eligibility
   };
 }
 
 function sanitizeRoundsPayload(rounds) {
-  return (rounds || []).map((round, index) => ({
-    roundName: round.roundName,
-    type: round.type,
-    mode: round.mode ?? '',
-    status: round.status ?? 'scheduled',
-    scheduledAt: round.scheduledAt ? new Date(round.scheduledAt).toISOString() : null,
-    venue: round.venue,
-    instructions: round.instructions,
-    sequence: round.sequence ?? index + 1,
-    isAttendanceMandatory: round.isAttendanceMandatory ?? true,
-    autoAdvanceOnAttendance: round.autoAdvanceOnAttendance ?? false
+  return rounds.map(round => ({
+    ...round,
+
+    scheduledAt: round.scheduledAt ? new Date(round.scheduledAt) : null
   }));
 }
-
+// Update buildFormFromJob function
 function buildFormFromJob(job) {
-  const base = getInitialJobForm();
+  const base = getLocalInitialJobForm();
   if (!job) return base;
   return {
     ...base,
     companyName: job.companyName || '',
     jobTitle: job.jobTitle || '',
+    companyDescription: job.companyDescription || '',
     jobDescription: job.jobDescription || '',
     salary: job.salary || '',
     locations: job.locations && job.locations.length ? job.locations : [''],
-    fileLink: job.fileLink || '',
+    attachmentLinks: job.attachmentLinks && job.attachmentLinks.length ? job.attachmentLinks : [''],
     eligibility: {
       minCgpa: job.eligibility?.minCgpa ?? '',
       minTenthPercent: job.eligibility?.minTenthPercent ?? '',
@@ -142,10 +162,16 @@ export function Jobs() {
     eligibleStudents,
     eligibleLoading,
     updateEligibleStudents,
-    downloadEligibleStudents // Add this
+    downloadEligibleStudents,
+    uploadingFiles,
+    handleFileUpload,
+    handleAttachmentFileUpload,
+    uploadingAttachments
   } = useJobs();
 
   const { students: allStudents } = useStudents();
+
+  // Add the missing state variable
 
   // Changed: Set default tab to 'public' instead of 'private'
   const [activeTab, setActiveTab] = useState('public');
@@ -161,6 +187,7 @@ export function Jobs() {
   const [roundsForm, setRoundsForm] = useState([]);
   const [eligibleDialogJob, setEligibleDialogJob] = useState(null);
   const [studentToAdd, setStudentToAdd] = useState('');
+
 
   const filteredSortedJobs = useMemo(() => {
     const list = jobs[activeTab] || [];
@@ -250,7 +277,7 @@ export function Jobs() {
 
   const handleOpenCreate = () => {
     setEditingJob(null);
-    setJobForm(getInitialJobForm());
+    setJobForm(getLocalInitialJobForm()); // Use local function
     setJobDialogOpen(true);
   };
 
@@ -348,20 +375,54 @@ export function Jobs() {
     setRoundsForm((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Add attachment link handlers
+  const handleAttachmentLinkChange = (index, value) => {
+    setJobForm((prev) => {
+      const next = [...prev.attachmentLinks];
+      next[index] = value;
+      return {
+        ...prev,
+        attachmentLinks: next
+      };
+    });
+  };
+
+  const addAttachmentLinkField = () => {
+    setJobForm((prev) => ({
+      ...prev,
+      attachmentLinks: [...prev.attachmentLinks, '']
+    }));
+  };
+
+  const removeAttachmentLinkField = (index) => {
+    setJobForm((prev) => ({
+      ...prev,
+      attachmentLinks: prev.attachmentLinks.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Update the job form submission
   const handleSubmitJob = async (event) => {
     event?.preventDefault();
+    
     const payload = sanitizeJobPayload(jobForm);
+    
     if (!payload.eligibility.passoutYear) {
       return;
     }
+    if (!payload.companyDescription) {
+      return;
+    }
+    
     if (editingJob) {
       await updateJob(editingJob._id, payload);
     } else {
       await createJob(payload);
     }
+    
     setJobDialogOpen(false);
     setEditingJob(null);
-    setJobForm(getInitialJobForm());
+    setJobForm(getLocalInitialJobForm());
   };
 
   const handleSubmitRounds = async (event) => {
@@ -421,10 +482,26 @@ export function Jobs() {
       console.error('Download failed:', error);
     }
   };
-
+ 
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  // Add handler for attachment file upload
+  const handleAttachmentUpload = async (files) => {
+    try {
+      const uploadedFiles = await handleAttachmentFileUpload(files);
+      
+      // Add uploaded file URLs to attachment links
+      const newLinks = uploadedFiles.map(file => file.url);
+      setJobForm((prev) => ({
+        ...prev,
+        attachmentLinks: [...prev.attachmentLinks.filter(link => link.trim()), ...newLinks]
+      }));
+    } catch (error) {
+      // Error already handled in the hook
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -550,6 +627,10 @@ export function Jobs() {
                       <div className="space-y-1">
                         <CardTitle className="text-xl">{job.companyName}</CardTitle>
                         <p className="text-sm text-muted-foreground">{job.jobTitle}</p>
+                        {/* Add company description display */}
+                        {job.companyDescription && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{job.companyDescription}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           Eligible students: <span className="font-semibold">{job.eligibleCount ?? 0}</span>
                         </p>
@@ -639,6 +720,31 @@ export function Jobs() {
                         </Button>
                       </div>
                     </CardContent>
+
+                    {/* Display attachment links */}
+                    {job.attachmentLinks && job.attachmentLinks.length > 0 && (
+                      <CardContent className="pt-0">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Attachment Links:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {job.attachmentLinks.map((link, index) => (
+                              <a
+                                key={index}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                              >
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd"/>
+                                </svg>
+                                Link {index + 1}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      </CardContent>
+                    )}
                   </Card>
                 ))
               )}
@@ -664,6 +770,10 @@ export function Jobs() {
                       <div className="space-y-1">
                         <CardTitle className="text-xl">{job.companyName}</CardTitle>
                         <p className="text-sm text-muted-foreground">{job.jobTitle}</p>
+                        {/* Add company description display */}
+                        {job.companyDescription && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{job.companyDescription}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           Eligible students: <span className="font-semibold">{job.eligibleCount ?? 0}</span>
                         </p>
@@ -673,7 +783,7 @@ export function Jobs() {
                           </p>
                         )}
                       </div>
-                      {/* Modified: Show badges in top right corner for draft jobs too */}
+                      {/* Modified: Show badges in top right corner for draft jobs */}
                       <div className="flex flex-col gap-2 items-end">
                         <Badge variant="secondary">Draft</Badge>
                         {/* Added: Show current round status for draft jobs */}
@@ -762,6 +872,31 @@ export function Jobs() {
                         </p>
                       )}
                     </CardContent>
+
+                    {/* Display attachment links */}
+                    {job.attachmentLinks && job.attachmentLinks.length > 0 && (
+                      <CardContent className="pt-0">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Attachment Links:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {job.attachmentLinks.map((link, index) => (
+                              <a
+                                key={index}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                              >
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd"/>
+                                </svg>
+                                Link {index + 1}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      </CardContent>
+                    )}
                   </Card>
                 ))
               )}
@@ -803,20 +938,119 @@ export function Jobs() {
                     onChange={(e) => handleJobFormChange('salary', e.target.value)}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Attachment Link</label>
-                  <Input
-                    placeholder="Drive / PDF link"
-                    value={jobForm.fileLink}
-                    onChange={(e) => handleJobFormChange('fileLink', e.target.value)}
-                  />
+               
+             <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-muted-foreground">Attachment Links</h3>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={addAttachmentLinkField}>
+                    Add Link
+                  </Button>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      multiple
+                      accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,text/plain"
+                      onChange={(e) => handleAttachmentUpload(e.target.files)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={uploadingAttachments}
+                    />
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      variant="outline" 
+                      disabled={uploadingAttachments}
+                      className="gap-2"
+                    >
+                      {uploadingAttachments ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          Upload Files
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
+              
+              {uploadingAttachments && (
+                <p className="text-xs text-muted-foreground">Uploading files to cloud storage...</p>
+              )}
+              
+              <div className="space-y-3">
+                {jobForm.attachmentLinks.map((link, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium">Attachment Link</label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Drive / PDF link or uploaded file URL"
+                          value={link}
+                          onChange={(e) => handleAttachmentLinkChange(index, e.target.value)}
+                        />
+                        {link && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                          >
+                            <a 
+                              href={link} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {jobForm.attachmentLinks.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeAttachmentLinkField(index)}
+                        className="mt-6"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+              </div>
+              {/* Add Company Description field */}
+              <div>
+                <label className="text-sm font-medium">Company Description</label>
+                <textarea
+                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  rows={3}
+                  placeholder="Brief description about the company..."
+                  value={jobForm.companyDescription}
+                  onChange={(e) => handleJobFormChange('companyDescription', e.target.value)}
+                  required
+                />
+              </div>
+
               <div>
                 <label className="text-sm font-medium">Job Description</label>
                 <textarea
                   className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   rows={4}
+                  placeholder="Detailed job description, responsibilities, requirements..."
                   value={jobForm.jobDescription}
                   onChange={(e) => handleJobFormChange('jobDescription', e.target.value)}
                   required
@@ -929,6 +1163,8 @@ export function Jobs() {
               </div>
             </section>
 
+            {/* Replace the attachment links section with this file upload section */}
+            
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setJobDialogOpen(false)}>
                 Cancel

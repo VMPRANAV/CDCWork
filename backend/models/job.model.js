@@ -6,16 +6,19 @@ const jobSchema = new mongoose.Schema({
     // --- Core Details ---
     companyName: { type: String, required: true, trim: true },
     jobTitle: { type: String, required: true, trim: true },
+    companyDescription: { type: String, required: true },
     jobDescription: { type: String, required: true },
     salary: { type: String, trim: true },
     locations: [{ type: String }],
-    fileLink: { type: String }, // For attaching PDFs or other documents
+    
+    // Simplified to single attachment links field
+    attachmentLinks: [{ type: String }], // Array of URLs/links
    
     // --- Eligibility Criteria ---
     eligibility: {
         minCgpa: { type: Number, default: 0 },
         minTenthPercent: { type: Number, default: 0 },
-        minTwelfthPercent: { type: Number, default: 0 }, // Renamed for consistency
+        minTwelfthPercent: { type: Number, default: 0 },
         passoutYear: { type: Number, required: true },
         allowedDepartments: [{ type: String }],
         maxArrears: { type: Number, default: 0 }
@@ -30,7 +33,7 @@ const jobSchema = new mongoose.Schema({
     // --- Management & Status ---
     postedBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Links to the admin User
+        ref: 'User',
         required: true
     },
     status: {

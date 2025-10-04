@@ -3,6 +3,8 @@ const Job = require('../models/job.model');
 const Round = require('../models/round.model');
 const User = require('../models/user.model');
 const excel = require('exceljs');
+const { cloudinary } = require('../.config/config');
+const fs = require('fs');
 // --- No changes needed in helper functions ---
 const checkStudentEligibility = (student, criteria) => {
     if (!student.isProfileComplete) {
@@ -99,16 +101,15 @@ exports.createJob = async (req, res) => {
             postedBy: req.user.id,
             eligibleStudents,
             status: 'private',
-            rounds: []
+            rounds: [] // Initialize with an empty array
         });
 
         await job.save(session ? { session } : undefined);
 
         if (Array.isArray(roundsPayload) && roundsPayload.length > 0) {
             const newRounds = await syncJobRounds(job._id, roundsPayload);
-            // **FIX STARTS HERE**: Update the job with the new round IDs
-            job.rounds = newRounds.map(round => round._id);
-            await job.save(session ? { session } : undefined); // Save the job again to persist the round IDs
+             job.rounds = newRounds.map(round => round._id);
+            await job.save(session ? { session } : undefined);// Save the job again to persist the round IDs
             // **FIX ENDS HERE**
         }
 
@@ -349,3 +350,84 @@ exports.downloadEligibleStudents = async (req, res) => {
         res.status(500).json({ message: 'Server error while generating the Excel file.' });
     }
 };
+
+// @desc    Upload multiple files for job attachments
+// @route   POST /api/jobs/upload-attachment-files
+exports.uploadJobAttachmentFiles = async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No files uploaded' });
+        }
+
+        // Create an array of promises for each file upload to Cloudinary
+        const uploadPromises = req.files.map(file => 
+            cloudinary.uploader.upload(file.path, {
+                folder: 'job_attachments', // You can organize uploads in Cloudinary folders
+                resource_type: 'auto'      // Let Cloudinary detect the file type
+            })
+        );
+
+        // Wait for all files to be uploaded
+        const uploadResults = await Promise.all(uploadPromises);
+
+        // IMPORTANT: Clean up and delete the temporary local files
+        req.files.forEach(file => fs.unlinkSync(file.path));
+
+        // Create the response array with Cloudinary URLs
+        const uploadedFiles = uploadResults.map((result, index) => ({
+            originalname: req.files[index].originalname,
+            url: result.secure_url, // Use the secure URL from Cloudinary
+            public_id: result.public_id
+        }));
+
+        res.status(200).json({
+            message: 'Files uploaded to Cloudinary successfully',
+            files: uploadedFiles
+        });
+    } catch (error) {
+        // Error handling: if upload fails, still try to delete local files
+        if (req.files) {
+            req.files.forEach(file => {
+                try {
+                    if (fs.existsSync(file.path)) {
+                        fs.unlinkSync(file.path);
+                    }
+                } catch (cleanupError) {
+                    console.error('Error during file cleanup:', cleanupError);
+                }
+            });
+        }
+        console.error('Cloudinary upload error:', error);
+        res.status(500).json({ message: 'Error uploading files to Cloudinary', error: error.message });
+    }
+};
+
+
+// @desc    Upload multiple files for job
+// @route   POST /api/jobs/upload-files
+exports.uploadJobFiles = async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No files uploaded' });
+        }
+
+        const uploadedFiles = req.files.map(file => ({
+            fieldname: file.fieldname,
+            originalname: file.originalname,
+            filename: file.filename,
+            path: file.path,
+            size: file.size,
+            mimetype: file.mimetype,
+            url: `${req.protocol}://${req.get('host')}/uploads/job-files/${file.filename}`
+        }));
+
+        res.status(200).json({
+            message: 'Files uploaded successfully',
+            files: uploadedFiles
+        });
+    } catch (error) {
+        console.error('File upload error:', error);
+        res.status(500).json({ message: 'Error uploading files', error: error.message });
+    }
+};
+
