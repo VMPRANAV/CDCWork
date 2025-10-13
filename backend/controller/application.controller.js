@@ -352,3 +352,112 @@ exports.finalizeApplication = async (req, res) => {
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
+exports.bulkAdvanceApplications = async (req, res) => {
+      const jobId = req.params.id; 
+    const { fromRoundId, toRoundId, emails } = req.body;
+
+    if (!jobId || !fromRoundId || !toRoundId || !emails) {
+        return res.status(400).json({ message: 'jobId, fromRoundId, toRoundId, and emails are required.' });
+    }
+
+    try {
+        const toRound = await Round.findById(toRoundId);
+        if (!toRound) {
+            return res.status(404).json({ message: 'Target round (toRoundId) not found.' });
+        }
+
+        // 1. Parse emails and find corresponding users
+        const emailList = emails
+            .split(/[\n,]+/) // Split by newline or comma
+            .map((email) => email.trim().toLowerCase())
+            .filter((email) => email); // Remove any empty strings
+
+        if (emailList.length === 0) {
+            return res.status(400).json({ message: 'No valid email addresses provided.' });
+        }
+        
+        const uniqueEmails = [...new Set(emailList)];
+        const users = await User.find({ collegeEmail: { $in: uniqueEmails } }).select('_id collegeEmail');
+        const userMap = new Map(users.map(user => [user.collegeEmail, user._id]));
+
+        // 2. Process applications in a loop
+        let successCount = 0;
+        const failures = [];
+        
+        const applications = await Application.find({
+            job: jobId,
+            student: { $in: Array.from(userMap.values()) }
+        });
+
+        const applicationMap = new Map(applications.map(app => [app.student.toString(), app]));
+
+        for (const email of uniqueEmails) {
+            const userId = userMap.get(email);
+            if (!userId) {
+                failures.push({ email, reason: 'User with this email not found in the system.' });
+                continue;
+            }
+
+            const application = applicationMap.get(userId.toString());
+            if (!application) {
+                failures.push({ email, reason: 'No application found for this job.' });
+                continue;
+            }
+
+            // 3. Apply validation logic
+            if (application.finalStatus !== 'in_process') {
+                failures.push({ email, reason: `Application status is already '${application.finalStatus}'.` });
+                continue;
+            }
+
+            if (application.currentRound?.toString() !== fromRoundId) {
+                failures.push({ email, reason: `Application is not in the specified 'Current Round'.` });
+                continue;
+            }
+
+            // 4. Perform the update
+            const currentProgress = application.roundProgress.find(
+                (entry) => entry.round.toString() === fromRoundId
+            );
+
+            if (currentProgress) {
+                currentProgress.result = 'selected';
+                currentProgress.decidedAt = new Date();
+                // Mark attendance if not already marked
+                if (!currentProgress.attendance) {
+                    currentProgress.attendance = true;
+                    currentProgress.attendanceMethod = 'admin_advance';
+                    currentProgress.attendanceMarkedAt = new Date();
+                }
+            }
+
+            const alreadyInNextRound = application.roundProgress.some(
+                (entry) => entry.round.toString() === toRoundId
+            );
+
+            if (!alreadyInNextRound) {
+                application.roundProgress.push({
+                    round: toRound._id,
+                    result: 'pending' // Ready for the next stage
+                });
+            }
+
+            application.currentRound = toRound._id;
+            application.currentRoundSequence = toRound.sequence;
+            
+            await application.save();
+            successCount += 1;
+        }
+
+        // 5. Send detailed response
+        res.status(200).json({
+            message: 'Bulk advance process completed.',
+            successCount,
+            failureCount: failures.length,
+            failures
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};

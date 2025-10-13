@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { useJobs, getInitialJobForm } from '@/hooks/useJobs';
 import { useStudents } from '@/hooks/useStudents';
 import { cn } from '@/lib/utils';
-import { Plus, Pencil, Users, Eye, Send, Calendar as CalendarIcon, X, CircleDot, Download  } from 'lucide-react';
+import { Plus, Pencil, Users, Eye, Send, Calendar as CalendarIcon, X, CircleDot, Download, Search } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 const DEPARTMENTS = [
@@ -188,6 +188,10 @@ export function Jobs() {
   const [eligibleDialogJob, setEligibleDialogJob] = useState(null);
   const [studentToAdd, setStudentToAdd] = useState('');
 
+  // Add new state for student search
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const [showStudentSuggestions, setShowStudentSuggestions] = useState(false);
+  const [selectedStudentIndex, setSelectedStudentIndex] = useState(-1);
 
   const filteredSortedJobs = useMemo(() => {
     const list = jobs[activeTab] || [];
@@ -248,11 +252,28 @@ export function Jobs() {
     return counts;
   }, [jobs, activeTab]);
 
-  const availableStudentsToAdd = useMemo(() => {
-    if (!eligibleDialogJob) return [];
+  // Replace availableStudentsToAdd with filtered search results
+  const filteredStudentsToAdd = useMemo(() => {
+    if (!eligibleDialogJob || !studentSearchQuery.trim()) return [];
+    
+    const query = studentSearchQuery.toLowerCase().trim();
     const eligibleIds = new Set((eligibleStudents || []).map((student) => student._id));
-    return (allStudents || []).filter((student) => !eligibleIds.has(student._id));
-  }, [allStudents, eligibleStudents, eligibleDialogJob]);
+    
+    return (allStudents || [])
+      .filter((student) => !eligibleIds.has(student._id))
+      .filter((student) => {
+        const fullName = (student.fullName || '').toLowerCase();
+        const rollNo = (student.rollNo || '').toLowerCase();
+        const email = (student.collegeEmail || '').toLowerCase();
+        const dept = (student.dept || '').toLowerCase();
+        
+        return fullName.includes(query) || 
+               rollNo.includes(query) || 
+               email.includes(query) || 
+               dept.includes(query);
+      })
+      .slice(0, 10); // Limit to 10 suggestions
+  }, [allStudents, eligibleStudents, eligibleDialogJob, studentSearchQuery]);
 
   const handleSortChange = (value) => {
     if (value === 'by-month') {
@@ -448,15 +469,48 @@ export function Jobs() {
     [fetchEligibleStudents]
   );
 
-  const handleCloseEligibleDialog = () => {
-    setEligibleDialogJob(null);
-    setStudentToAdd('');
+  // Add keyboard navigation handler
+  const handleStudentSearchKeyDown = (e) => {
+    if (!showStudentSuggestions || filteredStudentsToAdd.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedStudentIndex(prev => 
+          prev < filteredStudentsToAdd.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedStudentIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedStudentIndex >= 0 && selectedStudentIndex < filteredStudentsToAdd.length) {
+          handleAddEligibleStudent(filteredStudentsToAdd[selectedStudentIndex]._id);
+        }
+        break;
+      case 'Escape':
+        setShowStudentSuggestions(false);
+        setSelectedStudentIndex(-1);
+        break;
+    }
   };
 
-  const handleAddEligibleStudent = async () => {
-    if (!eligibleDialogJob || !studentToAdd) return;
-    await updateEligibleStudents(eligibleDialogJob._id, { add: [studentToAdd] });
-    setStudentToAdd('');
+  const handleCloseEligibleDialog = () => {
+    setEligibleDialogJob(null);
+    setStudentSearchQuery('');
+    setShowStudentSuggestions(false);
+    setSelectedStudentIndex(-1);
+  };
+
+  const handleAddEligibleStudent = async (studentId) => {
+    if (!eligibleDialogJob || !studentId) return;
+    
+    await updateEligibleStudents(eligibleDialogJob._id, { add: [studentId] });
+    setStudentSearchQuery('');
+    setShowStudentSuggestions(false);
+    setSelectedStudentIndex(-1);
     await fetchEligibleStudents(eligibleDialogJob._id);
   };
 
@@ -1374,25 +1428,105 @@ export function Jobs() {
                     <Download className="h-4 w-4" />
                     Download Excel
                   </Button>
-                  <div className="flex gap-2">
-                    <Select value={studentToAdd} onValueChange={setStudentToAdd}>
-                      <SelectTrigger className="w-[220px]">
-                        <SelectValue placeholder="Add student..." />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-64">
-                        {availableStudentsToAdd.map((student) => (
-                          <SelectItem key={student._id} value={student._id}>
-                            {student.fullName || 'Unnamed'} ({student.rollNo || 'N/A'})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button onClick={handleAddEligibleStudent} disabled={!studentToAdd}>
-                      Add
-                    </Button>
+                  
+                  {/* Replace Select dropdown with search input */}
+                  <div className="relative">
+                    <div className="flex gap-2">
+                      <div className="relative">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                          <Input
+                            placeholder="Search students to add..."
+                            value={studentSearchQuery}
+                            onChange={(e) => {
+                              setStudentSearchQuery(e.target.value);
+                              setShowStudentSuggestions(e.target.value.trim().length > 0);
+                              setSelectedStudentIndex(-1);
+                            }}
+                            onKeyDown={handleStudentSearchKeyDown}
+                            onFocus={() => {
+                              if (studentSearchQuery.trim()) {
+                                setShowStudentSuggestions(true);
+                              }
+                            }}
+                            onBlur={() => {
+                              // Delay hiding suggestions to allow clicking
+                              setTimeout(() => setShowStudentSuggestions(false), 200);
+                            }}
+                            className="pl-10 w-[300px]"
+                          />
+                        </div>
+                        
+                        {/* Search Suggestions Dropdown */}
+                        {showStudentSuggestions && filteredStudentsToAdd.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
+                            {filteredStudentsToAdd.map((student, index) => (
+                              <div
+                                key={student._id}
+                                onClick={() => handleAddEligibleStudent(student._id)}
+                                className={cn(
+                                  "px-3 py-2 cursor-pointer hover:bg-muted/50 border-b border-border/50 last:border-b-0",
+                                  selectedStudentIndex === index && "bg-muted"
+                                )}
+                              >
+                                <div className="flex flex-col">
+                                  <div className="font-medium text-sm">
+                                    {student.fullName || 'Unnamed Student'}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                    <span>{student.rollNo || 'N/A'}</span>
+                                    <span>•</span>
+                                    <span>{student.dept || 'N/A'}</span>
+                                    <span>•</span>
+                                    <span>CGPA: {student.ugCgpa || 'N/A'}</span>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {student.collegeEmail || 'No email'}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* No results message */}
+                        {showStudentSuggestions && studentSearchQuery.trim() && filteredStudentsToAdd.length === 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 p-3">
+                            <div className="text-sm text-muted-foreground text-center">
+                              No students found matching "{studentSearchQuery}"
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Add Button - Added after search bar */}
+                      <Button
+                        variant="default"
+                        onClick={() => {
+                          if (selectedStudentIndex >= 0 && selectedStudentIndex < filteredStudentsToAdd.length) {
+                            handleAddEligibleStudent(filteredStudentsToAdd[selectedStudentIndex]._id);
+                          } else if (filteredStudentsToAdd.length === 1) {
+                            handleAddEligibleStudent(filteredStudentsToAdd[0]._id);
+                          }
+                        }}
+                        disabled={filteredStudentsToAdd.length === 0 || !studentSearchQuery.trim()}
+                        className="gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
+              
+              {/* Search help text */}
+              {studentSearchQuery.trim() && (
+                <div className="text-xs text-muted-foreground">
+                  Search by name, roll number, email, or department. Use ↑↓ arrows to navigate, Enter to select, Esc to close.
+                </div>
+              )}
+              
               {eligibleLoading ? (
                 <p className="text-sm text-muted-foreground">Loading eligible students...</p>
               ) : eligibleStudents.length === 0 ? (
