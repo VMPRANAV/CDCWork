@@ -53,19 +53,46 @@ const normalizeRoundPayload = (roundData, sequence) => ({
 
 const syncJobRounds = async (jobId, roundsData) => {
   try {
-    await Round.deleteMany({ job: jobId });
-    if (!roundsData || roundsData.length === 0) {
-      return [];
+    const existingRounds = await Round.find({ job: jobId }).sort({ sequence: 1 });
+    const updatedRounds = [];
+    
+    // Update or create rounds
+    for (let i = 0; i < roundsData.length; i++) {
+      const roundData = roundsData[i];
+      const normalizedData = normalizeRoundPayload(roundData, i + 1);
+      
+      if (existingRounds[i]) {
+ const existingRound = existingRounds[i];
+ if (existingRound.status !== 'archived' || roundsData.length > i) {
+        Object.assign(existingRounds[i], normalizedData);
+        // Ensure it's not archived if it's part of the new list
+        if (existingRounds[i].status === 'archived') {
+            existingRounds[i].status = 'scheduled';
+        }
+        await existingRounds[i].save();
+        updatedRounds.push(existingRounds[i]);
     }
-    const roundsToCreate = roundsData.map((roundData, index) => {
-      const normalizedData = normalizeRoundPayload(roundData, index + 1);
-      return {
-        job: jobId,
-        ...normalizedData
-      };
-    });
-    const createdRounds = await Round.insertMany(roundsToCreate);
-    return createdRounds;
+      } else {
+        // Create new round
+        const newRound = new Round({
+          job: jobId,
+          ...normalizedData
+        });
+        await newRound.save();
+        updatedRounds.push(newRound);
+      }
+    }
+    
+    // **MODIFICATION HERE: Archive extra rounds instead of deleting**
+    if (existingRounds.length > roundsData.length) {
+      const roundsToArchive = existingRounds.slice(roundsData.length);
+      await Round.updateMany(
+        { _id: { $in: roundsToArchive.map(r => r._id) } },
+        { $set: { status: 'archived' } } // Set status to archived
+      );
+    }
+    
+    return updatedRounds;
   } catch (error) {
     console.error('Error syncing job rounds:', error);
     throw error;

@@ -173,7 +173,10 @@ export function useApplications() {
         });
         const allJobs = [...(response.data?.private || []), ...(response.data?.public || [])];
         const job = allJobs.find((item) => item._id === jobId);
-        const rounds = job?.rounds || [];
+        
+        
+        const rounds = (job?.rounds || []).filter(round => round.status !== 'archived');
+
         setJobRounds(rounds);
         return rounds;
       } catch (err) {
@@ -187,6 +190,35 @@ export function useApplications() {
       }
     },
     [adminHeaders]
+  );
+   const bulkAdvanceApplications = useCallback(
+    async (payload) => {
+      const { jobId, fromRoundId, toRoundId, emails } = payload;
+      try {
+       
+        const url = `${API_BASE}/applications/${jobId}/bulk-advance`;
+   
+        const body = { fromRoundId, toRoundId, emails };
+        
+        const response = await axios.post(url, body, { headers: adminHeaders });
+        
+        toast.success('Bulk advance successful', {
+          description: `${response.data.successCount} applications were advanced.`
+        });
+        
+       
+        await fetchApplications(); 
+        
+        return response.data;
+      } catch (err) {
+        console.error('Failed to bulk advance applications', err);
+        toast.error('Bulk advance failed', {
+          description: err.response?.data?.message
+        });
+        throw err;
+      }
+    },
+    [adminHeaders, fetchApplications]
   );
 
   return {
@@ -203,6 +235,7 @@ export function useApplications() {
     markAttendance,
     advanceToRound,
     finalizeApplication,
-    fetchJobRounds
+    fetchJobRounds,
+    bulkAdvanceApplications
   };
 }

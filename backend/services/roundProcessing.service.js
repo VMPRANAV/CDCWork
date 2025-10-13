@@ -20,7 +20,8 @@ const processExpiredRounds = async () => {
             isAttendanceMandatory: true,
             scheduledAt: { $lte: now },
             processedAt: { $exists: false },
-            status: { $in: ['scheduled', 'in_progress'] }
+          
+            status: { $in: ['scheduled', 'in-progress'], $nin: ['cancelled', 'postponed'] }
         }).sort({ scheduledAt: 1 });
 
         const canUseSessions = supportsSessions();
@@ -52,6 +53,7 @@ const processExpiredRounds = async () => {
                         continue;
                     }
 
+                    // Process attendance-based rejections
                     if (round.isAttendanceMandatory && !progress.attendance) {
                         progress.result = 'rejected';
                         progress.decidedAt = new Date();
@@ -62,7 +64,8 @@ const processExpiredRounds = async () => {
                         continue;
                     }
 
-                    if (round.autoAdvanceOnAttendance && progress.result === 'pending') {
+                    // Auto-advance based on attendance
+                    if (round.autoAdvanceOnAttendance && progress.attendance && progress.result === 'pending') {
                         progress.result = 'selected';
                         progress.decidedAt = new Date();
                         updates.push(application.save(session ? { session } : undefined));
@@ -71,6 +74,7 @@ const processExpiredRounds = async () => {
 
                 await Promise.all(updates);
 
+                // Mark round as processed and completed
                 round.processedAt = new Date();
                 round.status = 'completed';
                 await round.save(session ? { session } : undefined);
@@ -78,12 +82,15 @@ const processExpiredRounds = async () => {
                 if (session) {
                     await session.commitTransaction();
                 }
+
+                console.log(`Processed expired round: ${round.roundName} (${round._id})`);
             } catch (error) {
                 if (session) {
                     await session.abortTransaction();
                 }
                 console.error('Error processing round attendance', {
                     roundId: round._id.toString(),
+                    roundName: round.roundName,
                     error: error.message
                 });
             } finally {
@@ -97,8 +104,10 @@ const processExpiredRounds = async () => {
 
 const startRoundProcessing = (intervalMs = 15 * 60 * 1000) => {
     if (timer) {
+        console.log('Round processing timer already running');
         return;
     }
+    
     const invokeProcessor = () => {
         processExpiredRounds().catch((error) =>
             console.error('Round processing execution failed', error)
@@ -106,12 +115,24 @@ const startRoundProcessing = (intervalMs = 15 * 60 * 1000) => {
     };
 
     // Kick off immediately once
+    console.log('Starting round processing service...');
     invokeProcessor();
 
     timer = setInterval(invokeProcessor, intervalMs);
+    console.log(`Round processing timer set to run every ${intervalMs / 1000} seconds`);
+};
+
+// Function to stop the processing (useful for cleanup)
+const stopRoundProcessing = () => {
+    if (timer) {
+        clearInterval(timer);
+        timer = null;
+        console.log('Round processing timer stopped');
+    }
 };
 
 module.exports = {
     startRoundProcessing,
+    stopRoundProcessing,
     processExpiredRounds
 };

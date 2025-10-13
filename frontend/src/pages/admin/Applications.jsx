@@ -6,12 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { BulkAdvanceDialog } from '@/components/admin/BulkAdvanceDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApplications } from '@/hooks/useApplications';
+import { useJobs } from '@/hooks/useJobs'
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { Eye, RotateCcw, UserCheck } from 'lucide-react';
 
+import { Eye,RotateCcw, UserCheck, Users } from 'lucide-react';
 const STATUS_LABELS = {
   in_process: 'In Process',
   rejected: 'Rejected',
@@ -317,13 +319,14 @@ export function Applications() {
     markAttendance,
     advanceToRound,
     finalizeApplication,
-    fetchJobRounds
+    fetchJobRounds,
+    bulkAdvanceApplications
   } = useApplications();
-
+ const { jobs, loading: jobsLoading } = useJobs();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
-
+const [bulkAdvanceDialogOpen, setBulkAdvanceDialogOpen] = useState(false);
   const filteredApplications = useMemo(() => {
     const query = search.trim().toLowerCase();
     return applications.filter((application) => {
@@ -337,6 +340,13 @@ export function Applications() {
       return matchesQuery && matchesStatus;
     });
   }, [applications, search, statusFilter]);
+const simplifiedJobs = useMemo(() => {
+    if (jobsLoading || !jobs) return [];
+    return [
+      ...(jobs.private || []),
+      ...(jobs.public || [])
+    ].map(j => ({ _id: j._id, jobTitle: j.jobTitle, companyName: j.companyName }));
+  }, [jobs, jobsLoading]);
 
   const handleOpenDialog = async (application) => {
     setSelectedApplication(application);
@@ -378,7 +388,9 @@ export function Applications() {
     const updated = await finalizeApplication(selectedApplication._id, payload);
     setSelectedApplication(updated);
   };
-
+ const handleBulkAdvance = async (payload) => {
+    return await bulkAdvanceApplications(payload);
+  };
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -404,6 +416,10 @@ export function Applications() {
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => setBulkAdvanceDialogOpen(true)}>
+            <Users className="mr-2 h-4 w-4" />
+            Bulk Advance
+          </Button>
         </div>
       </div>
 
@@ -512,6 +528,14 @@ export function Applications() {
         onToggleAttendance={handleAttendanceToggle}
         onAdvance={handleAdvance}
         onFinalize={handleFinalize}
+      />
+       <BulkAdvanceDialog 
+        open={bulkAdvanceDialogOpen}
+        onOpenChange={setBulkAdvanceDialogOpen}
+        jobs={simplifiedJobs}
+        jobRounds={jobRounds}
+        onFetchRounds={fetchJobRounds}
+        onBulkAdvance={handleBulkAdvance}
       />
     </div>
   );

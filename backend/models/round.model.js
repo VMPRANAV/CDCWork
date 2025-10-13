@@ -55,7 +55,7 @@ const roundSchema = new mongoose.Schema({
     processedAt: { type: Date },
     status: {
         type: String,
-        enum: ['scheduled', 'in-progress', 'completed', 'cancelled', 'postponed'],
+        enum: ['scheduled', 'in-progress', 'completed', 'cancelled', 'postponed','archived'],
         default: 'scheduled'
     }
 }, { timestamps: true });
