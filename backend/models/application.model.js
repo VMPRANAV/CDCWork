@@ -40,7 +40,7 @@ const applicationSchema = new mongoose.Schema({
         notes: { type: String },
         attendanceMethod: {
             type: String,
-            enum: ['admin_toggle', 'qr_code', 'offline_code'],
+            enum: ['admin_toggle', 'qr_code', 'offline_code','admin_advance'],
             default: 'admin_toggle'
         },
         attendanceMarkedAt: { type: Date }

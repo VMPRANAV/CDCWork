@@ -279,7 +279,9 @@ exports.advanceApplication = async (req, res) => {
         if (!currentProgress) {
             return res.status(404).json({ message: 'Current round progress not found.' });
         }
-
+currentProgress.attendance = true;
+currentProgress.attendanceMethod = 'admin_advance';
+currentProgress.attendanceMarkedAt = new Date();
         currentProgress.result = 'selected';
         currentProgress.decidedAt = new Date();
 
