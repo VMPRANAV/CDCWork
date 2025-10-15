@@ -10,6 +10,10 @@ import {
   LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@/components/theme-provider';
+import kprietLogo from '@/assets/kprietLogo.png';
+import kprietLogoWhite from '@/assets/White_Logo.png';
+
 const navItems = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { name: 'Students', href: '/admin/students', icon: Users },
@@ -18,19 +22,30 @@ const navItems = [
   { name: 'Attendance', href: '/admin/attendance', icon: QrCode },
   { name: 'Posts', href: '/admin/posts', icon: FileText },
 ];
+
 export function Sidebar() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const location = useLocation();
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
   };
-  const location = useLocation();
+
+  // Choose logo based on theme
+  const logo = theme === 'dark' ? kprietLogoWhite : kprietLogo;
 
   return (
     <div className="hidden md:flex md:flex-shrink-0 bg-white dark:bg-transparent">
       <div className="flex flex-col w-64 border-r border-gray-200 bg-white text-gray-900 dark:border-white/10 dark:bg-[#0f172a] dark:text-zinc-100">
-        <div className="flex items-center h-16 px-4 border-b border-gray-200 dark:border-white/10">
-          <h1 className="text-xl font-bold text-primary dark:text-zinc-100">Placement Cell</h1>
+        <div className="flex items-center gap-3 h-16 px-4 border-b border-gray-200 dark:border-white/10">
+          <img 
+            src={logo} 
+            alt="KPRIET Logo" 
+            className="h-10 w-10 object-contain"
+          />
+          <h1 className="text-xl font-bold text-primary dark:text-zinc-100">CDC KPRIET</h1>
         </div>
         <div className="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
           <nav className="flex-1 space-y-1">
@@ -57,8 +72,9 @@ export function Sidebar() {
           </nav>
           <div className="mt-auto">
             <button 
-            onClick={handleLogout}
-            className="flex items-center w-full px-3 py-2 mt-4 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/15">
+              onClick={handleLogout}
+              className="flex items-center w-full px-3 py-2 mt-4 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/15"
+            >
               <LogOut className="w-5 h-5 mr-3" />
               Logout
             </button>
