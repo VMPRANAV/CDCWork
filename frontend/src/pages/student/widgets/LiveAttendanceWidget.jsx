@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 const SESSION_STATUS_LABELS = {
   active: 'Session live',
   inactive: 'Inactive',
@@ -27,7 +29,7 @@ export function LiveAttendanceWidget() {
     try {
       setLoading(true);
       setError('');
-      const { data } = await axios.get('http://localhost:3002/api/applications/my-applications', {
+      const { data } = await axios.get(`${API_BASE}/applications/my-applications`, {
         headers,
       });
 
@@ -39,7 +41,7 @@ export function LiveAttendanceWidget() {
           const roundId = application.currentRound._id;
           try {
             const { data: sessionStatus } = await axios.get(
-              `http://localhost:3002/api/rounds/${roundId}/attendance-session/status`,
+              `${API_BASE}/rounds/${roundId}/attendance-session/status`,
               { headers }
             );
             return { ...application, attendanceSession: sessionStatus };

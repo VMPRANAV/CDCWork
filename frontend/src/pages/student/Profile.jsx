@@ -19,6 +19,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 const normalizeProfile = (data = {}) => ({
   ...data,
   education: {
@@ -126,7 +128,7 @@ export function StudentProfile() {
   const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get('http://localhost:3002/api/users/profile', { headers });
+      const { data } = await axios.get(`${API_BASE}/users/profile`, { headers });
       setProfile(normalizeProfile(data));
     } catch (error) {
       toast.error('Failed to load profile', {
@@ -265,7 +267,7 @@ export function StudentProfile() {
   const persistProfile = async (payload, successMessage) => {
     try {
       const cleanPayload = cleanForUpdate(payload);
-      const { data } = await axios.put('http://localhost:3002/api/users/profile', cleanPayload, {
+      const { data } = await axios.put(`${API_BASE}/users/profile`, cleanPayload, {
         headers,
       });
       setProfile(normalizeProfile(data));
@@ -347,7 +349,7 @@ export function StudentProfile() {
       formData.append(type === 'resume' ? 'resume' : 'photo', file);
 
       const endpoint = type === 'resume' ? 'upload-resume' : 'upload-photo';
-      const { data } = await axios.post(`http://localhost:3002/api/users/${endpoint}`, formData, {
+      const { data } = await axios.post(`${API_BASE}/users/${endpoint}`, formData, {
         headers: {
           ...headers,
           'Content-Type': 'multipart/form-data',

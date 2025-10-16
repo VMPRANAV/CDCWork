@@ -198,6 +198,49 @@ exports.updatePlacementStatus = async (req, res) => {
     }
 };
 
+// @desc    Admin update of student record
+// @route   PUT /api/users/:id
+exports.adminUpdateStudent = async (req, res) => {
+    try {
+        const updates = { ...req.body };
+        delete updates.password;
+        delete updates._id;
+        delete updates.createdAt;
+        delete updates.updatedAt;
+
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.role !== 'student') {
+            return res.status(400).json({ message: 'Only student accounts can be updated through this endpoint.' });
+        }
+
+        // Apply updates safely
+        user.set(updates, { strict: false });
+
+        if (updates.isPlaced === false) {
+            user.company = undefined;
+            user.package = undefined;
+            user.placementDate = undefined;
+        }
+
+        if (updates.isPlaced === true && !user.placementDate) {
+            user.placementDate = new Date();
+        }
+
+        await user.save();
+        const sanitized = user.toObject();
+        delete sanitized.password;
+
+        res.status(200).json({ message: 'Student updated successfully', user: sanitized });
+    } catch (error) {
+        console.error('Error updating student:', error);
+        res.status(400).json({ message: error.message });
+    }
+};
+
 // @desc    Reset user password (Admin only)
 // @route   PUT /api/users/:id/reset-password
 exports.resetUserPassword = async (req, res) => {

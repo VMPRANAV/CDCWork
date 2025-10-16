@@ -7,6 +7,7 @@ import {
   ClipboardList,
   UserRound,
   MessageSquare,
+  CalendarDays,
   LogOut
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
@@ -18,6 +19,7 @@ const navItems = [
   { name: 'Profile', href: '/student/profile', icon: UserRound },
   { name: 'Available Jobs', href: '/student/availableJob', icon: Briefcase },
   { name: 'Applications', href: '/student/applications', icon: ClipboardList },
+  { name: 'Calendar', href: '/student/calendar', icon: CalendarDays },
   { name: 'Posts', href: '/student/posts', icon: MessageSquare }
 ];
 

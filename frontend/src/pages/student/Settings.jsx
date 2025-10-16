@@ -12,6 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { User, Shield, Bell, X } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 // Remove empty values and coerce numeric fields before sending to API (subset used here)
 function cleanForUpdate(input) {
   const numericPaths = new Set([
@@ -66,7 +68,7 @@ export default function Settings() {
     (async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get('http://localhost:3002/api/users/profile', { headers });
+        const { data } = await axios.get(`${API_BASE}/users/profile`, { headers });
         setProfile(data || {});
       } catch (error) {
         toast.error('Failed to load settings', { description: error.response?.data?.message || 'Please try again.' });
@@ -123,7 +125,7 @@ export default function Settings() {
     try {
       setSaving(true);
       const payload = cleanForUpdate({ ...profile, ...account });
-      const { data } = await axios.put('http://localhost:3002/api/users/profile', payload, { headers });
+      const { data } = await axios.put(`${API_BASE}/users/profile`, payload, { headers });
       setProfile(data);
       toast.success('Account updated');
     } catch (error) {
@@ -142,7 +144,7 @@ export default function Settings() {
     }
     try {
       setSaving(true);
-      await axios.post('http://localhost:3002/api/auth/change-password', security, { headers });
+      await axios.post(`${API_BASE}/auth/change-password`, security, { headers });
       toast.success('Password changed');
       setSecurity({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {

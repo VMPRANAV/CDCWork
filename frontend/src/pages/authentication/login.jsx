@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from 'sonner';
 import collegeLogo from '../../assets/kprietLogo.png';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 const LoginForm = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
@@ -26,7 +28,7 @@ const LoginForm = () => {
 
         try {
             const response = await axios.post(
-                'http://localhost:3002/api/auth/login',
+                `${API_BASE}/auth/login`,
                 formData
             );
 

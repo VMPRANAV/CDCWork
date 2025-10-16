@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 export default function MyProfile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ export default function MyProfile() {
     (async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get('http://localhost:3002/api/users/profile', { headers });
+        const { data } = await axios.get(`${API_BASE}/users/profile`, { headers });
         if (!mounted) return;
         setProfile(data || {});
       } catch (e) {

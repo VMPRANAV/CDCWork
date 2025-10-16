@@ -12,6 +12,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 export function StudentHeader({ sidebarOpen = true, onToggleSidebar }) {
   const navigate = useNavigate();
   // Re-render when user info updates in localStorage
@@ -54,7 +56,7 @@ export function StudentHeader({ sidebarOpen = true, onToggleSidebar }) {
     if (!shouldFetch || !token) return;
     (async () => {
       try {
-        const { data } = await axios.get('http://localhost:3002/api/users/profile', {
+        const { data } = await axios.get(`${API_BASE}/users/profile`, {
           headers: { Authorization: `Bearer ${token}`, role: 'student' },
         });
         if (data?.photoUrl) {

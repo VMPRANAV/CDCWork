@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 const STATUS_VARIANTS = {
   placed: 'success',
   hired: 'success',
@@ -30,7 +32,7 @@ export function MinimalApplicationsWidget() {
   const fetchApplications = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get('http://localhost:3002/api/applications/my-applications', {
+      const { data } = await axios.get(`${API_BASE}/applications/my-applications`, {
         headers,
       });
       setApplications(Array.isArray(data) ? data : []);

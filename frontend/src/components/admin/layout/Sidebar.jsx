@@ -6,7 +6,7 @@ import {
   Briefcase,
   QrCode,
   FileText,
-  Settings,
+  CalendarDays,
   LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +20,7 @@ const navItems = [
   { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
   { name: 'Applications', href: '/admin/applications', icon: FileText },
   { name: 'Attendance', href: '/admin/attendance', icon: QrCode },
+  { name: 'Calendar', href: '/admin/calendar', icon: CalendarDays },
   { name: 'Posts', href: '/admin/posts', icon: FileText },
 ];
 
