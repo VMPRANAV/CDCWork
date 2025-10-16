@@ -13,6 +13,7 @@ import StudentPosts from '@/pages/student/Posts';
 import AvailableJobs from '@/pages/student/AvailableJobs';
 import MyProfile from '@/pages/student/MyProfile';
 import Settings from '@/pages/student/Settings';
+import { Calendar as StudentCalendar } from '@/pages/student/Calendar';
 
 // Auth Components
 import Login from './pages/authentication/login';
@@ -29,6 +30,7 @@ import { Jobs } from '@/pages/admin/Jobs';
 import { Posts } from '@/pages/admin/Posts';
 import { Applications } from '@/pages/admin/Applications';
 import { Attendance } from '@/pages/admin/Attendance';
+import { Calendar as AdminCalendar } from '@/pages/admin/Calendar';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -48,6 +50,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/student/posts" element={<StudentPosts />} />
           <Route path="/student/applications" element={<StudentApplications />} />
           <Route path="/student/availableJob" element={<AvailableJobs />} />
+          <Route path="/student/calendar" element={<StudentCalendar />} />
           <Route path="/student/settings" element={<Settings />} />
         </Route>
         
@@ -60,6 +63,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/admin/posts" element={<Posts />} />
           <Route path="/admin/applications" element={<Applications />} />
           <Route path="/admin/attendance" element={<Attendance />} />
+          <Route path="/admin/calendar" element={<AdminCalendar />} />
         </Route>
         
         {/* 404 Route */}

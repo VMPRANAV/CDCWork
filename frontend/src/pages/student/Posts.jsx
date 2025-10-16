@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Calendar, Search, CheckCircle, X } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 const TAGS = {
   general: 'General',
   hiring: 'Hiring',
@@ -43,7 +45,7 @@ export function StudentPosts() {
   const fetchPosts = async () => {
     try {
         setLoading(true);
-        const { data } = await axios.get('http://localhost:3002/api/posts');
+        const { data } = await axios.get(`${API_BASE}/posts`);
         setPosts(Array.isArray(data) ? data : []);
         setError('');
 
@@ -106,7 +108,7 @@ export function StudentPosts() {
     try {
       if (userReactions[postId] === reactionType) {
         // Remove reaction if clicking the same button
-        await axios.delete(`http://localhost:3002/api/posts/${postId}/react`, config);
+        await axios.delete(`${API_BASE}/posts/${postId}/react`, config);
         setUserReactions((prev) => {
           const updated = { ...prev };
           delete updated[postId];
@@ -116,7 +118,7 @@ export function StudentPosts() {
       } else {
         // Add or update reaction
         await axios.post(
-          `http://localhost:3002/api/posts/${postId}/react`,
+          `${API_BASE}/posts/${postId}/react`,
           { reactionType },
           config
         );

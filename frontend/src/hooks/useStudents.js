@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 // Cache for storing student data to minimize API calls
 const studentCache = new Map();
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
@@ -65,7 +67,7 @@ export function useStudents() {
         throw new Error('No authentication token found. Please log in again.');
       }
       
-      const response = await axios.get('http://localhost:3002/api/users', {
+      const response = await axios.get(`${API_BASE}/users`, {
         signal: listAbortController.current.signal,
         headers: {
           'Authorization': `Bearer ${token}`
@@ -122,7 +124,7 @@ export function useStudents() {
         throw new Error('No authentication token found. Please log in again.');
       }
 
-      const response = await axios.get(`http://localhost:3002/api/users/${studentId}`, {
+      const response = await axios.get(`${API_BASE}/users/${studentId}`, {
         signal: detailAbortController.current.signal,
         headers: {
           'Authorization': `Bearer ${token}`
@@ -189,7 +191,7 @@ export function useStudents() {
       }
 
       const response = await axios.put(
-        `http://localhost:3002/api/admin/students/${studentId}`, 
+        `${API_BASE}/users/${studentId}`, 
         updates,
         {
           headers: {

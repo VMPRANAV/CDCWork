@@ -21,6 +21,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 const FALLBACK_DESCRIPTION = 'No description provided for this job yet.';
 
 export function AvailableJobs() {
@@ -43,8 +45,8 @@ export function AvailableJobs() {
     try {
       setLoading(true);
       const [jobsResponse, applicationsResponse] = await Promise.all([
-        axios.get('http://localhost:3002/api/jobs/eligible', { headers }),
-        axios.get('http://localhost:3002/api/applications/my-applications', { headers }),
+        axios.get(`${API_BASE}/jobs/eligible`, { headers }),
+        axios.get(`${API_BASE}/applications/my-applications`, { headers }),
       ]);
 
       setJobs(Array.isArray(jobsResponse.data) ? jobsResponse.data : []);
@@ -117,7 +119,7 @@ export function AvailableJobs() {
     try {
       setApplyingJobId(jobId);
       await axios.post(
-        'http://localhost:3002/api/applications',
+        `${API_BASE}/applications`,
         { jobId },
         { headers }
       );

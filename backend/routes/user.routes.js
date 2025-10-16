@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getUserProfile, updateUserProfile, getAllStudents, getUserById,uploadResume, uploadPhoto} = require('../controller/user.controller');
+const { getUserProfile, updateUserProfile, getAllStudents, getUserById,uploadResume, uploadPhoto, adminUpdateStudent} = require('../controller/user.controller');
 const {upload} = require('../middleware/multer.middleware');
 const { protect,authorize } = require('../middleware/auth.middleware');
 
@@ -13,7 +13,8 @@ router.route('/profile')
 router.route('/')
     .get(protect, authorize('admin'), getAllStudents);
 router.route('/:id')
-    .get(protect, authorize('admin'), getUserById);
+    .get(protect, authorize('admin'), getUserById)
+    .put(protect, authorize('admin'), adminUpdateStudent);
 
 router.route('/upload-resume').post(protect, upload.single('resume'), uploadResume);
 router.route('/upload-photo').post(protect, upload.single('photo'), uploadPhoto);

@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
 const STATUS_COLORS = {
   hired: 'success',
   rejected: 'destructive',
@@ -65,7 +67,7 @@ export function Applications() {
       }
       try {
         const { data } = await axios.get(
-          `http://localhost:3002/api/rounds/${roundId}/attendance-session/status`,
+          `${API_BASE}/rounds/${roundId}/attendance-session/status`,
           { headers }
         );
         return data;
@@ -91,7 +93,7 @@ export function Applications() {
   const fetchApplications = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get('http://localhost:3002/api/applications/my-applications', {
+      const { data } = await axios.get(`${API_BASE}/applications/my-applications`, {
         headers,
       });
       const enriched = await enrichApplicationsWithAttendance(Array.isArray(data) ? data : []);
@@ -142,7 +144,7 @@ export function Applications() {
       updateAttendanceFeedback(applicationId, 'info', 'Submitting attendance...');
 
       await axios.post(
-        `http://localhost:3002/api/rounds/${roundId}/attendance-checkin`,
+        `${API_BASE}/rounds/${roundId}/attendance-checkin`,
         { code },
         { headers }
       );
