@@ -13,17 +13,22 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Calendar, Search, CheckCircle, X } from 'lucide-react';
+import { Calendar, Search, CheckCircle, X, ExternalLink, CalendarDays, Clock, Maximize2 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
 
-const TAGS = {
-  general: 'General',
-  hiring: 'Hiring',
-  announcement: 'Announcement',
-  event: 'Event',
-  update: 'Update',
+const CATEGORIES = {
+  hackathon: { label: 'Hackathon', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' },
+  coding_test: { label: 'Coding Test', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+  general: { label: 'General', color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200' },
+  announcement: { label: 'Announcement', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+  hiring: { label: 'Hiring', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+  event: { label: 'Event', color: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200' },
+  workshop: { label: 'Workshop', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200' },
+  seminar: { label: 'Seminar', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
+  other: { label: 'Other', color: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200' }
 };
 
 const sortOptions = [
@@ -41,6 +46,9 @@ export function StudentPosts() {
   const [activeTab, setActiveTab] = useState('all');
   const [error, setError] = useState('');
   const [userReactions, setUserReactions] = useState({});
+  const [expandedPosts, setExpandedPosts] = useState({});
+  const [fullImageOpen, setFullImageOpen] = useState(false);
+  const [fullImageUrl, setFullImageUrl] = useState('');
 
   const fetchPosts = async () => {
     try {
@@ -49,14 +57,12 @@ export function StudentPosts() {
         setPosts(Array.isArray(data) ? data : []);
         setError('');
 
-        // Extract user's current reactions
         const reactions = {};
         const userId = getUserIdFromToken();
 
         if (userId) {
             data.forEach((post) => {
                 const userReaction = post.reactions?.find((r) => {
-                    // Handle both populated and non-populated userId
                     const reactionUserId = r.userId._id || r.userId;
                     return reactionUserId === userId;
                 });
@@ -107,7 +113,6 @@ export function StudentPosts() {
 
     try {
       if (userReactions[postId] === reactionType) {
-        // Remove reaction if clicking the same button
         await axios.delete(`${API_BASE}/posts/${postId}/react`, config);
         setUserReactions((prev) => {
           const updated = { ...prev };
@@ -116,7 +121,6 @@ export function StudentPosts() {
         });
         toast.success('Response removed');
       } else {
-        // Add or update reaction
         await axios.post(
           `${API_BASE}/posts/${postId}/react`,
           { reactionType },
@@ -151,35 +155,49 @@ export function StudentPosts() {
     if (isSelected) {
       switch (type) {
         case 'registered': 
-          return 'bg-green-500 hover:bg-green-600 text-white border-green-500';
+          return 'bg-green-500 hover:bg-green-600 text-white border-green-500 shadow-md';
         case 'not_registered': 
-          return 'bg-red-500 hover:bg-red-600 text-white border-red-500';
+          return 'bg-red-500 hover:bg-red-600 text-white border-red-500 shadow-md';
         default: 
           return '';
       }
     }
-    return 'hover:bg-gray-50';
+    return 'hover:bg-gray-50 dark:hover:bg-gray-800';
+  };
+
+  const toggleExpandPost = (postId) => {
+    setExpandedPosts(prev => ({
+      ...prev,
+      [postId]: !prev[postId]
+    }));
+  };
+
+  const openFullImage = (imageUrl) => {
+    setFullImageUrl(imageUrl);
+    setFullImageOpen(true);
   };
 
   const filteredPosts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
-    const byTab =
-      activeTab === 'all'
-        ? posts
-        : posts.filter((post) => post.category?.toLowerCase() === activeTab);
+    let filtered = posts;
 
-    const bySearch = normalizedSearch
-      ? byTab.filter((post) => {
-          const title = post.title?.toLowerCase() ?? '';
-          const description = post.description?.toLowerCase() ?? '';
-          return (
-            title.includes(normalizedSearch) || description.includes(normalizedSearch)
-          );
-        })
-      : byTab;
+    // Filter by category
+    if (activeTab !== 'all') {
+      filtered = filtered.filter((post) => post.category === activeTab);
+    }
 
-    const sorted = [...bySearch].sort((a, b) => {
+    // Filter by search
+    if (normalizedSearch) {
+      filtered = filtered.filter((post) => {
+        const title = post.title?.toLowerCase() ?? '';
+        const description = post.description?.toLowerCase() ?? '';
+        return title.includes(normalizedSearch) || description.includes(normalizedSearch);
+      });
+    }
+
+    // Sort
+    const sorted = [...filtered].sort((a, b) => {
       const aDate = a.updatedAt || a.createdAt;
       const bDate = b.updatedAt || b.createdAt;
       const aTitle = a.title?.toLowerCase() || '';
@@ -202,21 +220,19 @@ export function StudentPosts() {
   }, [posts, searchTerm, activeTab, sort]);
 
   const renderSkeletons = () => (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {[0, 1, 2, 3, 4, 5].map((item) => (
-        <Card key={item} className="border border-border/60">
+    <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+      {[0, 1, 2, 3].map((item) => (
+        <Card key={item} className="overflow-hidden">
+          <Skeleton className="h-64 w-full" />
           <CardHeader>
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="mt-2 h-3 w-24" />
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="mt-2 h-4 w-1/2" />
           </CardHeader>
           <CardContent className="space-y-2">
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-3/4" />
-            <Skeleton className="h-3 w-1/2" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
           </CardContent>
-          <CardFooter>
-            <Skeleton className="h-3 w-32" />
-          </CardFooter>
         </Card>
       ))}
     </div>
@@ -238,7 +254,7 @@ export function StudentPosts() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="relative md:max-w-sm">
+            <div className="relative md:max-w-sm flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 value={searchTerm}
@@ -261,7 +277,7 @@ export function StudentPosts() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="flex flex-wrap gap-2">
               <TabsTrigger value="all">All</TabsTrigger>
-              {Object.entries(TAGS).map(([value, label]) => (
+              {Object.entries(CATEGORIES).map(([value, { label }]) => (
                 <TabsTrigger key={value} value={value} className="capitalize">
                   {label}
                 </TabsTrigger>
@@ -294,42 +310,134 @@ export function StudentPosts() {
           </CardFooter>
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-1">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           {filteredPosts.map((post) => {
             const postedAt = post.createdAt
-              ? new Date(post.createdAt).toLocaleString()
+              ? new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
               : 'Date unavailable';
-            const tagLabel = TAGS[post.category?.toLowerCase?.() || ''] || 'General';
+            const category = CATEGORIES[post.category] || CATEGORIES.general;
             const description = post.description || 'No description provided.';
+            const isExpanded = expandedPosts[post._id];
+            const shouldShowReadMore = description.length > 200;
 
             return (
-              <Card key={post._id} className="border border-border/60 shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="space-y-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl font-semibold leading-tight mb-2">
-                        {post.title || 'Untitled post'}
-                      </CardTitle>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
-                        <span>{postedAt}</span>
+              <Card key={post._id} className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                {/* Event Image */}
+                {post.imageUrl && (
+                  <div 
+                    className="relative w-full h-64 bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer group/image"
+                    onClick={() => openFullImage(post.imageUrl)}
+                  >
+                    <img 
+                      src={post.imageUrl} 
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover/image:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/20 transition-colors flex items-center justify-center">
+                      <div className="bg-white/90 dark:bg-gray-900/90 rounded-full p-3 opacity-0 group-hover/image:opacity-100 transition-opacity">
+                        <Maximize2 className="w-6 h-6 text-gray-800 dark:text-gray-200" />
                       </div>
                     </div>
-                    <Badge variant="secondary" className="uppercase shrink-0">
-                      {tagLabel}
-                    </Badge>
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <Badge variant="secondary" className="backdrop-blur-md bg-white/90 dark:bg-gray-900/90 mb-2">
+                        {category.label}
+                      </Badge>
+                    </div>
+                    {post.eventDate && (
+                      <div className="absolute top-4 right-4">
+                        <Badge className="backdrop-blur-md bg-blue-600/90 text-white shadow-lg">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {new Date(post.eventDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <CardHeader className="space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <CardTitle className="text-xl font-bold leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {post.title || 'Untitled post'}
+                      </CardTitle>
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{postedAt}</span>
+                        </div>
+                        {!post.imageUrl && post.eventDate && (
+                          <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950">
+                            <CalendarDays className="w-3 h-3 mr-1" />
+                            {new Date(post.eventDate).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {!post.imageUrl && (
+                      <Badge variant="secondary" className="uppercase shrink-0">
+                        {category.label}
+                      </Badge>
+                    )}
                   </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  <p className="text-muted-foreground leading-relaxed">
-                    {description}
-                  </p>
+                  {/* Full Description with Read More */}
+                  <div>
+                    <p className={`text-muted-foreground leading-relaxed whitespace-pre-wrap ${!isExpanded && shouldShowReadMore ? 'line-clamp-3' : ''}`}>
+                      {description}
+                    </p>
+                    {shouldShowReadMore && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => toggleExpandPost(post._id)}
+                        className="px-0 h-auto font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                      >
+                        {isExpanded ? 'Show less' : 'Read more'}
+                      </Button>
+                    )}
+                  </div>
 
-                  {/* Registration Buttons - Only 2 options */}
-                  <div className="space-y-3 border-t pt-4">
-                    <h4 className="text-sm font-medium">Your Registration Status:</h4>
-                    <div className="flex flex-wrap gap-3">
+                  {/* Registration Link */}
+                  {post.registrationLink && (
+                    <a
+                      href={post.registrationLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900 dark:hover:to-emerald-900 rounded-xl border-2 border-green-200 dark:border-green-800 transition-all group/link shadow-sm hover:shadow-md"
+                    >
+                      <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg group-hover/link:bg-green-200 dark:group-hover/link:bg-green-800 transition-colors">
+                        <ExternalLink className="w-5 h-5 text-green-700 dark:text-green-300" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-green-800 dark:text-green-200">Registration Link</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">Click to register for this event</p>
+                      </div>
+                      <span className="text-xs font-medium text-green-600 dark:text-green-400 group-hover/link:translate-x-1 transition-transform">
+                        Open →
+                      </span>
+                    </a>
+                  )}
+
+                  {/* Registration Buttons */}
+                  <div className="space-y-3 border-t dark:border-gray-700 pt-4">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      Your Registration Status
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
                       {['registered', 'not_registered'].map((type) => {
                         const isSelected = userReactions[post._id] === type;
                         const labels = {
@@ -343,7 +451,7 @@ export function StudentPosts() {
                             onClick={() => handleReaction(post._id, type)}
                             variant="outline"
                             size="sm"
-                            className={`flex items-center gap-2 min-w-[140px] ${getReactionClassName(post._id, type)}`}
+                            className={`flex items-center justify-center gap-2 h-11 font-medium transition-all ${getReactionClassName(post._id, type)}`}
                           >
                             {getReactionIcon(type)}
                             {labels[type]}
@@ -354,29 +462,47 @@ export function StudentPosts() {
 
                     {/* Current Selection Indicator */}
                     {userReactions[post._id] && (
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-                        {getReactionIcon(userReactions[post._id])}
-                        <span className="text-blue-800">
-                          You have marked yourself as <strong>
+                      <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border border-blue-200 dark:border-blue-800 rounded-lg text-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900 rounded-md">
+                          {getReactionIcon(userReactions[post._id])}
+                        </div>
+                        <span className="text-blue-800 dark:text-blue-200 flex-1">
+                          Marked as <strong className="font-semibold">
                             {userReactions[post._id] === 'registered' ? 'Registered' : 'Not Registered'}
                           </strong>
                         </span>
-                        <span className="text-blue-600 text-xs ml-auto">
-                          Click again to remove
+                        <span className="text-blue-600 dark:text-blue-400 text-xs font-medium">
+                          Click to change
                         </span>
                       </div>
                     )}
                   </div>
                 </CardContent>
 
-                <CardFooter className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t">
-                  <span>Updated {post.updatedAt ? new Date(post.updatedAt).toLocaleDateString() : 'N/A'}</span>
+                <CardFooter className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Updated {post.updatedAt ? new Date(post.updatedAt).toLocaleDateString() : 'N/A'}
+                  </span>
                 </CardFooter>
               </Card>
             );
           })}
         </div>
       )}
+
+      {/* Full Image Dialog */}
+      <Dialog open={fullImageOpen} onOpenChange={setFullImageOpen}>
+        <DialogContent className="max-w-7xl max-h-[95vh] p-0 overflow-hidden">
+          <div className="relative w-full h-full flex items-center justify-center bg-black/90">
+            <img 
+              src={fullImageUrl} 
+              alt="Full size" 
+              className="max-w-full max-h-[95vh] object-contain"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

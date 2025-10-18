@@ -13,8 +13,8 @@ const {
     getPostReactions
 } = require('../controller/post.controller');
 
-// Import your middleware
 const { protect, authorize } = require('../middleware/auth.middleware'); 
+const { uploadImage } = require('../middleware/multer.middleware');
 
 // --- PUBLIC ROUTES ---
 router.get('/', getAllPosts);
@@ -28,8 +28,8 @@ router.delete('/:postId/react', protect, authorize('student'), removeReaction);
 // 1. `protect` runs first to ensure the user is logged in.
 // 2. `authorize('admin')` runs next, ensuring req.user.role is 'admin'.
 // 3. If both pass, the following functions are called:
-router.post('/', protect, authorize('admin'), createPost);
-router.put('/:id', protect, authorize('admin'), updatePost);
+router.post('/', protect, authorize('admin'), uploadImage, createPost);
+router.put('/:id', protect, authorize('admin'), uploadImage, updatePost);
 router.delete('/:id', protect, authorize('admin'), deletePost);
 router.get('/:postId/reactions', protect, authorize('admin'), getPostReactions);
 

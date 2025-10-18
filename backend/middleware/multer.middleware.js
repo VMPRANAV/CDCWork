@@ -34,6 +34,19 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
+// Image file filter for posts
+const imageFilter = (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+        return cb(null, true);
+    } else {
+        cb(new Error('Only image files are allowed!'), false);
+    }
+};
+
 const upload = multer({ 
     storage: storage,
     fileFilter: fileFilter,
@@ -82,7 +95,15 @@ const uploadJobFiles = multer({
     limits: { fileSize: 1024 * 1024 * 10 } // 10MB file size limit
 });
 
+// Image upload for posts
+const uploadImage = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: imageFilter
+}).single('image');
+
 module.exports = {
     upload,
     uploadJobFiles,
+    uploadImage,
 };

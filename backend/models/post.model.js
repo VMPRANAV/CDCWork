@@ -10,6 +10,24 @@ const postSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    category: {
+        type: String,
+        enum: ['hackathon', 'coding_test', 'general', 'announcement', 'hiring', 'event', 'workshop', 'seminar', 'other'],
+        default: 'general'
+    },
+    imageUrl: {
+        type: String,
+        default: null
+    },
+    registrationLink: {
+        type: String,
+        default: null,
+        trim: true
+    },
+    eventDate: {
+        type: Date,
+        default: null
+    },
     reactions: [{
         userId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -26,7 +44,6 @@ const postSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
-    // Actual counts instead of virtual
     reactionCounts: {
         registered: {
             type: Number,

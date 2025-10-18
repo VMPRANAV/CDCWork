@@ -1,17 +1,54 @@
 const Post = require('../models/post.model');
 const User = require('../models/user.model');
+const { cloudinary } = require('../.config/config');
+const fs = require('fs');
 
 const createPost = async (req, res) => {
     try {
-        const { title, description } = req.body;
+        const { title, description, category, registrationLink, eventDate } = req.body;
 
         if (!title || !description) {
             return res.status(400).json({ message: 'Please provide a title and description.' });
         }
 
+        let imageUrl = null;
+
+        // Handle image upload if file is present
+        if (req.file) {
+            try {
+                const result = await cloudinary.uploader.upload(req.file.path, {
+                    resource_type: "image",
+                    folder: "event_images",
+                    public_id: `event_${Date.now()}`,
+                    transformation: [
+                        { width: 1200, height: 630, crop: "limit" },
+                        { quality: "auto" }
+                    ]
+                });
+                imageUrl = result.secure_url;
+
+                // Clean up temporary file
+                fs.unlinkSync(req.file.path);
+            } catch (uploadError) {
+                console.error('Image upload error:', uploadError);
+                // Clean up temporary file if upload fails
+                if (req.file && req.file.path) {
+                    try {
+                        fs.unlinkSync(req.file.path);
+                    } catch (unlinkError) {
+                        console.error('Error deleting temporary file:', unlinkError);
+                    }
+                }
+            }
+        }
+
         const post = new Post({
             title,
             description,
+            category: category || 'general',
+            imageUrl,
+            registrationLink: registrationLink || null,
+            eventDate: eventDate || null,
             reactions: [],
             reactionCounts: {
                 registered: 0,
@@ -24,25 +61,76 @@ const createPost = async (req, res) => {
         res.status(201).json(createdPost);
 
     } catch (error) {
+        console.error('Create post error:', error);
+        // Clean up temporary file if it exists
+        if (req.file && req.file.path) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (unlinkError) {
+                console.error('Error deleting temporary file:', unlinkError);
+            }
+        }
         res.status(500).json({ message: 'Server error: ' + error.message });
     }
 };
 
 const updatePost = async (req, res) => {
     try {
-        const { title, description } = req.body;
+        const { title, description, category, registrationLink, eventDate } = req.body;
         const post = await Post.findById(req.params.id);
 
-        if (post) {
-            post.title = title || post.title;
-            post.description = description || post.description;
-
-            const updatedPost = await post.save();
-            res.status(200).json(updatedPost);
-        } else {
-            res.status(404).json({ message: 'Post not found.' });
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found.' });
         }
+
+        // Update basic fields
+        post.title = title || post.title;
+        post.description = description || post.description;
+        post.category = category || post.category;
+        post.registrationLink = registrationLink !== undefined ? registrationLink : post.registrationLink;
+        post.eventDate = eventDate !== undefined ? eventDate : post.eventDate;
+
+        // Handle image upload if new file is present
+        if (req.file) {
+            try {
+                const result = await cloudinary.uploader.upload(req.file.path, {
+                    resource_type: "image",
+                    folder: "event_images",
+                    public_id: `event_${Date.now()}`,
+                    transformation: [
+                        { width: 1200, height: 630, crop: "limit" },
+                        { quality: "auto" }
+                    ]
+                });
+                post.imageUrl = result.secure_url;
+
+                // Clean up temporary file
+                fs.unlinkSync(req.file.path);
+            } catch (uploadError) {
+                console.error('Image upload error:', uploadError);
+                // Clean up temporary file if upload fails
+                if (req.file && req.file.path) {
+                    try {
+                        fs.unlinkSync(req.file.path);
+                    } catch (unlinkError) {
+                        console.error('Error deleting temporary file:', unlinkError);
+                    }
+                }
+            }
+        }
+
+        const updatedPost = await post.save();
+        res.status(200).json(updatedPost);
     } catch (error) {
+        console.error('Update post error:', error);
+        // Clean up temporary file if it exists
+        if (req.file && req.file.path) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (unlinkError) {
+                console.error('Error deleting temporary file:', unlinkError);
+            }
+        }
         res.status(500).json({ message: 'Server error: ' + error.message });
     }
 };
@@ -57,13 +145,11 @@ const getAllPosts = async (req, res) => {
             .sort({ createdAt: -1 });
             
         console.log('Fetched posts with reactions:', posts.map(p => ({ 
-            title: p.title, 
+            title: p.title,
+            category: p.category,
             reactionsCount: p.reactions?.length || 0,
-            reactions: p.reactions?.map(r => ({ 
-                userId: r.userId?._id, 
-                userName: r.userId?.fullName,
-                type: r.type 
-            }))
+            hasImage: !!p.imageUrl,
+            hasEventDate: !!p.eventDate,
         })));
         
         res.status(200).json(posts);
@@ -209,19 +295,6 @@ const getPostReactions = async (req, res) => {
             console.log('Post not found for ID:', postId);
             return res.status(404).json({ message: 'Post not found.' });
         }
-
-        console.log('Found post with reactions:', {
-            postTitle: post.title,
-            totalReactions: post.reactions?.length || 0,
-            reactions: post.reactions?.map(r => ({
-                userId: r.userId?._id,
-                userName: r.userId?.fullName,
-                userEmail: r.userId?.collegeEmail,
-                rollNo: r.userId?.rollNo,
-                type: r.type,
-                reactedAt: r.reactedAt
-            }))
-        });
 
         // Separate reactions by type with student info
         const reactionDetails = {
