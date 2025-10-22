@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast'; // Replace use-toast import
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -80,8 +81,8 @@ export function BulkAdvanceDialog({ open, onOpenChange, jobs, jobRounds, onFetch
         
         {!result ? (
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="job" className="text-sm font-medium">Job</label>
+          <div className="space-y-2">
+              <Label htmlFor="job" className="text-sm font-medium">Job</Label>
               <Select value={jobId} onValueChange={setJobId}>
                 <SelectTrigger id="job">
                   <SelectValue placeholder="Select a job" />
@@ -98,7 +99,7 @@ export function BulkAdvanceDialog({ open, onOpenChange, jobs, jobRounds, onFetch
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="fromRound" className="text-sm font-medium">Current Round</label>
+                <Label htmlFor="fromRound" className="text-sm font-medium">Current Round</Label>
                 <Select value={fromRoundId} onValueChange={setFromRoundId} disabled={!jobId}>
                   <SelectTrigger id="fromRound">
                     <SelectValue placeholder="Select current round" />
@@ -114,7 +115,7 @@ export function BulkAdvanceDialog({ open, onOpenChange, jobs, jobRounds, onFetch
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="toRound" className="text-sm font-medium">Next Round</label>
+                <Label htmlFor="toRound" className="text-sm font-medium">Next Round</Label>
                 <Select value={toRoundId} onValueChange={setToRoundId} disabled={!fromRoundId}>
                   <SelectTrigger id="toRound">
                     <SelectValue placeholder="Select next round" />
@@ -131,7 +132,7 @@ export function BulkAdvanceDialog({ open, onOpenChange, jobs, jobRounds, onFetch
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="emails" className="text-sm font-medium">Student Emails</label>
+              <Label htmlFor="emails" className="text-sm font-medium">Student Emails</Label>
               <Textarea
                 id="emails"
                 placeholder="student1@example.com, student2@example.com&#10;student3@example.com"

@@ -154,6 +154,7 @@ function CalendarDayButton({
       variant="ghost"
       size="icon"
       data-day={day.date.toLocaleDateString()}
+      data-has-events={modifiers.event || modifiers.events ? true : undefined}
       data-selected-single={
         modifiers.selected &&
         !modifiers.range_start &&

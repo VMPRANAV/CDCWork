@@ -40,15 +40,15 @@ export function StudentSidebar() {
   const logo = theme === 'dark' ? kprietLogoWhite : kprietLogo;
 
   return (
-    <div className="flex h-full flex-shrink-0 bg-white dark:bg-transparent">
-      <div className="flex h-full w-64 flex-col border-r border-gray-200 bg-white text-gray-900 dark:border-white/10 dark:bg-[#0f172a] dark:text-zinc-100">
+    <div className="flex h-full bg-white dark:bg-transparent">
+      <div className="flex h-full w-full flex-col border-r border-gray-200 bg-white text-gray-900 dark:border-white/10 dark:bg-[#0f172a] dark:text-zinc-100">
         <div className="flex h-16 items-center gap-3 px-4 border-b border-gray-200 dark:border-white/10">
           <img 
             src={logo} 
             alt="KPRIET Logo" 
             className="h-10 w-10 object-contain"
           />
-          <h1 className="text-xl font-bold text-primary dark:text-zinc-100">CDC KPRIET</h1>
+          <h1 className="text-xl font-bold text-primary whitespace-nowrap dark:text-zinc-100">CDC KPRIET</h1>
         </div>
         <div className="flex flex-1 flex-col overflow-y-auto px-4 py-4">
           <nav className="flex-1 space-y-1">

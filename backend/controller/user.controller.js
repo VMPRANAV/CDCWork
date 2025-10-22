@@ -203,10 +203,11 @@ exports.updatePlacementStatus = async (req, res) => {
 exports.adminUpdateStudent = async (req, res) => {
     try {
         const updates = { ...req.body };
-        delete updates.password;
-        delete updates._id;
-        delete updates.createdAt;
-        delete updates.updatedAt;
+        ['password', 'role', '_id', 'createdAt', 'updatedAt'].forEach((field) => {
+            if (field in updates) {
+                delete updates[field];
+            }
+        });
 
         const user = await User.findById(req.params.id);
         if (!user) {
@@ -217,8 +218,8 @@ exports.adminUpdateStudent = async (req, res) => {
             return res.status(400).json({ message: 'Only student accounts can be updated through this endpoint.' });
         }
 
-        // Apply updates safely
-        user.set(updates, { strict: false });
+        // Apply updates while respecting schema validation
+        user.set(updates);
 
         if (updates.isPlaced === false) {
             user.company = undefined;
