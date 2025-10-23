@@ -19,9 +19,10 @@ const jobSchema = new mongoose.Schema({
         minCgpa: { type: Number, default: 0 },
         minTenthPercent: { type: Number, default: 0 },
         minTwelfthPercent: { type: Number, default: 0 },
-        passoutYear: { type: Number, required: true },
+        passoutYear: { type: Number, default: 0 },
         allowedDepartments: [{ type: String }],
-        maxArrears: { type: Number, default: 0 }
+        maxArrears: { type: Number, default: 0 },
+        maxHistoryOfArrears: { type: Number, default: 0 }
     },
 
     // --- Application Rounds ---

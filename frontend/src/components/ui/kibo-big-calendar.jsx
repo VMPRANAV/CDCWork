@@ -62,6 +62,47 @@ export const daysForLocale = (locale, startDay) => {
   return weekdays
 }
 
+export const withAlpha = (color, alpha = 0.16) => {
+  if (!color) return undefined
+  if (color.startsWith("hsl(")) {
+    return color.replace(/^hsl\(/, "hsla(").replace(/\)$/, `, ${alpha})`)
+  }
+  if (color.startsWith("#") && color.length === 7) {
+    const r = Number.parseInt(color.slice(1, 3), 16)
+    const g = Number.parseInt(color.slice(3, 5), 16)
+    const b = Number.parseInt(color.slice(5, 7), 16)
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+  return `color-mix(in srgb, ${color} ${alpha * 100}%, transparent)`
+}
+
+const EVENT_VARIANT_STYLES = {
+  round: {
+    chip: "border-sky-400/70 bg-sky-400/20 text-sky-900 hover:bg-sky-400/25 dark:border-sky-500/50 dark:bg-sky-500/15 dark:text-sky-50 dark:hover:bg-sky-500/25",
+    dot: "bg-sky-500",
+    badge: "bg-sky-500 text-sky-50",
+    card: "border-sky-400/70 bg-sky-400/15 dark:border-sky-500/50 dark:bg-sky-500/15",
+  },
+  event: {
+    chip: "border-emerald-400/70 bg-emerald-400/20 text-emerald-900 hover:bg-emerald-400/25 dark:border-emerald-500/50 dark:bg-emerald-500/15 dark:text-emerald-50 dark:hover:bg-emerald-500/25",
+    dot: "bg-emerald-500",
+    badge: "bg-emerald-500 text-emerald-50",
+    card: "border-emerald-400/70 bg-emerald-400/15 dark:border-emerald-500/50 dark:bg-emerald-500/15",
+  },
+  default: {
+    chip: "border-primary/60 bg-primary/15 text-foreground hover:bg-primary/20",
+    dot: "bg-primary",
+    badge: "bg-primary text-primary-foreground",
+    card: "border-primary/60 bg-primary/15",
+  },
+}
+
+export const getFeatureVariant = (feature) => {
+  if (feature?.status?.id === "round") return EVENT_VARIANT_STYLES.round
+  if (feature?.status?.id === "generic") return EVENT_VARIANT_STYLES.event
+  return EVENT_VARIANT_STYLES.default
+}
+
 const Combobox = ({
   value,
   setValue,
@@ -377,17 +418,24 @@ export const CalendarHeader = ({ className }) => {
   )
 }
 
-export const CalendarItem = memo(({ feature, className }) => (
-  <div className={cn("flex items-center gap-2", className)}>
+export const CalendarItem = memo(({ feature, className }) => {
+  const variant = getFeatureVariant(feature)
+
+  return (
     <div
-      className="h-2 w-2 shrink-0 rounded-full"
-      style={{
-        backgroundColor: feature.status?.color ?? "var(--primary)",
-      }}
-    />
-    <span className="truncate">{feature.name}</span>
-  </div>
-))
+      className={cn(
+        "group flex items-center gap-2 rounded-md border px-2 py-1 text-xs font-medium leading-tight transition-colors",
+        variant.chip,
+        className,
+      )}
+    >
+      <div
+        className={cn("h-2 w-2 shrink-0 rounded-full ring-2 ring-background/40", variant.dot)}
+      />
+      <span className="truncate">{feature.name}</span>
+    </div>
+  )
+})
 
 CalendarItem.displayName = "CalendarItem"
 

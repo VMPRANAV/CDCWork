@@ -83,30 +83,35 @@ const getLocalInitialJobForm = () => ({
   locations: [''],
   attachmentLinks: [''], // Changed from fileLink and attachments
   eligibility: {
-    minCgpa: '',
-    minTenthPercent: '',
-    minTwelfthPercent: '',
-    passoutYear: '',
+    minCgpa: '0',
+    minTenthPercent: '0',
+    minTwelfthPercent: '0',
+    passoutYear: '0',
     allowedDepartments: [],
-    maxArrears: ''
+    maxArrears: '0',
+    maxHistoryOfArrears: '0'
   },
   rounds: []
 });
 
 // Update sanitizeJobPayload function
+const toNumberOrZero = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+};
+
 function sanitizeJobPayload(form) {
   const locations = (form.locations || []).map((loc) => loc.trim()).filter(Boolean);
   const attachmentLinks = (form.attachmentLinks || []).map((link) => link.trim()).filter(Boolean);
   const eligibility = {
-    minTenthPercent: form.eligibility.minTenthPercent ? Number(form.eligibility.minTenthPercent) : 0,
-    minTwelfthPercent: form.eligibility.minTwelfthPercent ? Number(form.eligibility.minTwelfthPercent) : 0,
-    passoutYear: form.eligibility.passoutYear ? Number(form.eligibility.passoutYear) : undefined,
+    minCgpa: toNumberOrZero(form.eligibility.minCgpa),
+    minTenthPercent: toNumberOrZero(form.eligibility.minTenthPercent),
+    minTwelfthPercent: toNumberOrZero(form.eligibility.minTwelfthPercent),
+    passoutYear: toNumberOrZero(form.eligibility.passoutYear),
     allowedDepartments: form.eligibility.allowedDepartments || [],
-    maxArrears: form.eligibility.maxArrears ? Number(form.eligibility.maxArrears) : 0
+    maxArrears: toNumberOrZero(form.eligibility.maxArrears),
+    maxHistoryOfArrears: toNumberOrZero(form.eligibility.maxHistoryOfArrears)
   };
-  
-
-
 
   return {
     companyName: form.companyName,
@@ -141,12 +146,13 @@ function buildFormFromJob(job) {
     locations: job.locations && job.locations.length ? job.locations : [''],
     attachmentLinks: job.attachmentLinks && job.attachmentLinks.length ? job.attachmentLinks : [''],
     eligibility: {
-      minCgpa: job.eligibility?.minCgpa ?? '',
-      minTenthPercent: job.eligibility?.minTenthPercent ?? '',
-      minTwelfthPercent: job.eligibility?.minTwelfthPercent ?? '',
-      passoutYear: job.eligibility?.passoutYear ?? '',
+      minCgpa: job.eligibility?.minCgpa !== undefined ? String(job.eligibility.minCgpa) : '0',
+      minTenthPercent: job.eligibility?.minTenthPercent !== undefined ? String(job.eligibility.minTenthPercent) : '0',
+      minTwelfthPercent: job.eligibility?.minTwelfthPercent !== undefined ? String(job.eligibility.minTwelfthPercent) : '0',
+      passoutYear: job.eligibility?.passoutYear !== undefined ? String(job.eligibility.passoutYear) : '0',
       allowedDepartments: job.eligibility?.allowedDepartments || [],
-      maxArrears: job.eligibility?.maxArrears ?? ''
+      maxArrears: job.eligibility?.maxArrears !== undefined ? String(job.eligibility.maxArrears) : '0',
+      maxHistoryOfArrears: job.eligibility?.maxHistoryOfArrears !== undefined ? String(job.eligibility.maxHistoryOfArrears) : '0'
     }
   };
 }
@@ -743,6 +749,12 @@ export function Jobs() {
                         <div>
                           <span className="font-medium">Max Arrears:</span> {job.eligibility?.maxArrears ?? 0}
                         </div>
+                        <div>
+                          <span className="font-medium">Max History of Arrears:</span> {job.eligibility?.maxHistoryOfArrears ?? 0}
+                        </div>
+                        <div>
+                          <span className="font-medium">Max History of Arrears:</span> {job.eligibility?.maxHistoryOfArrears ?? 0}
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {(job.eligibility?.allowedDepartments || []).map((dept) => (
@@ -1173,6 +1185,16 @@ export function Jobs() {
                     min="0"
                     value={jobForm.eligibility.maxArrears}
                     onChange={(e) => handleEligibilityChange('maxArrears', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium" htmlFor="eligibility-max-history-arrears">Max History of Arrears</Label>
+                  <Input
+                    id="eligibility-max-history-arrears"
+                    type="number"
+                    min="0"
+                    value={jobForm.eligibility.maxHistoryOfArrears}
+                    onChange={(e) => handleEligibilityChange('maxHistoryOfArrears', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">

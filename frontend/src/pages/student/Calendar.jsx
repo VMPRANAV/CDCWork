@@ -18,6 +18,7 @@ import {
   CalendarYearPicker,
   useCalendarMonth,
   useCalendarYear,
+  getFeatureVariant,
 } from '@/components/ui/kibo-big-calendar';
 import { cn } from '@/lib/utils';
 
@@ -48,18 +49,20 @@ const buildFeature = (resource) => {
   };
 };
 
-const EventBadge = ({ feature }) => (
-  <span
-    className={cn(
-      'inline-flex min-w-10 items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow-sm',
-      feature.status?.id === 'round'
-        ? 'bg-blue-500/90 text-white'
-        : 'bg-emerald-500/90 text-white',
-    )}
-  >
-    {feature.status?.id === 'round' ? 'Rnd' : 'Evt'}
-  </span>
-);
+const EventBadge = ({ feature }) => {
+  const variant = getFeatureVariant(feature);
+
+  return (
+    <span
+      className={cn(
+        'inline-flex min-w-10 items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow-sm',
+        variant.badge,
+      )}
+    >
+      {feature.status?.id === 'round' ? 'Rnd' : 'Evt'}
+    </span>
+  );
+};
 
 const StudentCalendarContent = () => {
   const navigate = useNavigate();
@@ -93,11 +96,15 @@ const StudentCalendarContent = () => {
   const featuresByDay = useMemo(() => {
     const map = new Map();
     features.forEach((feature) => {
-      const key = startOfDay(feature.endAt ?? feature.startAt).getTime();
-      if (!map.has(key)) {
-        map.set(key, []);
+      const start = startOfDay(feature.startAt);
+      const end = startOfDay(feature.endAt ?? feature.startAt);
+      for (let current = new Date(start); current.getTime() <= end.getTime(); current.setDate(current.getDate() + 1)) {
+        const key = current.getTime();
+        if (!map.has(key)) {
+          map.set(key, []);
+        }
+        map.get(key).push(feature);
       }
-      map.get(key).push(feature);
     });
     return map;
   }, [features]);
@@ -244,11 +251,15 @@ const StudentCalendarContent = () => {
                         const { resource } = feature;
                         const startLabel = format(feature.startAt, 'PPpp');
                         const endLabel = feature.endAt ? format(feature.endAt, 'PPpp') : null;
+                        const variant = getFeatureVariant(feature);
 
                         return (
                           <div
                             key={feature.id}
-                            className="rounded-lg border border-border/60 bg-card/70 px-4 py-3 shadow-sm"
+                            className={cn(
+                              'rounded-lg border px-4 py-3 shadow-sm transition-colors',
+                              variant.card,
+                            )}
                           >
                             <div className="flex flex-wrap items-start justify-between gap-3">
                               <div>

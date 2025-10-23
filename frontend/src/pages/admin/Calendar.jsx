@@ -30,6 +30,7 @@ import {
   CalendarYearPicker,
   useCalendarMonth,
   useCalendarYear,
+  getFeatureVariant,
 } from '@/components/ui/kibo-big-calendar';
 import { cn } from '@/lib/utils';
 
@@ -42,8 +43,8 @@ const VISIBILITY_OPTIONS = [
 const defaultFormState = () => ({
   title: '',
   description: '',
-  startAt: '',
-  endAt: '',
+  startAt: null,
+  endAt: null,
   visibility: 'all',
   location: '',
   calendarOptions: {
@@ -81,18 +82,19 @@ const buildFeature = (resource) => {
   };
 };
 
-const EventBadge = ({ feature }) => (
-  <span
-    className={cn(
+const EventBadge = ({ feature }) => {
+  const variant = getFeatureVariant(feature);
+
+  return (
+    <span className={cn(
       'inline-flex min-w-10 items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow-sm',
-      feature.status?.id === 'round'
-        ? 'bg-blue-500/90 text-white'
-        : 'bg-emerald-500/90 text-white',
+      variant.badge,
     )}
-  >
-    {feature.status?.id === 'round' ? 'Rnd' : 'Evt'}
-  </span>
-);
+    >
+      {feature.status?.id === 'round' ? 'Rnd' : 'Evt'}
+    </span>
+  );
+};
 
 const AdminCalendarContent = () => {
   const {
@@ -112,6 +114,7 @@ const AdminCalendarContent = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(defaultFormState);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
 
   useEffect(() => {
     const monthStart = startOfMonth(new Date(year, month, 1));
@@ -129,11 +132,15 @@ const AdminCalendarContent = () => {
   const featuresByDay = useMemo(() => {
     const map = new Map();
     features.forEach((feature) => {
-      const key = startOfDay(feature.endAt ?? feature.startAt).getTime();
-      if (!map.has(key)) {
-        map.set(key, []);
+      const start = startOfDay(feature.startAt);
+      const end = startOfDay(feature.endAt ?? feature.startAt);
+      for (let current = new Date(start); current.getTime() <= end.getTime(); current.setDate(current.getDate() + 1)) {
+        const key = current.getTime();
+        if (!map.has(key)) {
+          map.set(key, []);
+        }
+        map.get(key).push(feature);
       }
-      map.get(key).push(feature);
     });
     return map;
   }, [features]);
@@ -172,36 +179,92 @@ const AdminCalendarContent = () => {
     setSelectedDate(today);
   }, [setMonth, setYear]);
 
-  const handleFormChange = (field) => (event) => {
-    const value = event?.target?.type === 'checkbox'
-      ? event.target.checked
-      : event?.target?.value ?? event;
+  const handleFormChange = (field) => (eventOrValue) => {
+    const value = eventOrValue?.target?.type === 'checkbox'
+      ? eventOrValue.target.checked
+      : eventOrValue?.target?.value ?? eventOrValue;
 
-    if (field.startsWith('calendarOptions.')) {
-      const [, key] = field.split('.');
-      setForm((prev) => ({
-        ...prev,
-        calendarOptions: {
-          ...prev.calendarOptions,
-          [key]: value,
-        },
-      }));
-    } else {
-      setForm((prev) => ({
+    setForm((prev) => {
+      if (field.startsWith('calendarOptions.')) {
+        const [, key] = field.split('.');
+        return {
+          ...prev,
+          calendarOptions: {
+            ...prev.calendarOptions,
+            [key]: value,
+          },
+        };
+      }
+
+      return {
         ...prev,
         [field]: value,
-      }));
-    }
+      };
+    });
+    setFormError(null);
+  };
+
+  const setDateField = (field, updater) => {
+    setForm((prev) => {
+      const currentValue = prev[field];
+      const nextValue = updater(currentValue ? new Date(currentValue) : null);
+      return {
+        ...prev,
+        [field]: nextValue,
+      };
+    });
+    setFormError(null);
+  };
+
+  const handleDateSelect = (field) => (date) => {
+    if (!date) return;
+    setDateField(field, (current) => {
+      const base = current ?? date;
+      const next = new Date(base);
+      next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+      return next;
+    });
+  };
+
+  const handleTimeChange = (field) => (event) => {
+    const value = event.target.value;
+    setDateField(field, (current) => {
+      if (!value) {
+        return current;
+      }
+      const [hours, minutes] = value.split(':').map(Number);
+      if (!current) {
+        return current;
+      }
+      const source = current;
+      const next = new Date(source);
+      next.setHours(hours ?? 0, minutes ?? 0, 0, 0);
+      return next;
+    });
   };
 
   const handleCreateEvent = async () => {
     if (!createEvent) return;
+    if (!form.startAt) {
+      setFormError('Please choose a start date and time.');
+      return;
+    }
+    if (form.endAt && form.endAt < form.startAt) {
+      setFormError('End time must be after the start time.');
+      return;
+    }
+
     setSaving(true);
+    setFormError(null);
     try {
       const payload = {
-        ...form,
-        startAt: form.startAt ? new Date(form.startAt).toISOString() : undefined,
-        endAt: form.endAt ? new Date(form.endAt).toISOString() : undefined,
+        title: form.title,
+        description: form.description,
+        startAt: form.startAt.toISOString(),
+        endAt: form.endAt ? form.endAt.toISOString() : undefined,
+        visibility: form.visibility,
+        location: form.location,
+        calendarOptions: form.calendarOptions,
         type: 'generic',
       };
       await createEvent(payload);
@@ -248,6 +311,7 @@ const AdminCalendarContent = () => {
             open={dialogOpen}
             onOpenChange={(next) => {
               setDialogOpen(next);
+              setFormError(null);
               if (!next) {
                 setForm(defaultFormState());
               }
@@ -296,30 +360,20 @@ const AdminCalendarContent = () => {
                             !form.startAt && 'text-muted-foreground',
                           )}
                         >
-                          {form.startAt ? format(new Date(form.startAt), 'PP pp') : 'Pick start date & time'}
+                          {form.startAt ? format(form.startAt, 'PP pp') : 'Pick start date & time'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto space-y-2 p-3" align="start">
                         <DateCalendar
                           mode="single"
-                          selected={form.startAt ? new Date(form.startAt) : undefined}
-                          onSelect={(date) => {
-                            if (!date) return;
-                            const next = form.startAt ? new Date(form.startAt) : new Date();
-                            next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                            handleFormChange('startAt')({ target: { value: next.toISOString() } });
-                          }}
+                          selected={form.startAt ?? undefined}
+                          onSelect={handleDateSelect('startAt')}
                           initialFocus
                         />
                         <Input
                           type="time"
-                          value={form.startAt ? format(new Date(form.startAt), 'HH:mm') : ''}
-                          onChange={(event) => {
-                            const next = form.startAt ? new Date(form.startAt) : new Date();
-                            const [hours, minutes] = event.target.value.split(':').map(Number);
-                            next.setHours(hours ?? 0, minutes ?? 0, 0, 0);
-                            handleFormChange('startAt')({ target: { value: next.toISOString() } });
-                          }}
+                          value={form.startAt ? format(form.startAt, 'HH:mm') : ''}
+                          onChange={handleTimeChange('startAt')}
                         />
                       </PopoverContent>
                     </Popover>
@@ -336,29 +390,19 @@ const AdminCalendarContent = () => {
                             !form.endAt && 'text-muted-foreground',
                           )}
                         >
-                          {form.endAt ? format(new Date(form.endAt), 'PP pp') : 'Pick end date & time'}
+                          {form.endAt ? format(form.endAt, 'PP pp') : 'Pick end date & time'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto space-y-2 p-3" align="start">
                         <DateCalendar
                           mode="single"
-                          selected={form.endAt ? new Date(form.endAt) : undefined}
-                          onSelect={(date) => {
-                            if (!date) return;
-                            const next = form.endAt ? new Date(form.endAt) : new Date();
-                            next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                            handleFormChange('endAt')({ target: { value: next.toISOString() } });
-                          }}
+                          selected={form.endAt ?? undefined}
+                          onSelect={handleDateSelect('endAt')}
                         />
                         <Input
                           type="time"
-                          value={form.endAt ? format(new Date(form.endAt), 'HH:mm') : ''}
-                          onChange={(event) => {
-                            const next = form.endAt ? new Date(form.endAt) : new Date();
-                            const [hours, minutes] = event.target.value.split(':').map(Number);
-                            next.setHours(hours ?? 0, minutes ?? 0, 0, 0);
-                            handleFormChange('endAt')({ target: { value: next.toISOString() } });
-                          }}
+                          value={form.endAt ? format(form.endAt, 'HH:mm') : ''}
+                          onChange={handleTimeChange('endAt')}
                         />
                       </PopoverContent>
                     </Popover>
@@ -397,6 +441,9 @@ const AdminCalendarContent = () => {
                     })}
                   />
                 </div>
+                {formError && (
+                  <p className="text-sm text-destructive">{formError}</p>
+                )}
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
@@ -487,10 +534,14 @@ const AdminCalendarContent = () => {
                         const visibility = resource?.visibility ?? 'all';
                         const isAllDay = resource?.calendarOptions?.allDay;
 
+                        const variant = getFeatureVariant(feature);
                         return (
                           <div
                             key={feature.id}
-                            className="rounded-lg border border-border/60 bg-card/70 px-4 py-3 shadow-sm"
+                            className={cn(
+                              'rounded-lg border px-4 py-3 shadow-sm transition-colors',
+                              variant.card,
+                            )}
                           >
                             <div className="flex flex-wrap items-start justify-between gap-3">
                               <div>
@@ -555,8 +606,31 @@ const AdminCalendarContent = () => {
 };
 
 export function Calendar() {
+  const { locale, startDay } = useMemo(() => {
+    const resolved = Intl.DateTimeFormat().resolvedOptions();
+    const fallbackLocale = typeof navigator !== 'undefined' && navigator.language
+      ? navigator.language
+      : 'en-US';
+    const localeValue = resolved?.locale || fallbackLocale || 'en-US';
+
+    let firstDay = 0;
+    if (typeof Intl.Locale === 'function') {
+      try {
+        const localeInfo = new Intl.Locale(localeValue);
+        const parsedFirstDay = localeInfo.weekInfo?.firstDay;
+        if (typeof parsedFirstDay === 'number') {
+          firstDay = parsedFirstDay % 7;
+        }
+      } catch {
+        firstDay = 0;
+      }
+    }
+
+    return { locale: localeValue, startDay: firstDay };
+  }, []);
+
   return (
-    <CalendarProvider>
+    <CalendarProvider locale={locale} startDay={startDay}>
       <AdminCalendarContent />
     </CalendarProvider>
   );

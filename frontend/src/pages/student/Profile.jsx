@@ -396,14 +396,26 @@ export function StudentProfile() {
   };
 
   const renderViewValue = (label, value) => {
-    const isPrimitive = typeof value === 'string' || typeof value === 'number';
+    const type = typeof value;
+    const isPrimitive = type === 'string' || type === 'number' || type === 'boolean';
     const fallback = <p className="text-sm font-medium text-foreground">N/A</p>;
+
+    let display = value;
+    if (isPrimitive) {
+      if (type === 'number') {
+        display = Number.isFinite(value) ? value : 'N/A';
+      } else if (type === 'boolean') {
+        display = value ? 'Yes' : 'No';
+      } else {
+        display = value?.toString().trim() || 'N/A';
+      }
+    }
 
     return (
       <div className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground uppercase">{label}</p>
         {isPrimitive ? (
-          <p className="text-sm font-medium text-foreground">{value || 'N/A'}</p>
+          <p className="text-sm font-medium text-foreground">{display}</p>
         ) : value ?? fallback}
       </div>
     );
