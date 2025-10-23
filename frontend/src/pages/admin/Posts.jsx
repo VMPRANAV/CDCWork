@@ -12,6 +12,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -220,6 +230,8 @@ export function Posts() {
   const [isReactionsModalOpen, setIsReactionsModalOpen] = useState(false);
   const [selectedPostReactions, setSelectedPostReactions] = useState(null);
   const [activeTab, setActiveTab] = useState('registered');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [postPendingDelete, setPostPendingDelete] = useState(null);
 
   const adminHeaders = useMemo(() => {
     const token = localStorage.getItem('authToken');
@@ -359,16 +371,23 @@ export function Posts() {
     }
   };
 
-  const handleDelete = async (postId) => {
-    const confirmDelete = window.confirm('Delete this post? This action cannot be undone.');
-    if (!confirmDelete) return;
+  const handleDeleteRequest = (post) => {
+    setPostPendingDelete(post);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!postPendingDelete) return;
     try {
-      await axios.delete(`${API_BASE}/posts/${postId}`, { headers: adminHeaders });
+      await axios.delete(`${API_BASE}/posts/${postPendingDelete._id}`, { headers: adminHeaders });
       toast.success('Post deleted successfully');
       fetchPosts();
     } catch (err) {
       const message = err.response?.data?.message || 'Unable to delete post';
       toast.error(message);
+    } finally {
+      setDeleteDialogOpen(false);
+      setPostPendingDelete(null);
     }
   };
 
@@ -637,7 +656,7 @@ export function Posts() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleDelete(post._id)}
+                      onClick={() => handleDeleteRequest(post)}
                       className="h-8 text-xs"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -786,10 +805,35 @@ export function Posts() {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+      </DialogContent>
+    </Dialog>
+
+    <AlertDialog
+      open={deleteDialogOpen}
+      onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) setPostPendingDelete(null);
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {postPendingDelete
+              ? `“${postPendingDelete.title}” will be removed permanently.`
+              : 'This post will be removed permanently.'}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={handleDeleteConfirmed}>
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </div>
+);
 }
 
 export default Posts;

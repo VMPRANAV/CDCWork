@@ -29,6 +29,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertCircle,
   Loader2,
@@ -419,8 +421,9 @@ export function Attendance() {
                 {filteredJobs.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No jobs match your search.</p>
                 ) : (
-                  <div className="space-y-2 overflow-y-auto pr-1 pb-4" style={{ maxHeight: 'calc(60vh - 4rem)' }}>
-                    {filteredJobs.map((job) => {
+                  <ScrollArea className="max-h-[calc(60vh-4rem)] pr-1">
+                    <div className="space-y-2 pb-4">
+                      {filteredJobs.map((job) => {
                       const isActive = selectedJobId === job._id;
                       return (
                         <Button
@@ -449,7 +452,8 @@ export function Attendance() {
                         </Button>
                       );
                     })}
-                  </div>
+                    </div>
+                  </ScrollArea>
                 )}
               </div>
             )}
@@ -468,7 +472,9 @@ export function Attendance() {
               Choose a round and configure attendance settings. Sessions expire automatically once the code times out.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 space-y-4 overflow-y-auto pr-1">
+          <CardContent className="flex-1 space-y-4 overflow-hidden">
+            <ScrollArea className="h-full pr-1">
+              <div className="space-y-4 pb-4">
             <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
               {selectedJob ? (
                 <div className="flex flex-col gap-1">
@@ -487,7 +493,7 @@ export function Attendance() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-medium uppercase text-muted-foreground">Round</label>
+              <Label className="text-xs font-medium uppercase text-muted-foreground">Round</Label>
               <Select
                 value={selectedRoundId}
                 onValueChange={(value) => setSelectedRoundId(value)}
@@ -521,7 +527,7 @@ export function Attendance() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs font-medium uppercase text-muted-foreground">Refresh interval</label>
+                <Label className="text-xs font-medium uppercase text-muted-foreground">Refresh interval</Label>
                 <Select
                   value={String(refreshInterval)}
                   onValueChange={(value) => setRefreshInterval(Number(value))}
@@ -676,6 +682,8 @@ export function Attendance() {
             {noRounds && !noJobs && (
               <p className="text-sm text-muted-foreground">The selected job has no rounds configured.</p>
             )}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>

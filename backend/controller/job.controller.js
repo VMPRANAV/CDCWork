@@ -6,35 +6,56 @@ const excel = require('exceljs');
 const { cloudinary } = require('../.config/config');
 const fs = require('fs');
 // --- No changes needed in helper functions ---
-const checkStudentEligibility = (student, criteria) => {
+const checkStudentEligibility = (student, criteria = {}) => {
     if (!student.isProfileComplete) {
         return false;
     }
+
     const minCgpa = Number(criteria.minCgpa) || 0;
-    const minTenthMarks = Number(criteria.minTenthMarks) || 0;
-    const minTwelfthMarks = Number(criteria.minTwelfthMarks) || 0;
-    const passoutYear = Number(criteria.passoutYear);
+    const minTenthPercent = Number(criteria.minTenthPercent) || 0;
+    const minTwelfthPercent = Number(criteria.minTwelfthPercent) || 0;
     const maxArrears = Number(criteria.maxArrears) || 0;
-    if (!student.ugCgpa || Number(student.ugCgpa) < minCgpa) {
+    const maxHistoryOfArrears = Number(criteria.maxHistoryOfArrears) || 0;
+    const passoutYear = Number(criteria.passoutYear);
+
+    const studentCgpa = Number(student.ugCgpa ?? 0);
+    if (Number.isFinite(minCgpa) && studentCgpa < minCgpa) {
         return false;
     }
-    if ((student.currentArrears || 0) > maxArrears) {
+
+    const currentArrears = Number(student.currentArrears ?? 0);
+    if (Number.isFinite(maxArrears) && currentArrears > maxArrears) {
         return false;
     }
-    if (!student.education?.tenth?.percentage || Number(student.education.tenth.percentage) < minTenthMarks) {
+
+    const historyOfArrears = Number(student.historyOfArrears ?? 0);
+    if (Number.isFinite(maxHistoryOfArrears) && historyOfArrears > maxHistoryOfArrears) {
         return false;
     }
-    if (!student.education?.twelth?.percentage || Number(student.education.twelth.percentage) < minTwelfthMarks) {
+
+    const tenthPercentage = Number(student.education?.tenth?.percentage ?? 0);
+    if (Number.isFinite(minTenthPercent) && tenthPercentage < minTenthPercent) {
         return false;
     }
-    if (student.passoutYear !== passoutYear) {
+
+    const twelfthPercentage = Number(student.education?.twelth?.percentage ?? student.education?.twelfth?.percentage ?? 0);
+    if (Number.isFinite(minTwelfthPercent) && twelfthPercentage < minTwelfthPercent) {
         return false;
     }
-    if (criteria.allowedDepartments && criteria.allowedDepartments.length > 0) {
+
+    if (Number.isFinite(passoutYear) && passoutYear > 0) {
+        const studentPassoutYear = Number(student.passoutYear ?? 0);
+        if (!Number.isFinite(studentPassoutYear) || studentPassoutYear !== passoutYear) {
+            return false;
+        }
+    }
+
+    if (Array.isArray(criteria.allowedDepartments) && criteria.allowedDepartments.length > 0) {
         if (!criteria.allowedDepartments.includes(student.dept)) {
             return false;
         }
     }
+
     return true;
 };
 
@@ -457,4 +478,3 @@ exports.uploadJobFiles = async (req, res) => {
         res.status(500).json({ message: 'Error uploading files', error: error.message });
     }
 };
-

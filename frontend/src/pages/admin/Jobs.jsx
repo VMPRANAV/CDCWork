@@ -9,12 +9,15 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { useJobs, getInitialJobForm } from '@/hooks/useJobs';
 import { useStudents } from '@/hooks/useStudents';
 import { cn } from '@/lib/utils';
 import { Plus, Pencil, Users, Eye, Send, Calendar as CalendarIcon, X, CircleDot, Download, Search } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const DEPARTMENTS = [
   'AIDS',
@@ -80,30 +83,35 @@ const getLocalInitialJobForm = () => ({
   locations: [''],
   attachmentLinks: [''], // Changed from fileLink and attachments
   eligibility: {
-    minCgpa: '',
-    minTenthPercent: '',
-    minTwelfthPercent: '',
-    passoutYear: '',
+    minCgpa: '0',
+    minTenthPercent: '0',
+    minTwelfthPercent: '0',
+    passoutYear: '0',
     allowedDepartments: [],
-    maxArrears: ''
+    maxArrears: '0',
+    maxHistoryOfArrears: '0'
   },
   rounds: []
 });
 
 // Update sanitizeJobPayload function
+const toNumberOrZero = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+};
+
 function sanitizeJobPayload(form) {
   const locations = (form.locations || []).map((loc) => loc.trim()).filter(Boolean);
   const attachmentLinks = (form.attachmentLinks || []).map((link) => link.trim()).filter(Boolean);
   const eligibility = {
-    minTenthPercent: form.eligibility.minTenthPercent ? Number(form.eligibility.minTenthPercent) : 0,
-    minTwelfthPercent: form.eligibility.minTwelfthPercent ? Number(form.eligibility.minTwelfthPercent) : 0,
-    passoutYear: form.eligibility.passoutYear ? Number(form.eligibility.passoutYear) : undefined,
+    minCgpa: toNumberOrZero(form.eligibility.minCgpa),
+    minTenthPercent: toNumberOrZero(form.eligibility.minTenthPercent),
+    minTwelfthPercent: toNumberOrZero(form.eligibility.minTwelfthPercent),
+    passoutYear: toNumberOrZero(form.eligibility.passoutYear),
     allowedDepartments: form.eligibility.allowedDepartments || [],
-    maxArrears: form.eligibility.maxArrears ? Number(form.eligibility.maxArrears) : 0
+    maxArrears: toNumberOrZero(form.eligibility.maxArrears),
+    maxHistoryOfArrears: toNumberOrZero(form.eligibility.maxHistoryOfArrears)
   };
-  
-
-
 
   return {
     companyName: form.companyName,
@@ -138,12 +146,13 @@ function buildFormFromJob(job) {
     locations: job.locations && job.locations.length ? job.locations : [''],
     attachmentLinks: job.attachmentLinks && job.attachmentLinks.length ? job.attachmentLinks : [''],
     eligibility: {
-      minCgpa: job.eligibility?.minCgpa ?? '',
-      minTenthPercent: job.eligibility?.minTenthPercent ?? '',
-      minTwelfthPercent: job.eligibility?.minTwelfthPercent ?? '',
-      passoutYear: job.eligibility?.passoutYear ?? '',
+      minCgpa: job.eligibility?.minCgpa !== undefined ? String(job.eligibility.minCgpa) : '0',
+      minTenthPercent: job.eligibility?.minTenthPercent !== undefined ? String(job.eligibility.minTenthPercent) : '0',
+      minTwelfthPercent: job.eligibility?.minTwelfthPercent !== undefined ? String(job.eligibility.minTwelfthPercent) : '0',
+      passoutYear: job.eligibility?.passoutYear !== undefined ? String(job.eligibility.passoutYear) : '0',
       allowedDepartments: job.eligibility?.allowedDepartments || [],
-      maxArrears: job.eligibility?.maxArrears ?? ''
+      maxArrears: job.eligibility?.maxArrears !== undefined ? String(job.eligibility.maxArrears) : '0',
+      maxHistoryOfArrears: job.eligibility?.maxHistoryOfArrears !== undefined ? String(job.eligibility.maxHistoryOfArrears) : '0'
     }
   };
 }
@@ -740,6 +749,12 @@ export function Jobs() {
                         <div>
                           <span className="font-medium">Max Arrears:</span> {job.eligibility?.maxArrears ?? 0}
                         </div>
+                        <div>
+                          <span className="font-medium">Max History of Arrears:</span> {job.eligibility?.maxHistoryOfArrears ?? 0}
+                        </div>
+                        <div>
+                          <span className="font-medium">Max History of Arrears:</span> {job.eligibility?.maxHistoryOfArrears ?? 0}
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {(job.eligibility?.allowedDepartments || []).map((dept) => (
@@ -961,32 +976,36 @@ export function Jobs() {
 
       {/* Edit Job Dialog - without rounds */}
       <Dialog open={isJobDialogOpen} onOpenChange={setJobDialogOpen}>
-        <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editingJob ? 'Edit Job' : 'Create Job'}</DialogTitle>
           </DialogHeader>
-          <form className="space-y-6" onSubmit={handleSubmitJob}>
+          <ScrollArea className="max-h-[80vh] pr-4">
+            <form className="space-y-6" onSubmit={handleSubmitJob}>
             <section className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium">Company Name</label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium" htmlFor="company-name">Company Name</Label>
                   <Input
+                    id="company-name"
                     value={jobForm.companyName}
                     onChange={(e) => handleJobFormChange('companyName', e.target.value)}
                     required
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Job Title</label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium" htmlFor="job-title">Job Title</Label>
                   <Input
+                    id="job-title"
                     value={jobForm.jobTitle}
                     onChange={(e) => handleJobFormChange('jobTitle', e.target.value)}
                     required
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Salary / Package</label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium" htmlFor="salary">Salary / Package</Label>
                   <Input
+                    id="salary"
                     placeholder="Ex: 6 LPA"
                     value={jobForm.salary}
                     onChange={(e) => handleJobFormChange('salary', e.target.value)}
@@ -1041,10 +1060,11 @@ export function Jobs() {
               <div className="space-y-3">
                 {jobForm.attachmentLinks.map((link, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <label className="text-sm font-medium">Attachment Link</label>
+                    <div className="flex-1 space-y-2">
+                      <Label className="text-sm font-medium" htmlFor={`attachment-link-${index}`}>Attachment Link</Label>
                       <div className="flex items-center gap-2">
                         <Input
+                          id={`attachment-link-${index}`}
                           placeholder="Drive / PDF link or uploaded file URL"
                           value={link}
                           onChange={(e) => handleAttachmentLinkChange(index, e.target.value)}
@@ -1087,10 +1107,10 @@ export function Jobs() {
             </section>
               </div>
               {/* Add Company Description field */}
-              <div>
-                <label className="text-sm font-medium">Company Description</label>
-                <textarea
-                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              <div className="space-y-2">
+                <Label htmlFor="company-description">Company Description</Label>
+                <Textarea
+                  id="company-description"
                   rows={3}
                   placeholder="Brief description about the company..."
                   value={jobForm.companyDescription}
@@ -1099,10 +1119,10 @@ export function Jobs() {
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-medium">Job Description</label>
-                <textarea
-                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              <div className="space-y-2">
+                <Label htmlFor="job-description">Job Description</Label>
+                <Textarea
+                  id="job-description"
                   rows={4}
                   placeholder="Detailed job description, responsibilities, requirements..."
                   value={jobForm.jobDescription}
@@ -1145,9 +1165,10 @@ export function Jobs() {
             <section className="space-y-4">
               <h3 className="text-sm font-semibold text-muted-foreground">Eligibility Criteria</h3>
               <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium">Minimum CGPA</label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium" htmlFor="eligibility-min-cgpa">Minimum CGPA</Label>
                   <Input
+                    id="eligibility-min-cgpa"
                     type="number"
                     min="0"
                     max="10"
@@ -1156,18 +1177,30 @@ export function Jobs() {
                     onChange={(e) => handleEligibilityChange('minCgpa', e.target.value)}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Maximum Arrears</label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium" htmlFor="eligibility-max-arrears">Maximum Arrears</Label>
                   <Input
+                    id="eligibility-max-arrears"
                     type="number"
                     min="0"
                     value={jobForm.eligibility.maxArrears}
                     onChange={(e) => handleEligibilityChange('maxArrears', e.target.value)}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">10th Percentage</label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium" htmlFor="eligibility-max-history-arrears">Max History of Arrears</Label>
                   <Input
+                    id="eligibility-max-history-arrears"
+                    type="number"
+                    min="0"
+                    value={jobForm.eligibility.maxHistoryOfArrears}
+                    onChange={(e) => handleEligibilityChange('maxHistoryOfArrears', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium" htmlFor="eligibility-tenth">10th Percentage</Label>
+                  <Input
+                    id="eligibility-tenth"
                     type="number"
                     min="0"
                     max="100"
@@ -1175,9 +1208,10 @@ export function Jobs() {
                     onChange={(e) => handleEligibilityChange('minTenthPercent', e.target.value)}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">12th Percentage</label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium" htmlFor="eligibility-twelfth">12th Percentage</Label>
                   <Input
+                    id="eligibility-twelfth"
                     type="number"
                     min="0"
                     max="100"
@@ -1185,10 +1219,13 @@ export function Jobs() {
                     onChange={(e) => handleEligibilityChange('minTwelfthPercent', e.target.value)}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Passout Year</label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium" htmlFor="eligibility-passout">Passout Year</Label>
                   <Input
+                    id="eligibility-passout"
                     type="number"
+                    min="1900"
+                    max="2100"
                     required
                     value={jobForm.eligibility.passoutYear}
                     onChange={(e) => handleEligibilityChange('passoutYear', e.target.value)}
@@ -1227,19 +1264,21 @@ export function Jobs() {
                 {editingJob ? 'Save Changes' : 'Save Draft'}
               </Button>
             </div>
-          </form>
+            </form>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 
       {/* Rounds Update Dialog */}
       <Dialog open={isRoundsDialogOpen} onOpenChange={setRoundsDialogOpen}>
-        <DialogContent className="max-w-4xl overflow-y-auto max-h-[90vh]">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               Update Rounds - {roundsEditingJob?.jobTitle} ({roundsEditingJob?.companyName})
             </DialogTitle>
           </DialogHeader>
-          <form className="space-y-6" onSubmit={handleSubmitRounds}>
+          <ScrollArea className="max-h-[80vh] pr-4">
+            <form className="space-y-6" onSubmit={handleSubmitRounds}>
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-muted-foreground">Rounds</h3>
@@ -1273,24 +1312,26 @@ export function Jobs() {
                           </Button>
                         </div>
                         <div className="grid gap-3 md:grid-cols-2">
-                          <div>
-                            <label className="text-xs font-medium">Round Name</label>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium" htmlFor={`round-name-${index}`}>Round Name</Label>
                             <Input
+                              id={`round-name-${index}`}
                               value={round.roundName}
                               onChange={(e) => updateRoundField(index, 'roundName', e.target.value)}
                               required
                             />
                           </div>
-                          <div>
-                            <label className="text-xs font-medium">Type</label>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium" htmlFor={`round-type-${index}`}>Type</Label>
                             <Input
+                              id={`round-type-${index}`}
                               placeholder="Ex: Technical, HR"
                               value={round.type}
                               onChange={(e) => updateRoundField(index, 'type', e.target.value)}
                             />
                           </div>
                           <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium">Mode</label>
+                            <Label className="text-xs font-medium">Mode</Label>
                             <Select
                               value={round.mode || undefined}
                               onValueChange={(value) => updateRoundField(index, 'mode', value)}
@@ -1308,7 +1349,7 @@ export function Jobs() {
                             </Select>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium">Status</label>
+                            <Label className="text-xs font-medium">Status</Label>
                             <Select
                               value={round.status || 'scheduled'}
                               onValueChange={(value) => updateRoundField(index, 'status', value)}
@@ -1329,7 +1370,7 @@ export function Jobs() {
                             </Select>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium">Schedule</label>
+                            <Label className="text-xs font-medium">Schedule</Label>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button
@@ -1354,17 +1395,18 @@ export function Jobs() {
                               </PopoverContent>
                             </Popover>
                           </div>
-                          <div>
-                            <label className="text-xs font-medium">Venue</label>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium" htmlFor={`round-venue-${index}`}>Venue</Label>
                             <Input
+                              id={`round-venue-${index}`}
                               value={round.venue}
                               onChange={(e) => updateRoundField(index, 'venue', e.target.value)}
                             />
                           </div>
-                          <div className="md:col-span-2">
-                            <label className="text-xs font-medium">Instructions</label>
-                            <textarea
-                              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                          <div className="md:col-span-2 space-y-2">
+                            <Label htmlFor={`round-instructions-${index}`}>Instructions</Label>
+                            <Textarea
+                              id={`round-instructions-${index}`}
                               rows={2}
                               value={round.instructions}
                               onChange={(e) => updateRoundField(index, 'instructions', e.target.value)}
@@ -1406,7 +1448,8 @@ export function Jobs() {
                 Update Rounds
               </Button>
             </div>
-          </form>
+            </form>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 

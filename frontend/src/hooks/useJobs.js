@@ -13,12 +13,13 @@ const initialJobForm = {
   locations: [''],
   attachmentLinks: [''], // Changed from fileLink
   eligibility: {
-    minCgpa: '',
-    minTenthPercent: '',
-    minTwelfthPercent: '',
-    passoutYear: '',
+    minCgpa: '0',
+    minTenthPercent: '0',
+    minTwelfthPercent: '0',
+    passoutYear: '0',
     allowedDepartments: [],
-    maxArrears: ''
+    maxArrears: '0',
+    maxHistoryOfArrears: '0'
   },
   rounds: []
 };

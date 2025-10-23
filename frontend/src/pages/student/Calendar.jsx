@@ -1,132 +1,71 @@
-import { useCallback, useMemo, useState } from 'react';
-import {
-  Calendar as RBCalendar,
-  dateFnsLocalizer
-} from 'react-big-calendar';
-import { addMonths, endOfMonth, format, parse, startOfMonth, startOfWeek, getDay } from 'date-fns';
-import enUS from 'date-fns/locale/en-US';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { endOfMonth, format, startOfDay, startOfMonth } from 'date-fns';
 import { CalendarIcon, RefreshCcw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import { useCalendar } from '@/hooks/useCalendar';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { Separator } from '@/components/ui/separator';
+import {
+  CalendarBody,
+  CalendarDatePagination,
+  CalendarDatePicker,
+  CalendarHeader,
+  CalendarItem,
+  CalendarMonthPicker,
+  CalendarProvider,
+  CalendarYearPicker,
+  useCalendarMonth,
+  useCalendarYear,
+  getFeatureVariant,
+} from '@/components/ui/kibo-big-calendar';
+import { cn } from '@/lib/utils';
 
-const locales = {
-  'en-US': enUS
+const EVENT_COLOR_MAP = {
+  round: 'hsl(var(--chart-1))',
+  generic: 'hsl(var(--chart-2))',
 };
 
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales
-});
+const buildFeature = (resource) => {
+  if (!resource?.startAt) return null;
 
-const buildTooltip = (resource) => {
-  if (!resource) return '';
-  const parts = [resource.title];
-  if (resource.job?.companyName) {
-    parts.push(`${resource.job.companyName}${resource.job.jobTitle ? ` – ${resource.job.jobTitle}` : ''}`);
-  }
-  if (resource.startAt) {
-    try {
-      parts.push(format(new Date(resource.startAt), 'PPpp'));
-    } catch (error) {
-      // ignore parse errors
-    }
-  }
-  if (resource.location) {
-    parts.push(resource.location);
-  }
-  if (resource.description) {
-    parts.push(resource.description);
-  }
-  return parts.filter(Boolean).join(' | ');
-};
+  const start = new Date(resource.startAt);
+  const end = resource.endAt ? new Date(resource.endAt) : start;
 
-const getShortLabel = (resource) => {
-  if (!resource) return 'Evt';
-  if (resource.type === 'round') return 'Rnd';
-  return 'Evt';
-};
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
 
-const EventChip = ({ event }) => {
-  const resource = event.resource;
-  const tooltip = event.tooltip || buildTooltip(resource);
-  const shortLabel = getShortLabel(resource);
-  const colorClass = resource?.type === 'round'
-    ? 'bg-blue-500/90 text-white'
-    : 'bg-emerald-500/90 text-white';
-  const startLabel = resource?.startAt ? format(new Date(resource.startAt), 'PPpp') : '—';
-  const endLabel = resource?.endAt ? format(new Date(resource.endAt), 'PPpp') : null;
-
-  return (
-    <div className="flex h-full items-center">
-      <HoverCard openDelay={150} closeDelay={100}>
-        <HoverCardTrigger asChild>
-          <span
-            className={`inline-flex cursor-default items-center rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide shadow-sm transition ${colorClass}`}
-          >
-            {shortLabel}
-          </span>
-        </HoverCardTrigger>
-        <HoverCardContent align="start" side="top" className="w-72 space-y-2">
-          <div>
-            <p className="text-sm font-semibold text-foreground">{resource?.title || 'Event'}</p>
-            {resource?.job?.companyName && (
-              <p className="text-xs text-muted-foreground">
-                {resource.job.companyName}{resource.job.jobTitle ? ` – ${resource.job.jobTitle}` : ''}
-              </p>
-            )}
-          </div>
-          <Separator className="bg-border/60" />
-          <div className="space-y-1 text-xs text-muted-foreground">
-            <p><span className="font-medium text-foreground">Starts:</span> {startLabel}</p>
-            {endLabel && <p><span className="font-medium text-foreground">Ends:</span> {endLabel}</p>}
-            {resource?.location && (
-              <p><span className="font-medium text-foreground">Location:</span> {resource.location}</p>
-            )}
-            {resource?.type === 'round' && resource?.round?.sequence && (
-              <p><span className="font-medium text-foreground">Round:</span> #{resource.round.sequence}</p>
-            )}
-          </div>
-          {resource?.description && (
-          <Separator className="bg-border/60" />
-        )}
-        {resource?.description && (
-          <p className="text-xs text-muted-foreground leading-snug">
-            {resource.description}
-            </p>
-          )}
-        </HoverCardContent>
-      </HoverCard>
-    </div>
-  );
-};
-
-const eventPropGetter = (event) => {
-  const resource = event.resource;
-  const baseColor = resource?.type === 'round' ? 'rgba(37, 99, 235, 0.18)' : 'rgba(16, 185, 129, 0.18)';
   return {
-    style: {
-      backgroundColor: baseColor,
-      border: '1px solid rgba(255,255,255,0.05)',
-      color: '#e5e7eb',
-      borderRadius: '0.5rem',
-      padding: '0px 4px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'flex-start'
-    }
+    id: resource.id,
+    name: resource.title || 'Event',
+    startAt: start,
+    endAt: end,
+    status: {
+      id: resource.type || 'generic',
+      name: resource.type === 'round' ? 'Round' : 'Event',
+      color: EVENT_COLOR_MAP[resource.type] || EVENT_COLOR_MAP.generic,
+    },
+    resource,
   };
 };
 
-export function Calendar() {
+const EventBadge = ({ feature }) => {
+  const variant = getFeatureVariant(feature);
+
+  return (
+    <span
+      className={cn(
+        'inline-flex min-w-10 items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow-sm',
+        variant.badge,
+      )}
+    >
+      {feature.status?.id === 'round' ? 'Rnd' : 'Evt'}
+    </span>
+  );
+};
+
+const StudentCalendarContent = () => {
+  const navigate = useNavigate();
   const {
     events,
     loading,
@@ -134,57 +73,77 @@ export function Calendar() {
     scope,
     setScope,
     setRange: changeRange,
-    refetch
+    refetch,
   } = useCalendar({ initialScope: 'all' });
 
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [month, setMonth] = useCalendarMonth();
+  const [year, setYear] = useCalendarYear();
 
-  const calendarEvents = useMemo(() => (
-    events
-      .map((resource) => {
-        if (!resource?.startAt) return null;
-        const start = new Date(resource.startAt);
-        const end = resource.endAt ? new Date(resource.endAt) : new Date(start.getTime() + 60 * 60 * 1000);
-        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
-        return {
-          id: resource.id,
-          title: getShortLabel(resource),
-          start,
-          end,
-          allDay: resource.calendarOptions?.allDay ?? false,
-          tooltip: buildTooltip(resource),
-          resource
-        };
-      })
-      .filter(Boolean)
-  ), [events]);
+  useEffect(() => {
+    const monthStart = startOfMonth(new Date(year, month, 1));
+    const monthEnd = endOfMonth(monthStart);
+    changeRange(monthStart, monthEnd);
 
-  const handleRangeChange = useCallback((rangeValue) => {
-    if (Array.isArray(rangeValue) && rangeValue.length) {
-      changeRange(rangeValue[0], rangeValue[rangeValue.length - 1]);
-    } else if (rangeValue && rangeValue.start && rangeValue.end) {
-      changeRange(rangeValue.start, rangeValue.end);
-    }
-  }, [changeRange]);
+    setSelectedDate((prev) => {
+      if (!prev) return monthStart;
+      return prev.getFullYear() === year && prev.getMonth() === month ? prev : monthStart;
+    });
+  }, [year, month, changeRange]);
 
-  const handleNavigate = useCallback((nextDate) => {
-    setCurrentDate(nextDate);
-    changeRange(startOfMonth(nextDate), endOfMonth(nextDate));
-  }, [changeRange]);
+  const features = useMemo(() => events.map(buildFeature).filter(Boolean), [events]);
+
+  const featuresByDay = useMemo(() => {
+    const map = new Map();
+    features.forEach((feature) => {
+      const start = startOfDay(feature.startAt);
+      const end = startOfDay(feature.endAt ?? feature.startAt);
+      for (let current = new Date(start); current.getTime() <= end.getTime(); current.setDate(current.getDate() + 1)) {
+        const key = current.getTime();
+        if (!map.has(key)) {
+          map.set(key, []);
+        }
+        map.get(key).push(feature);
+      }
+    });
+    return map;
+  }, [features]);
+
+  const selectedDayEvents = useMemo(() => {
+    const key = startOfDay(selectedDate).getTime();
+    return [...(featuresByDay.get(key) ?? [])].sort(
+      (a, b) => a.startAt.getTime() - b.startAt.getTime(),
+    );
+  }, [featuresByDay, selectedDate]);
+
+  const visibleMonth = useMemo(() => new Date(year, month, 1), [year, month]);
 
   const handleStep = useCallback((direction) => {
-    setCurrentDate((prev) => {
-      const next = addMonths(prev, direction);
-      changeRange(startOfMonth(next), endOfMonth(next));
-      return next;
-    });
-  }, [changeRange]);
+    if (direction < 0) {
+      if (month === 0) {
+        setMonth(11);
+        setYear(year - 1);
+      } else {
+        setMonth(month - 1);
+      }
+    } else if (direction > 0) {
+      if (month === 11) {
+        setMonth(0);
+        setYear(year + 1);
+      } else {
+        setMonth(month + 1);
+      }
+    }
+  }, [month, year, setMonth, setYear]);
 
   const handleToday = useCallback(() => {
     const today = new Date();
-    setCurrentDate(today);
-    changeRange(startOfMonth(today), endOfMonth(today));
-  }, [changeRange]);
+    setMonth(today.getMonth());
+    setYear(today.getFullYear());
+    setSelectedDate(today);
+  }, [setMonth, setYear]);
+
+  const showEmptyState = !loading && !error && features.length === 0;
 
   return (
     <div className="space-y-6">
@@ -203,20 +162,25 @@ export function Calendar() {
               Schedule overview
             </CardTitle>
             <CardDescription>
-              Navigate through week, month, or day views. Hover events for full details.
+              Navigate month by month and select any date to view its events.
             </CardDescription>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1 rounded-md border border-border/80 bg-card/70 p-1 shadow-sm">
-              <Button variant="ghost" size="sm" onClick={() => handleStep(-1)}>
-                Prev
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleToday}>
-                Today
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => handleStep(1)}>
-                Next
-              </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex w-full items-center justify-between rounded-md border border-border/70 bg-card/80 p-2 shadow-sm sm:w-auto sm:gap-4">
+              <span className="text-sm font-semibold text-muted-foreground">
+                {format(visibleMonth, 'MMMM yyyy')}
+              </span>
+              <div className="flex items-center gap-1 rounded-md border border-border/60 bg-background/80 p-1">
+                <Button variant="ghost" size="sm" onClick={() => handleStep(-1)}>
+                  Prev
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleToday}>
+                  Today
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => handleStep(1)}>
+                  Next
+                </Button>
+              </div>
             </div>
             <Tabs value={scope} onValueChange={setScope}>
               <TabsList className="grid grid-cols-3">
@@ -235,32 +199,129 @@ export function Calendar() {
           {error && (
             <div className="mb-4 text-sm text-destructive">{error}</div>
           )}
-          <div className="h-[650px]">
-            <div className="flex items-center justify-between pb-4 text-sm font-semibold text-muted-foreground">
-              <span>{format(currentDate, 'MMMM yyyy')}</span>
+
+          <CalendarDatePicker className="mb-4 flex flex-wrap items-center gap-3">
+            <CalendarMonthPicker />
+            <CalendarYearPicker start={year - 1} end={year + 3} />
+            <CalendarDatePagination />
+          </CalendarDatePicker>
+
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="rounded-lg border border-border/60 bg-card/70 p-3 shadow-sm">
+              <CalendarHeader className="border-b border-border/70" />
+              <CalendarBody
+                features={features}
+                onDayClick={setSelectedDate}
+                selectedDate={selectedDate}
+              >
+                {({ feature }) => (
+                  <CalendarItem feature={feature} className="text-[11px]" />
+                )}
+              </CalendarBody>
             </div>
-            <RBCalendar
-              localizer={localizer}
-              events={calendarEvents}
-              startAccessor="start"
-              endAccessor="end"
-              components={{ event: EventChip }}
-              eventPropGetter={eventPropGetter}
-              date={currentDate}
-              onNavigate={handleNavigate}
-              onRangeChange={handleRangeChange}
-              defaultView="month"
-              views={['month']}
-              popup
-              selectable={false}
-            />
+            <div className="space-y-4">
+              {showEmptyState ? (
+                <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 rounded-md border border-dashed border-border/70 bg-muted/10 text-center">
+                  <CalendarIcon className="h-10 w-10 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Nothing scheduled this month yet.</p>
+                    <p className="text-sm text-muted-foreground">
+                      Check the latest announcements or posts for updates.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => navigate('/student/posts')}>
+                    View Posts
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <h3 className="text-base font-semibold">
+                      {format(selectedDate, 'EEEE, MMMM d')}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedDayEvents.length > 0
+                        ? 'Here are the events scheduled for this day.'
+                        : 'No events scheduled for this day. Choose another date to explore upcoming items.'}
+                    </p>
+                  </div>
+                  {selectedDayEvents.length > 0 && (
+                    <div className="space-y-3">
+                      {selectedDayEvents.map((feature) => {
+                        const { resource } = feature;
+                        const startLabel = format(feature.startAt, 'PPpp');
+                        const endLabel = feature.endAt ? format(feature.endAt, 'PPpp') : null;
+                        const variant = getFeatureVariant(feature);
+
+                        return (
+                          <div
+                            key={feature.id}
+                            className={cn(
+                              'rounded-lg border px-4 py-3 shadow-sm transition-colors',
+                              variant.card,
+                            )}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">
+                                  {resource?.title || feature.name}
+                                </p>
+                                {resource?.job?.companyName && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {resource.job.companyName}{resource.job.jobTitle ? ` – ${resource.job.jobTitle}` : ''}
+                                  </p>
+                                )}
+                              </div>
+                              <EventBadge feature={feature} />
+                            </div>
+                            <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                              <p>
+                                <span className="font-medium text-foreground">Starts:</span> {startLabel}
+                              </p>
+                              {endLabel && (
+                                <p>
+                                  <span className="font-medium text-foreground">Ends:</span> {endLabel}
+                                </p>
+                              )}
+                              {resource?.location && (
+                                <p>
+                                  <span className="font-medium text-foreground">Location:</span> {resource.location}
+                                </p>
+                              )}
+                              {resource?.type === 'round' && resource?.round?.sequence && (
+                                <p>
+                                  <span className="font-medium text-foreground">Round:</span> #{resource.round.sequence}
+                                </p>
+                              )}
+                            </div>
+                            {resource?.description && (
+                              <p className="mt-3 text-xs text-muted-foreground leading-snug">
+                                {resource.description}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+              {loading && (
+                <p className="text-sm text-muted-foreground">Refreshing events…</p>
+              )}
+            </div>
           </div>
-          {loading && (
-            <p className="mt-3 text-sm text-muted-foreground">Refreshing events…</p>
-          )}
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+export function Calendar() {
+  return (
+    <CalendarProvider>
+      <StudentCalendarContent />
+    </CalendarProvider>
   );
 }
 

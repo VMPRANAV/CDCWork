@@ -8,10 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BulkAdvanceDialog } from '@/components/admin/BulkAdvanceDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { useApplications } from '@/hooks/useApplications';
 import { useJobs } from '@/hooks/useJobs'
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 import { Eye,RotateCcw, UserCheck, Users } from 'lucide-react';
 const STATUS_LABELS = {
@@ -93,12 +96,13 @@ function ApplicationDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl sm:max-w-5xl max-h-[80vh] overflow-y-auto scrollbar-stable">
+      <DialogContent className="max-w-4xl sm:max-w-5xl">
         <DialogHeader className="pb-2">
           <DialogTitle>Application Details</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 md:grid-cols-2 grid-cols-1">
-          <div className="space-y-4">
+        <ScrollArea className="max-h-[75vh] pr-4">
+          <div className="grid grid-cols-1 gap-4 pr-1 md:grid-cols-2">
+            <div className="space-y-4">
             <Card>
               <CardHeader className="pb-1">
                 <CardTitle className="text-md">Applicant</CardTitle>
@@ -149,7 +153,7 @@ function ApplicationDetailsDialog({
                     remove its current round. Keep it <strong>In Process</strong> if you intend to advance the candidate.
                   </p>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium">Final Status</label>
+                    <Label htmlFor="final-status">Final Status</Label>
                     <Select value={finalStatus} onValueChange={setFinalStatus}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -162,9 +166,10 @@ function ApplicationDetailsDialog({
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium">Notes</label>
-                    <textarea
-                      className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    <Label htmlFor="status-notes">Notes</Label>
+                    <Textarea
+                      id="status-notes"
+                      className="min-h-[80px]"
                       value={notes}
                       onChange={(event) => setNotes(event.target.value)}
                     />
@@ -183,7 +188,7 @@ function ApplicationDetailsDialog({
               <CardContent className="space-y-4 pt-0">
                 <form className="space-y-3" onSubmit={handleFinalize}>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium">Outcome</label>
+                    <Label htmlFor="finalize-outcome">Outcome</Label>
                     <Select value={finalizeOutcome} onValueChange={setFinalizeOutcome}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select outcome" />
@@ -195,9 +200,10 @@ function ApplicationDetailsDialog({
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium">Notes</label>
-                    <textarea
-                      className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    <Label htmlFor="finalize-notes">Notes</Label>
+                    <Textarea
+                      id="finalize-notes"
+                      className="min-h-[80px]"
                       value={finalizeNotes}
                       onChange={(event) => setFinalizeNotes(event.target.value)}
                     />
@@ -210,7 +216,7 @@ function ApplicationDetailsDialog({
             </Card>
           </div>
 
-          <div className="space-y-4">
+            <div className="space-y-4">
             <Card>
               <CardHeader className="pb-1">
                 <CardTitle className="text-base">Round Progress</CardTitle>
@@ -299,8 +305,9 @@ function ApplicationDetailsDialog({
                 )}
               </CardContent>
             </Card>
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
