@@ -230,6 +230,8 @@ export function Posts() {
   const [isReactionsModalOpen, setIsReactionsModalOpen] = useState(false);
   const [selectedPostReactions, setSelectedPostReactions] = useState(null);
   const [activeTab, setActiveTab] = useState('registered');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [postPendingDelete, setPostPendingDelete] = useState(null);
 
   const adminHeaders = useMemo(() => {
     const token = localStorage.getItem('authToken');
@@ -654,7 +656,7 @@ export function Posts() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleDelete(post._id)}
+                      onClick={() => handleDeleteRequest(post)}
                       className="h-8 text-xs"
                     >
                       <Trash2 className="w-3 h-3" />

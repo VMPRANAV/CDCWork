@@ -495,7 +495,11 @@ const AdminCalendarContent = () => {
                 selectedDate={selectedDate}
               >
                 {({ feature }) => (
-                  <CalendarItem feature={feature} className="text-[11px]" />
+                  <CalendarItem
+                    key={feature.id ?? feature._id ?? `${feature.startAt}-${feature.endAt}`}
+                    feature={feature}
+                    className="text-[11px]"
+                  />
                 )}
               </CalendarBody>
             </div>
