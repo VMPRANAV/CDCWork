@@ -5,6 +5,7 @@ const User = require('../models/user.model');
 const excel = require('exceljs');
 const { cloudinary } = require('../.config/config');
 const fs = require('fs');
+const sendEmail = require('../utils/email');
 // --- No changes needed in helper functions ---
 const checkStudentEligibility = (student, criteria = {}) => {
     if (!student.isProfileComplete) {
@@ -139,11 +140,14 @@ exports.createJob = async (req, res) => {
         const { rounds: roundsPayload = [], ...jobPayload } = req.body;
         const allStudents = await User.find({ role: 'student' });
         const eligibleStudents = [];
+
+
         for (const student of allStudents) {
             if (checkStudentEligibility(student, jobPayload.eligibility)) {
                 eligibleStudents.push(student._id);
             }
         }
+        console.log(`Found ${eligibleStudents.length} eligible students for the new job.`);
         const job = new Job({
             ...jobPayload,
             postedBy: req.user.id,
@@ -165,7 +169,7 @@ exports.createJob = async (req, res) => {
             await session.commitTransaction();
         }
 
-        const populatedJob = await Job.findById(job._id).populate('rounds');
+        const populatedJob = await Job.findById(job._id).populate('rounds').populate('eligibleStudents');
         res.status(201).json(populatedJob);
     } catch (error) {
         if (session) {
@@ -301,15 +305,31 @@ exports.getEligibleJobs = async (req, res) => {
 
 exports.publishJob = async (req, res) => {
     try {
-        const job = await Job.findById(req.params.jobId).populate('rounds');
+        const job = await Job.findById(req.params.jobId).populate('rounds').populate('eligibleStudents');
         if (!job) {
             return res.status(404).json({ message: 'Job not found' });
         }
+
         if (!job.rounds || job.rounds.length === 0) {
             return res.status(400).json({ message: 'Cannot publish a job without rounds' });
         }
         job.status = 'public';
         await job.save();
+
+        // Send email to eligible students
+        for (const student of job.eligibleStudents) {
+            const emailOptions = {
+                email: student.collegeEmail,
+                subject: `New Job Opening: ${job.companyName}`,
+                html: `
+                    <h1>A new job, ${job.jobTitle}, is available!</h1>
+                    <p>Company: ${job.companyName}</p>
+                    <p>A new job opportunity that matches your profile is now available. Please log in to the portal to view the details and apply.</p>
+                `,
+            };
+            await sendEmail(emailOptions);
+        }
+
         res.status(200).json(job);
     } catch (error) {
         console.error('Error publishing job:', error);

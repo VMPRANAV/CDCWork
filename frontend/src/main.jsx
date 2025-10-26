@@ -31,6 +31,7 @@ import { Posts } from '@/pages/admin/Posts';
 import { Applications } from '@/pages/admin/Applications';
 import { Attendance } from '@/pages/admin/Attendance';
 import { Calendar as AdminCalendar } from '@/pages/admin/Calendar';
+import ProtectedRoute from './components/ProtectedRoute';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -43,7 +44,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/signup" element={<SignUp />} />
         
         {/* Student Routes */}
-        <Route element={<StudentLayout />}>
+        <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+          <Route element={<StudentLayout />}>
           <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/student/profile" element={<Profile />} />
           <Route path="/student/my-profile" element={<MyProfile />} />
@@ -52,10 +54,12 @@ createRoot(document.getElementById('root')).render(
           <Route path="/student/availableJob" element={<AvailableJobs />} />
           <Route path="/student/calendar" element={<StudentCalendar />} />
           <Route path="/student/settings" element={<Settings />} />
+          </Route>
         </Route>
         
         {/* Admin Routes */}
-        <Route element={<AdminLayout />}>
+        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route element={<AdminLayout />}>
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/students" element={<Students />} />
@@ -64,6 +68,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/admin/applications" element={<Applications />} />
           <Route path="/admin/attendance" element={<Attendance />} />
           <Route path="/admin/calendar" element={<AdminCalendar />} />
+          </Route>
         </Route>
         
         {/* 404 Route */}
