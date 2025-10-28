@@ -193,22 +193,22 @@ export function useApplications() {
   );
    const bulkAdvanceApplications = useCallback(
     async (payload) => {
-      const { jobId, fromRoundId, toRoundId, emails } = payload;
+      const { jobId, fromRoundId, toRoundId, emails, rollNos } = payload;
       try {
-       
         const url = `${API_BASE}/applications/${jobId}/bulk-advance`;
-   
-        const body = { fromRoundId, toRoundId, emails };
-        
+        // Send both emails and rollNos if present
+        const body = { fromRoundId, toRoundId };
+        if (emails) body.emails = emails;
+        if (rollNos) body.rollNos = rollNos;
+
         const response = await axios.post(url, body, { headers: adminHeaders });
-        
+
         toast.success('Bulk advance successful', {
           description: `${response.data.successCount} applications were advanced.`
         });
-        
-       
-        await fetchApplications(); 
-        
+
+        await fetchApplications();
+
         return response.data;
       } catch (err) {
         console.error('Failed to bulk advance applications', err);

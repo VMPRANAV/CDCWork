@@ -396,7 +396,13 @@ const simplifiedJobs = useMemo(() => {
     setSelectedApplication(updated);
   };
  const handleBulkAdvance = async (payload) => {
-    return await bulkAdvanceApplications(payload);
+    // payload should have: jobId, fromRoundId, toRoundId, emails, rollNos
+    // Only send emails/rollNos if present and non-empty
+    const { jobId, fromRoundId, toRoundId, emails, rollNos } = payload;
+    const cleanPayload = { jobId, fromRoundId, toRoundId };
+    if (emails && emails.trim()) cleanPayload.emails = emails;
+    if (rollNos && rollNos.trim()) cleanPayload.rollNos = rollNos;
+    return await bulkAdvanceApplications(cleanPayload);
   };
   return (
     <div className="space-y-6">
