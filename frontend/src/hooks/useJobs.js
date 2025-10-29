@@ -118,6 +118,25 @@ export function useJobs() {
     },
     [adminHeaders, fetchJobs]
   );
+   const deleteJob = useCallback(
+    async (jobId) => {
+      if (!jobId) return;
+      try {
+        await axios.delete(`${API_BASE}/jobs/${jobId}`, {
+          headers: adminHeaders
+        });
+        toast.success('Job deleted successfully');
+        await fetchJobs();
+      } catch (err) {
+        console.error('Failed to delete job', err);
+        toast.error('Failed to delete job', {
+          description: err.response?.data?.message
+        });
+        throw err;
+      }
+    },
+    [adminHeaders, fetchJobs]
+  );
 
   const updateJob = useCallback(
     async (jobId, payload) => {
@@ -351,6 +370,7 @@ const handleAttachmentFileUpload = async (files) => {
         publishing,
         createJob,
         updateJob,
+        deleteJob,
         publishJob,
         fetchJobs,
         selectedJob,
