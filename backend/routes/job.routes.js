@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { createJob, getEligibleJobs, getJobs, getEligibleStudentsForJob, updateJob, publishJob, updateEligibleStudents, downloadEligibleStudents, uploadJobFiles, uploadJobAttachmentFiles } = require('../controller/job.controller');
+const { createJob, deleteJob,getEligibleJobs, getJobs, getEligibleStudentsForJob, updateJob, publishJob, updateEligibleStudents, downloadEligibleStudents, uploadJobFiles, uploadJobAttachmentFiles } = require('../controller/job.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
 const { uploadJobFiles: uploadJobFilesMiddleware } = require('../middleware/multer.middleware');
 
 // Admin route to create a new job
 router.route('/').post(protect, authorize('admin'), createJob);
 router.route('/').get(protect, authorize('admin'), getJobs);
-
+router.route('/:jobId').delete(protect,authorize('admin'),deleteJob);
 // Admin route to update a job
 router.route('/:jobId').put(protect, authorize('admin'), updateJob);
 
