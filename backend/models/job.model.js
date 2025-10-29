@@ -21,7 +21,7 @@ const jobSchema = new mongoose.Schema({
         minTwelfthPercent: { type: Number, default: 0 },
         passoutYear: { type: Number, default: 0 },
         allowedDepartments: [{ type: String }],
-        maxArrears: { type: Number, default: 0 },
+        currentArrears: { type: Number, default: 0 },
         maxHistoryOfArrears: { type: Number, default: 0 }
     },
 

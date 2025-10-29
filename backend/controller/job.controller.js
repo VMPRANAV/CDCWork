@@ -15,7 +15,7 @@ const checkStudentEligibility = (student, criteria = {}) => {
     const minCgpa = Number(criteria.minCgpa) || 0;
     const minTenthPercent = Number(criteria.minTenthPercent) || 0;
     const minTwelfthPercent = Number(criteria.minTwelfthPercent) || 0;
-    const maxArrears = Number(criteria.maxArrears) || 0;
+    const maxArrears = Number(criteria.currentArrears) || 0;
     const maxHistoryOfArrears = Number(criteria.maxHistoryOfArrears) || 0;
     const passoutYear = Number(criteria.passoutYear);
 
