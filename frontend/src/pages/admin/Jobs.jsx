@@ -1178,7 +1178,7 @@ export function Jobs() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium" htmlFor="eligibility-max-arrears">Maximum Arrears</Label>
+                  <Label className="text-sm font-medium" htmlFor="eligibility-max-arrears">Current Arrears</Label>
                   <Input
                     id="eligibility-max-arrears"
                     type="number"

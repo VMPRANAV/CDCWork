@@ -8,9 +8,9 @@ const fs = require('fs');
 const sendEmail = require('../utils/email');
 // --- No changes needed in helper functions ---
 const checkStudentEligibility = (student, criteria = {}) => {
-    if (!student.isProfileComplete) {
-        return false;
-    }
+    // if (!student.isProfileComplete) {
+    //     return false;
+    // }
 
     const minCgpa = Number(criteria.minCgpa) || 0;
     const minTenthPercent = Number(criteria.minTenthPercent) || 0;
