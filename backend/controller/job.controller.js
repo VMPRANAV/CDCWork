@@ -249,6 +249,48 @@ exports.updateJob = async (req, res) => {
 };
 
 
+// @desc    Delete a job and its associated rounds
+// @route   DELETE /api/jobs/:jobId
+exports.deleteJob = async (req, res) => {
+    const session = await getSessionIfSupported();
+    if (session) {
+        session.startTransaction();
+    }
+    try {
+        const jobId = req.params.jobId;
+        const job = await Job.findById(jobId);
+        if (!job) {
+            if (session) {
+                await session.abortTransaction();
+                session.endSession();
+            }
+            return res.status(404).json({ message: 'Job not found' });
+        }
+
+        // Delete associated rounds
+        await Round.deleteMany({ job: jobId }, session ? { session } : undefined);
+
+        // Optionally: Delete other related data (e.g., applications) here
+
+        // Delete the job itself
+        await Job.deleteOne({ _id: jobId }, session ? { session } : undefined);
+
+        if (session) {
+            await session.commitTransaction();
+        }
+
+        res.status(200).json({ message: 'Job and associated rounds deleted successfully.' });
+    } catch (error) {
+        if (session) {
+            await session.abortTransaction();
+        }
+        console.error('Error deleting job:', error);
+        res.status(500).json({ message: 'Error deleting job', error: error.message });
+    } finally {
+        session?.endSession();
+    }
+};
+
 // --- No changes needed in remaining functions ---
 
 exports.getJobs = async (req, res) => {
