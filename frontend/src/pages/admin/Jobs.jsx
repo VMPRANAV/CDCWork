@@ -645,7 +645,7 @@ export function Jobs() {
             {/* Month Grid Overlay */}
             {showMonthGrid && (
               <div className="mt-4 p-4 border rounded-lg bg-muted/20">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-center mb-4">
                   <h3 className="text-lg font-semibold">Select Month</h3>
                   <Button variant="ghost" size="sm" onClick={() => setShowMonthGrid(false)}>
                     <X className="h-4 w-4" />
