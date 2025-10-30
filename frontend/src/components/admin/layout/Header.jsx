@@ -52,7 +52,7 @@ export function Header({ sidebarOpen = true, onToggleSidebar }) {
   const initials = `${firstInitial}${secondInitial}`.trim();
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-6 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#0f172a]/95 dark:text-zinc-100">
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-gray-200 bg-white/95 px-4 backdrop-blur dark:border-white/10 dark:bg-[#0f172a]/95 dark:text-zinc-100 sm:h-16 sm:px-6">
       <div className="flex items-center gap-2">
         {onToggleSidebar && (
           <Button
@@ -66,9 +66,9 @@ export function Header({ sidebarOpen = true, onToggleSidebar }) {
             {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
           </Button>
         )}
-        <span className="text-lg font-semibold">Admin Panel</span>
+        <span className="text-base font-semibold sm:text-lg">Admin Panel</span>
       </div>
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <Button variant="ghost" size="icon" className="relative text-gray-600 hover:text-gray-900 dark:text-zinc-300 dark:hover:text-zinc-100">
           <Bell className="w-5 h-5" />
           <span className="absolute w-2 h-2 bg-red-500 rounded-full top-2 right-2" />

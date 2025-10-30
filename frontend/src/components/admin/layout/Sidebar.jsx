@@ -30,7 +30,8 @@ export function Sidebar() {
   const location = useLocation();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
     navigate('/login');
   };
 
