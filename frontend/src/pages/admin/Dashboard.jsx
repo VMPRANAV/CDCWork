@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useStudents } from '@/hooks/useStudents';
@@ -10,6 +11,7 @@ import { StudentDetails } from '@/components/admin/dashboard/StudentDetails';
  * Displays key metrics and recent student activity
  */
 export function Dashboard() {
+  const navigate = useNavigate();
   const {
     students,
     loading,
