@@ -44,7 +44,10 @@ import {
   Eye,
   Download,
   Tag,
-  Filter
+  Filter,
+  Grid3X3,
+  List,
+  Clock
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
@@ -232,6 +235,7 @@ export function Posts() {
   const [activeTab, setActiveTab] = useState('registered');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [postPendingDelete, setPostPendingDelete] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // New state for view mode
 
   const adminHeaders = useMemo(() => {
     const token = localStorage.getItem('authToken');
@@ -285,6 +289,36 @@ export function Posts() {
 
     return filtered;
   }, [posts, searchTerm, categoryFilter]);
+
+  // Group posts by month-year for list view
+  const groupedPosts = useMemo(() => {
+    const grouped = {};
+    filteredPosts.forEach(post => {
+      const date = new Date(post.createdAt);
+      const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const displayDate = date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long' 
+      });
+      
+      if (!grouped[monthYear]) {
+        grouped[monthYear] = {
+          displayDate,
+          posts: []
+        };
+      }
+      grouped[monthYear].posts.push(post);
+    });
+
+    // Sort by month-year descending
+    const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+    const sortedGrouped = {};
+    sortedKeys.forEach(key => {
+      sortedGrouped[key] = grouped[key];
+    });
+
+    return sortedGrouped;
+  }, [filteredPosts]);
 
   const handleOpenCreate = () => {
     setEditingPost(null);
@@ -456,6 +490,284 @@ export function Posts() {
     toast.success('CSV exported successfully');
   };
 
+  // Render List View Component
+  const renderListView = () => (
+    <div className="space-y-6">
+      {Object.keys(groupedPosts).length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="text-center py-12">
+            <p className="text-muted-foreground">
+              {searchTerm || categoryFilter !== 'all' 
+                ? 'No posts found matching your filters' 
+                : 'No posts created yet'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        Object.entries(groupedPosts).map(([monthYear, { displayDate, posts }]) => (
+          <div key={monthYear} className="space-y-4">
+            {/* Month Header */}
+            <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
+              <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                {displayDate}
+              </h2>
+              <Badge variant="outline" className="ml-2">
+                {posts.length} post{posts.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+
+            {/* Posts for this month */}
+            <div className="space-y-3">
+              {posts.map((post) => {
+                const category = CATEGORIES[post.category] || CATEGORIES.general;
+                return (
+                  <Card key={post._id} className="hover:shadow-md transition-all duration-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        {/* Main Content */}
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 mb-2">
+                                {post.title}
+                              </h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-3">
+                                {post.description}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Metadata Row */}
+                          <div className="flex flex-wrap items-center gap-4 text-sm">
+                            <Badge className={`${category.color} text-xs`}>
+                              {category.label}
+                            </Badge>
+                            
+                            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                            </div>
+
+                            {post.eventDate && (
+                              <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                                <CalendarDays className="w-3.5 h-3.5" />
+                                <span>
+                                  {new Date(post.eventDate).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                            )}
+
+                            {post.registrationLink && (
+                              <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                <span className="text-xs">Registration available</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Stats & Actions */}
+                        <div className="flex flex-col items-end gap-3 min-w-0">
+                          {/* Stats Row */}
+                          <div className="flex items-center gap-3 text-xs">
+                            <div className="text-center px-2 py-1 bg-green-50 dark:bg-green-950 rounded">
+                              <div className="font-bold text-green-600 dark:text-green-400">
+                                {post.reactionCounts?.registered || 0}
+                              </div>
+                              <div className="text-gray-500">Reg.</div>
+                            </div>
+                            <div className="text-center px-2 py-1 bg-red-50 dark:bg-red-950 rounded">
+                              <div className="font-bold text-red-600 dark:text-red-400">
+                                {post.reactionCounts?.not_registered || 0}
+                              </div>
+                              <div className="text-gray-500">Not Reg.</div>
+                            </div>
+                            <div className="text-center px-2 py-1 bg-gray-50 dark:bg-gray-800 rounded">
+                              <div className="font-bold text-gray-800 dark:text-gray-200">
+                                {post.reactionCounts?.total || 0}
+                              </div>
+                              <div className="text-gray-500">Total</div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenEdit(post)}
+                              className="h-8 px-2"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewReactions(post._id)}
+                              className="h-8 px-2"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteRequest(post)}
+                              className="h-8 px-2"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  // Render Grid View Component (existing)
+  const renderGridView = () => (
+    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      {filteredPosts.length === 0 ? (
+        <Card className="col-span-full">
+          <CardContent className="text-center py-12">
+            <p className="text-muted-foreground">
+              {searchTerm || categoryFilter !== 'all' 
+                ? 'No posts found matching your filters' 
+                : 'No posts created yet'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        filteredPosts.map((post) => {
+          const category = CATEGORIES[post.category] || CATEGORIES.general;
+          
+          return (
+            <Card key={post._id} className="overflow-hidden hover:shadow-lg transition-all flex flex-col">
+              {/* Event Image */}
+              {post.imageUrl ? (
+                <div className="relative w-full h-48 bg-gray-100 dark:bg-gray-800">
+                  <img 
+                    src={post.imageUrl} 
+                    alt={post.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-3 left-3">
+                    <Badge className={category.color}>
+                      {category.label}
+                    </Badge>
+                  </div>
+                  {post.eventDate && (
+                    <Badge className="absolute top-3 right-3 backdrop-blur-sm bg-blue-600/90 text-white">
+                      <CalendarDays className="w-3 h-3 mr-1" />
+                      {new Date(post.eventDate).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </Badge>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 h-32 flex items-center justify-center relative">
+                  <ImageIcon className="w-12 h-12 text-gray-300 dark:text-gray-700" />
+                  <div className="absolute top-3 left-3">
+                    <Badge className={category.color}>
+                      {category.label}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              <CardHeader className="space-y-2 pb-3">
+                <CardTitle className="text-lg line-clamp-2">{post.title}</CardTitle>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Calendar className="w-3 h-3" />
+                  <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-3 flex-1 flex flex-col">
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {post.description}
+                </p>
+
+                {post.registrationLink && (
+                  <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                    <ExternalLink className="w-3 h-3" />
+                    <span className="truncate">Registration link available</span>
+                  </div>
+                )}
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-2 pt-2 mt-auto">
+                  <div className="text-center p-2 bg-green-50 dark:bg-green-950 rounded-lg">
+                    <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                      {post.reactionCounts?.registered || 0}
+                    </div>
+                    <div className="text-[10px] text-gray-600 dark:text-gray-400">Registered</div>
+                  </div>
+                  <div className="text-center p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                    <div className="text-lg font-bold text-red-600 dark:text-red-400">
+                      {post.reactionCounts?.not_registered || 0}
+                    </div>
+                    <div className="text-[10px] text-gray-600 dark:text-gray-400">Not Registered</div>
+                  </div>
+                  <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                      {post.reactionCounts?.total || 0}
+                    </div>
+                    <div className="text-[10px] text-gray-600 dark:text-gray-400">Total</div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-3 gap-2 pt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenEdit(post)}
+                    className="h-8 text-xs"
+                  >
+                    <Edit className="w-3 h-3" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewReactions(post._id)}
+                    className="h-8 text-xs"
+                  >
+                    <Eye className="w-3 h-3" />
+                  </Button>
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteRequest(post)}
+                    className="h-8 text-xs"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -512,162 +824,59 @@ export function Posts() {
         </Dialog>
       </div>
 
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search posts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      {/* Search, Filter and View Toggle */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 flex-1">
+          <div className="relative flex-1 sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search posts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {Object.entries(CATEGORIES).map(([key, { label }]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-500" />
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {Object.entries(CATEGORIES).map(([key, { label }]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+            className="h-8 px-3 gap-1.5"
+          >
+            <Grid3X3 className="w-4 h-4" />
+            <span className="hidden sm:inline">Grid</span>
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+            className="h-8 px-3 gap-1.5"
+          >
+            <List className="w-4 h-4" />
+            <span className="hidden sm:inline">List</span>
+          </Button>
         </div>
       </div>
 
-      {/* Posts Grid */}
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {filteredPosts.length === 0 ? (
-          <Card className="col-span-full">
-            <CardContent className="text-center py-12">
-              <p className="text-muted-foreground">
-                {searchTerm || categoryFilter !== 'all' 
-                  ? 'No posts found matching your filters' 
-                  : 'No posts created yet'}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredPosts.map((post) => {
-            const category = CATEGORIES[post.category] || CATEGORIES.general;
-            
-            return (
-              <Card key={post._id} className="overflow-hidden hover:shadow-lg transition-all flex flex-col">
-                {/* Event Image */}
-                {post.imageUrl ? (
-                  <div className="relative w-full h-48 bg-gray-100 dark:bg-gray-800">
-                    <img 
-                      src={post.imageUrl} 
-                      alt={post.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <Badge className={category.color}>
-                        {category.label}
-                      </Badge>
-                    </div>
-                    {post.eventDate && (
-                      <Badge className="absolute top-3 right-3 backdrop-blur-sm bg-blue-600/90 text-white">
-                        <CalendarDays className="w-3 h-3 mr-1" />
-                        {new Date(post.eventDate).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </Badge>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 h-32 flex items-center justify-center relative">
-                    <ImageIcon className="w-12 h-12 text-gray-300 dark:text-gray-700" />
-                    <div className="absolute top-3 left-3">
-                      <Badge className={category.color}>
-                        {category.label}
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-
-                <CardHeader className="space-y-2 pb-3">
-                  <CardTitle className="text-lg line-clamp-2">{post.title}</CardTitle>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
-                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-3 flex-1 flex flex-col">
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {post.description}
-                  </p>
-
-                  {post.registrationLink && (
-                    <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                      <ExternalLink className="w-3 h-3" />
-                      <span className="truncate">Registration link available</span>
-                    </div>
-                  )}
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-3 gap-2 pt-2 mt-auto">
-                    <div className="text-center p-2 bg-green-50 dark:bg-green-950 rounded-lg">
-                      <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                        {post.reactionCounts?.registered || 0}
-                      </div>
-                      <div className="text-[10px] text-gray-600 dark:text-gray-400">Registered</div>
-                    </div>
-                    <div className="text-center p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                      <div className="text-lg font-bold text-red-600 dark:text-red-400">
-                        {post.reactionCounts?.not_registered || 0}
-                      </div>
-                      <div className="text-[10px] text-gray-600 dark:text-gray-400">Not Registered</div>
-                    </div>
-                    <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="text-lg font-bold text-gray-800 dark:text-gray-200">
-                        {post.reactionCounts?.total || 0}
-                      </div>
-                      <div className="text-[10px] text-gray-600 dark:text-gray-400">Total</div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="grid grid-cols-3 gap-2 pt-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEdit(post)}
-                      className="h-8 text-xs"
-                    >
-                      <Edit className="w-3 h-3" />
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewReactions(post._id)}
-                      className="h-8 text-xs"
-                    >
-                      <Eye className="w-3 h-3" />
-                    </Button>
-
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteRequest(post)}
-                      className="h-8 text-xs"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
-      </div>
+      {/* Conditional Rendering Based on View Mode */}
+      {viewMode === 'grid' ? renderGridView() : renderListView()}
 
       {/* Enhanced Student Reactions Modal */}
       <Dialog open={isReactionsModalOpen} onOpenChange={setIsReactionsModalOpen}>
@@ -805,35 +1014,35 @@ export function Posts() {
               </div>
             </div>
           )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
 
-    <AlertDialog
-      open={deleteDialogOpen}
-      onOpenChange={(open) => {
-        setDeleteDialogOpen(open);
-        if (!open) setPostPendingDelete(null);
-      }}
-    >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete this post?</AlertDialogTitle>
-          <AlertDialogDescription>
-            {postPendingDelete
-              ? `“${postPendingDelete.title}” will be removed permanently.`
-              : 'This post will be removed permanently.'}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={handleDeleteConfirmed}>
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  </div>
-);
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) setPostPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {postPendingDelete
+                ? `"${postPendingDelete.title}" will be removed permanently.`
+                : 'This post will be removed permanently.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDeleteConfirmed}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }
 
 export default Posts;
