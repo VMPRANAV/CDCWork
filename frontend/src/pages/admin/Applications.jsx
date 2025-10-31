@@ -114,7 +114,7 @@ function ApplicationDetailsDialog({
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{application.student?.dept || 'N/A'}</Badge>
-                  <Badge variant="outline">CGPA: {application.student?.ugCgpa ?? 'N/A'}</Badge>
+                  <Badge variant="outline">CGPA: {application.student?.ugCgpa || 'N/A'}</Badge>
                 </div>
               </CardContent>
             </Card>

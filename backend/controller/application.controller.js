@@ -163,7 +163,7 @@ exports.getAllApplications = async (req, res) => {
         const applications = await populateApplication(
             Application.find({})
         )
-            .populate('student', 'fullName collegeEmail dept')
+            .populate('student', 'fullName collegeEmail dept ugCgpa')
             .sort({ createdAt: -1 });
         res.status(200).json(applications);
     } catch (error) {

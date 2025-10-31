@@ -5,7 +5,7 @@ const readline = require("readline/promises");
 const Admin = require('./models/admin.model');
 const User = require('./models/user.model');
 
-const MONGO = MONGO_URL || "mongodb://127.0.0.1:27017/CDCWork";
+const MONGO = MONGO_URL || "mongodb+srv://officialvinit1176_db_user:CDCManagement@cdcmanagament.pfikceg.mongodb.net/?appName=CDCManagament";
 
 async function seedStudents() {
   const testStudents = [
@@ -130,6 +130,7 @@ async function main() {
 
 
     const admin = new Admin({
+        collegeEmail,
         password,
         role : "admin"
     })
