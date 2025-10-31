@@ -87,7 +87,7 @@ export function StudentHeader({ sidebarOpen = true, onToggleSidebar }) {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white/95 px-6 backdrop-blur dark:border-white/10 dark:bg-[#0f172a]/95 dark:text-zinc-100">
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-gray-200 bg-white/95 px-4 backdrop-blur dark:border-white/10 dark:bg-[#0f172a]/95 dark:text-zinc-100 sm:h-16 sm:px-6">
       <div className="flex items-center gap-2">
         {onToggleSidebar && (
           <Button
@@ -101,9 +101,9 @@ export function StudentHeader({ sidebarOpen = true, onToggleSidebar }) {
             {sidebarOpen ? <PanelLeftClose className="h-5 w-4" /> : <PanelLeftOpen className="h-5 w-5" />}
           </Button>
         )}
-        <span className="text-lg font-semibold">Student Portal</span>
+        <span className="text-base font-semibold sm:text-lg">Student Portal</span>
       </div>
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <Button
           variant="ghost"
           size="icon"

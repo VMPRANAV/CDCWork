@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { useJobs, getInitialJobForm } from '@/hooks/useJobs';
 import { useStudents } from '@/hooks/useStudents';
 import { cn } from '@/lib/utils';
-import { Plus, Pencil, Users, Eye, Send, Calendar as CalendarIcon, X, CircleDot, Download, Search } from 'lucide-react';
+import { Plus, Pencil, Users, Eye, Send, Calendar as CalendarIcon, X, CircleDot, Download, Search, Trash2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -175,7 +175,8 @@ export function Jobs() {
     uploadingFiles,
     handleFileUpload,
     handleAttachmentFileUpload,
-    uploadingAttachments
+    uploadingAttachments,
+    deleteJob
   } = useJobs();
 
   const { students: allStudents } = useStudents();
@@ -566,6 +567,14 @@ export function Jobs() {
     }
   };
 
+  // Add a handler for deleting a job
+  const handleDeleteJob = async (job) => {
+    if (!window.confirm(`Are you sure you want to delete the job "${job.jobTitle}" at "${job.companyName}"? This action cannot be undone.`)) {
+      return;
+    }
+    await deleteJob(job._id);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -645,7 +654,7 @@ export function Jobs() {
             {/* Month Grid Overlay */}
             {showMonthGrid && (
               <div className="mt-4 p-4 border rounded-lg bg-muted/20">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-center mb-4">
                   <h3 className="text-lg font-semibold">Select Month</h3>
                   <Button variant="ghost" size="sm" onClick={() => setShowMonthGrid(false)}>
                     <X className="h-4 w-4" />
@@ -786,6 +795,15 @@ export function Jobs() {
                         >
                           <Eye className="h-4 w-4" />
                           Eligible Students
+                        </Button>
+                          <Button
+                          size="sm"
+                          variant="destructive"
+                          className="gap-2 ml-auto"
+                          onClick={() => handleDeleteJob(job)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
                         </Button>
                       </div>
                     </CardContent>
@@ -933,6 +951,17 @@ export function Jobs() {
                         >
                           <Send className="h-4 w-4" />
                           Publish Job
+                        </Button>
+                       
+                        {/* Add Delete Button at the right bottom */}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="gap-2 ml-auto"
+                          onClick={() => handleDeleteJob(job)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
                         </Button>
                       </div>
                       {(!job.rounds || job.rounds.length === 0) && (

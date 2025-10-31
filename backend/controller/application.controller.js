@@ -353,11 +353,11 @@ exports.finalizeApplication = async (req, res) => {
     }
 };
 exports.bulkAdvanceApplications = async (req, res) => {
-      const jobId = req.params.id; 
-    const { fromRoundId, toRoundId, emails } = req.body;
+    const jobId = req.params.id;
+    const { fromRoundId, toRoundId, emails, rollNos } = req.body;
 
-    if (!jobId || !fromRoundId || !toRoundId || !emails) {
-        return res.status(400).json({ message: 'jobId, fromRoundId, toRoundId, and emails are required.' });
+    if (!jobId || !fromRoundId || !toRoundId || (!emails && !rollNos)) {
+        return res.status(400).json({ message: 'jobId, fromRoundId, toRoundId, and at least one of emails or rollNos are required.' });
     }
 
     try {
@@ -366,56 +366,85 @@ exports.bulkAdvanceApplications = async (req, res) => {
             return res.status(404).json({ message: 'Target round (toRoundId) not found.' });
         }
 
-        // 1. Parse emails and find corresponding users
-        const emailList = emails
-            .split(/[\n,]+/) // Split by newline or comma
-            .map((email) => email.trim().toLowerCase())
-            .filter((email) => email); // Remove any empty strings
+        // 1. Parse emails and rollNos and find corresponding users
+        let emailList = [];
+        let rollNoList = [];
 
-        if (emailList.length === 0) {
-            return res.status(400).json({ message: 'No valid email addresses provided.' });
+        if (emails) {
+            emailList = emails
+                .split(/[\n,]+/)
+                .map((email) => email.trim().toLowerCase())
+                .filter((email) => email);
         }
-        
+
+        if (rollNos) {
+            rollNoList = rollNos
+                .split(/[\n,]+/)
+                .map((roll) => roll.trim())
+                .filter((roll) => roll);
+        }
+
+        if (emailList.length === 0 && rollNoList.length === 0) {
+            return res.status(400).json({ message: 'No valid email addresses or roll numbers provided.' });
+        }
+
         const uniqueEmails = [...new Set(emailList)];
-        const users = await User.find({ collegeEmail: { $in: uniqueEmails } }).select('_id collegeEmail');
-        const userMap = new Map(users.map(user => [user.collegeEmail, user._id]));
+        const uniqueRollNos = [...new Set(rollNoList)];
+
+        // --- FIX: Create a Set of emails for efficient lookup later ---
+        const uniqueEmailSet = new Set(uniqueEmails);
+
+        // Find users by email and/or rollNo
+        const userQuery = [];
+        if (uniqueEmails.length) userQuery.push({ collegeEmail: { $in: uniqueEmails } });
+        if (uniqueRollNos.length) userQuery.push({ rollNo: { $in: uniqueRollNos } });
+
+        const users = await User.find(userQuery.length > 1 ? { $or: userQuery } : userQuery[0]).select('_id collegeEmail rollNo');
+        const userMapByEmail = new Map(users.map(user => [user.collegeEmail, user._id]));
+        const userMapByRollNo = new Map(users.map(user => [user.rollNo, user._id]));
 
         // 2. Process applications in a loop
         let successCount = 0;
         const failures = [];
-        
+
+        // Collect all user IDs to query applications
+        const userIds = [
+            ...Array.from(userMapByEmail.values()),
+            ...Array.from(userMapByRollNo.values())
+        ].map(id => id.toString());
+        const uniqueUserIds = [...new Set(userIds)];
+
         const applications = await Application.find({
             job: jobId,
-            student: { $in: Array.from(userMap.values()) }
+            student: { $in: uniqueUserIds }
         });
 
         const applicationMap = new Map(applications.map(app => [app.student.toString(), app]));
 
+        // Process by email
         for (const email of uniqueEmails) {
-            const userId = userMap.get(email);
+            const userId = userMapByEmail.get(email);
             if (!userId) {
-                failures.push({ email, reason: 'User with this email not found in the system.' });
+                failures.push({ identifier: email, type: 'email', reason: 'User with this email not found in the system.' });
                 continue;
             }
 
             const application = applicationMap.get(userId.toString());
             if (!application) {
-                failures.push({ email, reason: 'No application found for this job.' });
+                failures.push({ identifier: email, type: 'email', reason: 'No application found for this job.' });
                 continue;
             }
 
-            // 3. Apply validation logic
             if (application.finalStatus !== 'in_process') {
-                failures.push({ email, reason: `Application status is already '${application.finalStatus}'.` });
+                failures.push({ identifier: email, type: 'email', reason: `Application status is already '${application.finalStatus}'.` });
                 continue;
             }
 
             if (application.currentRound?.toString() !== fromRoundId) {
-                failures.push({ email, reason: `Application is not in the specified 'Current Round'.` });
+                failures.push({ identifier: email, type: 'email', reason: `Application is not in the specified 'Current Round'.` });
                 continue;
             }
 
-            // 4. Perform the update
             const currentProgress = application.roundProgress.find(
                 (entry) => entry.round.toString() === fromRoundId
             );
@@ -423,7 +452,6 @@ exports.bulkAdvanceApplications = async (req, res) => {
             if (currentProgress) {
                 currentProgress.result = 'selected';
                 currentProgress.decidedAt = new Date();
-                // Mark attendance if not already marked
                 if (!currentProgress.attendance) {
                     currentProgress.attendance = true;
                     currentProgress.attendanceMethod = 'admin_advance';
@@ -438,13 +466,77 @@ exports.bulkAdvanceApplications = async (req, res) => {
             if (!alreadyInNextRound) {
                 application.roundProgress.push({
                     round: toRound._id,
-                    result: 'pending' // Ready for the next stage
+                    result: 'pending'
                 });
             }
 
             application.currentRound = toRound._id;
             application.currentRoundSequence = toRound.sequence;
-            
+
+            await application.save();
+            successCount += 1;
+        }
+
+        // Process by rollNo (skip if already processed by email)
+        for (const rollNo of uniqueRollNos) {
+            const userId = userMapByRollNo.get(rollNo);
+            if (!userId) {
+                failures.push({ identifier: rollNo, type: 'rollNo', reason: 'User with this roll number not found in the system.' });
+                continue;
+            }
+
+            // --- FIX: Check if this user's email was in the *original input list* ---
+            const userForRollNo = users.find(u => u._id.equals(userId));
+            if (userForRollNo && uniqueEmailSet.has(userForRollNo.collegeEmail)) {
+                // This user's email was in the input list, so they were already processed.
+                continue;
+            }
+            // --- END FIX ---
+
+            const application = applicationMap.get(userId.toString());
+            if (!application) {
+                failures.push({ identifier: rollNo, type: 'rollNo', reason: 'No application found for this job.' });
+                continue;
+            }
+
+            if (application.finalStatus !== 'in_process') {
+                failures.push({ identifier: rollNo, type: 'rollNo', reason: `Application status is already '${application.finalStatus}'.` });
+                continue;
+            }
+
+            if (application.currentRound?.toString() !== fromRoundId) {
+                failures.push({ identifier: rollNo, type: 'rollNo', reason: `Application is not in the specified 'Current Round'.` });
+                continue;
+            }
+
+            const currentProgress = application.roundProgress.find(
+                (entry) => entry.round.toString() === fromRoundId
+            );
+
+            if (currentProgress) {
+                currentProgress.result = 'selected';
+                currentProgress.decidedAt = new Date();
+                if (!currentProgress.attendance) {
+                    currentProgress.attendance = true;
+                    currentProgress.attendanceMethod = 'admin_advance';
+                    currentProgress.attendanceMarkedAt = new Date();
+                }
+            }
+
+            const alreadyInNextRound = application.roundProgress.some(
+                (entry) => entry.round.toString() === toRoundId
+            );
+
+            if (!alreadyInNextRound) {
+                application.roundProgress.push({
+                    round: toRound._id,
+                    result: 'pending'
+                });
+            }
+
+            application.currentRound = toRound._id;
+            application.currentRoundSequence = toRound.sequence;
+
             await application.save();
             successCount += 1;
         }
