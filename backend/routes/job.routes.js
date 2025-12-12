@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createJob, deleteJob,getEligibleJobs, getJobs, getEligibleStudentsForJob, updateJob, publishJob, updateEligibleStudents, downloadEligibleStudents, uploadJobFiles, uploadJobAttachmentFiles } = require('../controller/job.controller');
+const { createJob, deleteJob,getEligibleJobs, getJobs, getEligibleStudentsForJob, updateJob, publishJob, updateEligibleStudents, downloadEligibleStudents, uploadJobFiles, uploadJobAttachmentFiles, getJobRounds } = require('../controller/job.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
 const { uploadJobFiles: uploadJobFilesMiddleware } = require('../middleware/multer.middleware');
 
@@ -21,6 +21,7 @@ router.get(
 
 // Admin route to publish a job
 router.route('/:jobId/publish').post(protect, authorize('admin'), publishJob);
+router.route('/:jobId/rounds').get(protect, authorize('admin'), getJobRounds);
 
 // Student route to see jobs they are eligible for
 router.route('/eligible').get(protect, authorize('student'), getEligibleJobs);

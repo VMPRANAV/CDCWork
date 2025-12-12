@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import axios from 'axios';
 import * as api from '../services/api';
 
@@ -31,9 +30,6 @@ export function useApplications() {
       if (!axios.isCancel(err)) {
         console.error('Failed to fetch applications', err);
         setError(err.response?.data?.message || 'Failed to fetch applications');
-        toast.error('Failed to fetch applications', {
-          description: err.response?.data?.message
-        });
       }
     } finally {
       setLoading(false);
@@ -140,31 +136,24 @@ export function useApplications() {
 
   const fetchJobRounds = useCallback(
     async (jobId) => {
-      if (!jobId) return [];
+      if (!jobId) return;
       setRoundsLoading(true);
       try {
-        const response = await api.fetchJobsAPI();
-        const allJobs = [...(response.data?.private || []), ...(response.data?.public || [])];
-        const job = allJobs.find((item) => item._id === jobId);
-        
-        
-        const rounds = (job?.rounds || []).filter(round => round.status !== 'archived');
-
-        setJobRounds(rounds);
-        return rounds;
+        const response = await api.fetchJobRoundsAPI(jobId);
+        setJobRounds(response.data || []);
       } catch (err) {
         console.error('Failed to fetch job rounds', err);
         toast.error('Failed to fetch job rounds', {
           description: err.response?.data?.message
         });
-        return [];
       } finally {
         setRoundsLoading(false);
       }
     },
     []
   );
-   const bulkAdvanceApplications = useCallback(
+
+  const bulkAdvanceApplications = useCallback(
     async (payload) => {
       const { jobId, fromRoundId, toRoundId, emails, rollNos } = payload;
       try {

@@ -131,6 +131,13 @@ export const fetchStudentDetailsAPI = (studentId, signal) => {
   });
 };
 
+export const fetchJobRoundsAPI = (jobId, signal) => {
+  return axios.get(`${API_BASE}/jobs/${jobId}/rounds`, {
+    headers: getAuthHeaders(),
+    signal
+  });
+};
+
 export const updateStudentAPI = (studentId, updates) => {
   const token = localStorage.getItem('authToken');
   return axios.put(`${API_BASE}/users/${studentId}`, updates, {

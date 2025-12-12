@@ -515,6 +515,18 @@ exports.uploadJobAttachmentFiles = async (req, res) => {
 
 // @desc    Upload multiple files for job
 // @route   POST /api/jobs/upload-files
+exports.getJobRounds = async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.jobId).populate('rounds');
+        if (!job) {
+            return res.status(404).json({ message: 'Job not found' });
+        }
+        res.status(200).json(job.rounds);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching job rounds', error: error.message });
+    }
+};
+
 exports.uploadJobFiles = async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {

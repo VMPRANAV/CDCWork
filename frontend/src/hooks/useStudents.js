@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import axios from 'axios';
-import api from '../services/api';
+import * as api from '../services/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
 
