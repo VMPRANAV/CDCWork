@@ -41,7 +41,7 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/jobs',jobRoutes);
 app.use('/api/departments', departmentRoutes);
-app.use('/api/rounds', attendanceRoutes);
+app.use('/api/attendance', attendanceRoutes);
 app.use('/api/calendar', calendarRoutes);
 
 app.listen(PORT);
