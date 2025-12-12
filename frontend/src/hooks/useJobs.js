@@ -1,34 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getInitialJobForm } from './jobFormUtils';
 import axios from 'axios';
 import { toast } from 'sonner';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
 
-const initialJobForm = {
-  companyName: '',
-  jobTitle: '',
-  companyDescription: '',
-  jobDescription: '',
-  salary: '',
-  locations: [''],
-  attachmentLinks: [''], // Changed from fileLink
-  eligibility: {
-    minCgpa: '0',
-    minTenthPercent: '0',
-    minTwelfthPercent: '0',
-    passoutYear: '0',
-    allowedDepartments: [],
-    maxArrears: '0',
-    maxHistoryOfArrears: '0'
-  },
-  rounds: []
-};
-
 export function useJobs() {
   const [jobs, setJobs] = useState({ private: [], public: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [jobForm, setJobForm] = useState(initialJobForm);
+  const [jobForm, setJobForm] = useState(getInitialJobForm());
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -114,7 +95,7 @@ export function useJobs() {
   }, [fetchJobs]);
 
   const resetJobForm = useCallback(() => {
-    setJobForm(initialJobForm);
+    setJobForm(getInitialJobForm());
   }, []);
 
   const createJob = useCallback(
@@ -417,6 +398,3 @@ const handleAttachmentFileUpload = async (files) => {
     };
 }
 
-export function getInitialJobForm() {
-  return JSON.parse(JSON.stringify(initialJobForm));
-}
