@@ -53,7 +53,7 @@ const issueNewCode = (round) => {
     return { code, expiresAt };
 };
 
-exports.startAttendanceSession = async (req, res) => {
+const startAttendanceSession = async (req, res) => {
     try {
         const { roundId } = req.params;
         const { refreshIntervalSeconds, enableOfflineCode } = req.body;
@@ -105,7 +105,7 @@ exports.startAttendanceSession = async (req, res) => {
     }
 };
 
-exports.stopAttendanceSession = async (req, res) => {
+const stopAttendanceSession = async (req, res) => {
     try {
         const { roundId } = req.params;
         const round = await Round.findById(roundId);
@@ -140,7 +140,7 @@ exports.stopAttendanceSession = async (req, res) => {
     }
 };
 
-exports.getAttendanceSessionStatus = async (req, res) => {
+const getAttendanceSessionStatus = async (req, res) => {
     try {
         const { roundId } = req.params;
         const round = await Round.findById(roundId);
@@ -183,7 +183,7 @@ exports.getAttendanceSessionStatus = async (req, res) => {
     }
 };
 
-exports.submitAttendanceCode = async (req, res) => {
+const submitAttendanceCode = async (req, res) => {
     try {
         const { roundId } = req.params;
         const { code } = req.body;
@@ -280,4 +280,27 @@ exports.submitAttendanceCode = async (req, res) => {
     } catch (error) {
         return res.status(500).json({ message: 'Failed to record attendance.', error: error.message });
     }
+};
+
+const getAttendeesForRound = async (req, res) => {
+    try {
+        const { roundId } = req.params;
+        const round = await Round.findById(roundId).populate('attendance', 'fullName collegeEmail');
+
+        if (!round) {
+            return res.status(404).json({ message: 'Round not found.' });
+        }
+
+        res.status(200).json(round.attendance);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch attendees.', error: error.message });
+    }
+};
+
+module.exports = {
+    startAttendanceSession,
+    stopAttendanceSession,
+    getAttendanceSessionStatus,
+    submitAttendanceCode,
+    getAttendeesForRound
 };

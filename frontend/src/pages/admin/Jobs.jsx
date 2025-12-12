@@ -176,7 +176,10 @@ export function Jobs() {
     handleFileUpload,
     handleAttachmentFileUpload,
     uploadingAttachments,
-    deleteJob
+    deleteJob,
+    fetchAttendeesForRound,
+    attendees,
+    attendeesLoading
   } = useJobs();
 
   const { students: allStudents } = useStudents();
@@ -197,6 +200,8 @@ export function Jobs() {
   const [roundsForm, setRoundsForm] = useState([]);
   const [eligibleDialogJob, setEligibleDialogJob] = useState(null);
   const [studentToAdd, setStudentToAdd] = useState('');
+  const [isAttendeesDialogOpen, setAttendeesDialogOpen] = useState(false);
+  const [selectedRoundForAttendees, setSelectedRoundForAttendees] = useState(null);
 
   // Add new state for student search
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
@@ -573,6 +578,12 @@ export function Jobs() {
       return;
     }
     await deleteJob(job._id);
+  };
+
+  const handleOpenAttendeesDialog = async (round) => {
+    setSelectedRoundForAttendees(round);
+    setAttendeesDialogOpen(true);
+    fetchAttendeesForRound(round._id);
   };
 
   return (
@@ -1339,6 +1350,9 @@ export function Jobs() {
                           <Button type="button" variant="destructive" size="sm" onClick={() => removeRoundField(index)}>
                             Remove
                           </Button>
+                          <Button variant="outline" size="icon" onClick={() => handleOpenAttendeesDialog(round)}>
+                            <Users className="h-4 w-4" />
+                          </Button>
                         </div>
                         <div className="grid gap-3 md:grid-cols-2">
                           <div className="space-y-1">
@@ -1479,6 +1493,39 @@ export function Jobs() {
             </div>
             </form>
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAttendeesDialogOpen} onOpenChange={setAttendeesDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Attendees for {selectedRoundForAttendees?.roundName}</DialogTitle>
+          </DialogHeader>
+          {attendeesLoading ? (
+            <p>Loading attendees...</p>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">Total Attendees: {attendees.length}</p>
+              <ScrollArea className="h-96">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {attendees.map((attendee) => (
+                      <TableRow key={attendee._id}>
+                        <TableCell>{attendee.fullName}</TableCell>
+                        <TableCell>{attendee.collegeEmail}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

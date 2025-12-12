@@ -35,7 +35,30 @@ export function useJobs() {
   const [eligibleStudents, setEligibleStudents] = useState([]);
   const [eligibleLoading, setEligibleLoading] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
-   const [uploadingAttachments, setUploadingAttachments] = useState(false);
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
+  const [attendees, setAttendees] = useState([]);
+  const [attendeesLoading, setAttendeesLoading] = useState(false);
+
+  const fetchAttendeesForRound = useCallback(
+    async (roundId) => {
+      if (!roundId) return;
+      setAttendeesLoading(true);
+      try {
+        const response = await axios.get(`${API_BASE}/attendance/${roundId}/attendees`, {
+          headers: adminHeaders
+        });
+        setAttendees(response.data || []);
+      } catch (err) {
+        console.error('Failed to fetch attendees', err);
+        toast.error('Failed to fetch attendees', {
+          description: err.response?.data?.message
+        });
+      } finally {
+        setAttendeesLoading(false);
+      }
+    },
+    [adminHeaders]
+  );
   const abortController = useRef(null);
 
   const adminHeaders = useMemo(() => {
@@ -388,6 +411,9 @@ const handleAttachmentFileUpload = async (files) => {
         // ADDED: Export the new function and its state
         handleAttachmentFileUpload,
         uploadingAttachments,
+        fetchAttendeesForRound,
+        attendees,
+        attendeesLoading
     };
 }
 
