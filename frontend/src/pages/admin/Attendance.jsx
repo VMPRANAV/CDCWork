@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAttendanceSession } from '@/hooks/useAttendanceSession';
 import axios from 'axios';
 import { QRCodeCanvas } from 'qrcode.react';
 import { toast } from 'sonner';
@@ -56,17 +57,14 @@ export function Attendance() {
   const [selectedJobId, setSelectedJobId] = useState('');
   const [selectedRoundId, setSelectedRoundId] = useState('');
 
-  const [sessionState, setSessionState] = useState(defaultSessionState);
-  const [sessionLoading, setSessionLoading] = useState(false);
-  const [sessionError, setSessionError] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(60);
   const [enableOfflineCode, setEnableOfflineCode] = useState(false);
   const [offlineCodeValue, setOfflineCodeValue] = useState(null);
   const [countdown, setCountdown] = useState('');
   const [showQrDialog, setShowQrDialog] = useState(false);
 
-  const statusPollRef = useRef(null);
-  const qrCodeContainerRef = useRef(null);
+    const qrCodeContainerRef = useRef(null);
 
   const adminHeaders = useMemo(() => {
     const token = localStorage.getItem('authToken');
@@ -86,13 +84,7 @@ export function Attendance() {
     [selectedJob, selectedRoundId]
   );
 
-  const clearStatusPoll = useCallback(() => {
-    if (statusPollRef.current) {
-      clearInterval(statusPollRef.current);
-      statusPollRef.current = null;
-    }
-  }, []);
-
+  
   const fetchJobs = useCallback(async () => {
     setJobsLoading(true);
     setJobsError('');
@@ -129,8 +121,7 @@ export function Attendance() {
 
   useEffect(() => {
     fetchJobs();
-    return () => clearStatusPoll();
-  }, [fetchJobs, clearStatusPoll]);
+  }, [fetchJobs]);
 
   const filteredJobs = useMemo(() => {
     const term = jobQuery.trim().toLowerCase();
@@ -188,102 +179,28 @@ export function Attendance() {
     });
   }, [selectedJob]);
 
-  const fetchSessionStatus = useCallback(
-    async (roundId) => {
-      if (!roundId) return null;
-      const response = await axios.get(
-        `${API_BASE}/attendance/${roundId}/attendance-session/status`,
-        { headers: adminHeaders }
-      );
-      return response.data;
-    },
-    [adminHeaders]
-  );
-
-  const startPollingStatus = useCallback(
-    (roundId) => {
-      clearStatusPoll();
-      statusPollRef.current = setInterval(() => {
-        fetchSessionStatus(roundId)
-          .then((status) => {
-            if (!status) return;
-            setSessionState(status);
-            setSessionError('');
-            if (status.refreshIntervalSeconds) {
-              setRefreshInterval(status.refreshIntervalSeconds);
-            }
-            setOfflineCodeValue(status.offlineCode || null);
-            setEnableOfflineCode(Boolean(status.offlineCode));
-            if (status.status !== 'active') {
-              clearStatusPoll();
-            }
-          })
-          .catch((error) => {
-            const message = error.response?.data?.message || 'Failed to refresh session status';
-            setSessionError(message);
-            clearStatusPoll();
-          });
-      }, POLL_INTERVAL_MS);
-    },
-    [clearStatusPoll, fetchSessionStatus]
-  );
-
-  const loadSessionStatus = useCallback(
-    async (roundId) => {
-      if (!roundId) {
-        setSessionState(defaultSessionState);
-        setOfflineCodeValue(null);
-        setEnableOfflineCode(false);
-        clearStatusPoll();
-        return;
-      }
-      setSessionLoading(true);
-      setSessionError('');
-      try {
-        const status = await fetchSessionStatus(roundId);
-        if (status) {
-          setSessionState(status);
-          if (status.refreshIntervalSeconds) {
-            setRefreshInterval(status.refreshIntervalSeconds);
-          }
-          setOfflineCodeValue(status.offlineCode || null);
-          setEnableOfflineCode(status.status === 'active' ? Boolean(status.offlineCode) : false);
-          if (status.status === 'active') {
-            startPollingStatus(roundId);
-          } else {
-            clearStatusPoll();
-            setShowQrDialog(false);
-          }
-        } else {
-          setSessionState(defaultSessionState);
-          setOfflineCodeValue(null);
-          setEnableOfflineCode(false);
-        }
-      } catch (error) {
-        const message = error.response?.data?.message || 'Failed to load session status';
-        setSessionError(message);
-        toast.error('Attendance status error', { description: message });
-        setSessionState(defaultSessionState);
-        setOfflineCodeValue(null);
-        setEnableOfflineCode(false);
-        clearStatusPoll();
-      } finally {
-        setSessionLoading(false);
-      }
-    },
-    [fetchSessionStatus, startPollingStatus, clearStatusPoll]
-  );
+  const { sessionState, loading: sessionLoading, error: sessionError, loadStatus } = useAttendanceSession(selectedRoundId);
 
   useEffect(() => {
-    loadSessionStatus(selectedRoundId);
-  }, [selectedRoundId]);
+    if (selectedRoundId) {
+      loadStatus();
+    }
+  }, [selectedRoundId, loadStatus]);
+
+  useEffect(() => {
+    if (sessionState.status !== 'active') {
+        setShowQrDialog(false);
+    }
+    if (sessionState.offlineCode) {
+        setOfflineCodeValue(sessionState.offlineCode);
+    }
+  }, [sessionState]);
 
   const handleStartSession = useCallback(async () => {
-    if (!selectedRoundId || sessionLoading) return;
-    setSessionLoading(true);
-    setSessionError('');
+    if (!selectedRoundId || actionLoading) return;
+    setActionLoading(true);
     try {
-      const response = await axios.post(
+      await axios.post(
         `${API_BASE}/attendance/${selectedRoundId}/attendance-session/start`,
         {
           refreshIntervalSeconds: Number(refreshInterval),
@@ -291,24 +208,19 @@ export function Attendance() {
         },
         { headers: adminHeaders }
       );
-      setSessionState(response.data);
-      setOfflineCodeValue(response.data.offlineCode || null);
-      setEnableOfflineCode(Boolean(response.data.offlineCode));
       toast.success('Attendance session started');
-      startPollingStatus(selectedRoundId);
+      loadStatus();
     } catch (error) {
       const message = error.response?.data?.message || 'Unable to start session';
-      setSessionError(message);
       toast.error('Unable to start session', { description: message });
     } finally {
-      setSessionLoading(false);
+      setActionLoading(false);
     }
-  }, [selectedRoundId, sessionLoading, refreshInterval, enableOfflineCode, adminHeaders, startPollingStatus]);
+  }, [selectedRoundId, actionLoading, refreshInterval, enableOfflineCode, adminHeaders, loadStatus]);
 
   const handleStopSession = useCallback(async () => {
-    if (!selectedRoundId || sessionLoading) return;
-    setSessionLoading(true);
-    setSessionError('');
+    if (!selectedRoundId || actionLoading) return;
+    setActionLoading(true);
     try {
       await axios.post(
         `${API_BASE}/attendance/${selectedRoundId}/attendance-session/stop`,
@@ -316,19 +228,14 @@ export function Attendance() {
         { headers: adminHeaders }
       );
       toast.success('Attendance session stopped');
-      setSessionState(defaultSessionState);
-      setOfflineCodeValue(null);
-      setEnableOfflineCode(false);
-      setShowQrDialog(false);
-      clearStatusPoll();
+      loadStatus();
     } catch (error) {
       const message = error.response?.data?.message || 'Unable to stop session';
-      setSessionError(message);
       toast.error('Unable to stop session', { description: message });
     } finally {
-      setSessionLoading(false);
+      setActionLoading(false);
     }
-  }, [selectedRoundId, sessionLoading, adminHeaders, clearStatusPoll]);
+  }, [selectedRoundId, actionLoading, adminHeaders, loadStatus]);
 
   useEffect(() => {
     if (sessionState.status === 'active' && sessionState.expiresAt) {
@@ -531,7 +438,7 @@ export function Attendance() {
                 <Select
                   value={String(refreshInterval)}
                   onValueChange={(value) => setRefreshInterval(Number(value))}
-                  disabled={sessionLoading || sessionState.status === 'active'}
+                  disabled={actionLoading || sessionState.status === 'active'}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -553,7 +460,7 @@ export function Attendance() {
                 <Switch
                   checked={enableOfflineCode}
                   onCheckedChange={setEnableOfflineCode}
-                  disabled={sessionLoading || sessionState.status === 'active'}
+                  disabled={actionLoading || sessionState.status === 'active'}
                 />
               </div>
             </div>
@@ -569,9 +476,9 @@ export function Attendance() {
               <Button
                 type="button"
                 onClick={handleStartSession}
-                disabled={sessionLoading || !selectedRoundId || sessionState.status === 'active'}
+                disabled={actionLoading || !selectedRoundId || sessionState.status === 'active'}
               >
-                {sessionLoading && sessionState.status !== 'active' ? (
+                {actionLoading && sessionState.status !== 'active' ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <QrCode className="mr-2 h-4 w-4" />
@@ -581,7 +488,7 @@ export function Attendance() {
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => loadSessionStatus(selectedRoundId)}
+                onClick={() => loadStatus()}
                 disabled={sessionLoading || !selectedRoundId}
               >
                 <RefreshCw className="mr-2 h-4 w-4" /> Check Status
@@ -590,9 +497,9 @@ export function Attendance() {
                 type="button"
                 variant="destructive"
                 onClick={handleStopSession}
-                disabled={sessionLoading || sessionState.status !== 'active'}
+                disabled={actionLoading || sessionState.status !== 'active'}
               >
-                {sessionLoading && sessionState.status === 'active' ? (
+                {actionLoading && sessionState.status === 'active' ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <StopCircle className="mr-2 h-4 w-4" />
@@ -665,7 +572,7 @@ export function Attendance() {
                           type="button"
                           variant="ghost"
                           onClick={() => setEnableOfflineCode((prev) => !prev)}
-                          disabled={sessionLoading || sessionState.status !== 'active'}
+                          disabled={actionLoading || sessionState.status !== 'active'}
                         >
                           {enableOfflineCode ? 'Disable offline code' : 'Enable offline code'}
                         </Button>

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAttendanceSession } from '@/hooks/useAttendanceSession';
 import axios from 'axios';
 import { toast } from 'sonner';
 import {
@@ -60,51 +61,22 @@ export function Applications() {
     };
   }, []);
 
-  const fetchRoundStatus = useCallback(
-    async (roundId) => {
-      if (!roundId) {
-        return { status: 'inactive' };
-      }
-      try {
-        const { data } = await axios.get(
-          `${API_BASE}/rounds/${roundId}/attendance-session/status`,
-          { headers }
-        );
-        return data;
-      } catch (fetchError) {
-        return { status: 'inactive' };
-      }
-    },
-    [headers]
-  );
-
-  const enrichApplicationsWithAttendance = useCallback(
-    async (apps) => {
-      const requests = apps.map(async (application) => {
-        const roundId = application.currentRound?._id;
-        const attendanceSession = await fetchRoundStatus(roundId);
-        return { ...application, attendanceSession };
-      });
-      return Promise.all(requests);
-    },
-    [fetchRoundStatus]
-  );
-
+  
+  
   const fetchApplications = useCallback(async () => {
     try {
       setLoading(true);
       const { data } = await axios.get(`${API_BASE}/applications/my-applications`, {
         headers,
       });
-      const enriched = await enrichApplicationsWithAttendance(Array.isArray(data) ? data : []);
-      setApplications(enriched);
+      setApplications(Array.isArray(data) ? data : []);
       setError('');
     } catch (fetchError) {
       setError('Failed to load your applications.');
     } finally {
       setLoading(false);
     }
-  }, [headers, enrichApplicationsWithAttendance]);
+  }, [headers]);
 
   useEffect(() => {
     fetchApplications();
@@ -132,31 +104,25 @@ export function Applications() {
     updateAttendanceFeedback(applicationId, 'info', 'Use the scanner or enter the code manually.');
   };
 
-  const handleSubmitAttendance = async (applicationId, roundId) => {
-    const code = (attendanceInputs[applicationId] || '').trim();
-    if (!code) {
-      updateAttendanceFeedback(applicationId, 'error', 'Enter the code shared by the coordinator.');
-      return;
-    }
-
+  const handleSubmitAttendance = async (applicationId, roundId, code) => {
+    
     try {
       setAttendanceSubmitting((prev) => ({ ...prev, [applicationId]: true }));
       updateAttendanceFeedback(applicationId, 'info', 'Submitting attendance...');
 
       await axios.post(
-        `${API_BASE}/rounds/${roundId}/attendance-checkin`,
+        `${API_BASE}/attendance/${roundId}/attendance-checkin`,
         { code },
         { headers }
       );
 
       toast.success('Attendance recorded successfully');
-      updateAttendanceFeedback(applicationId, 'success', 'Attendance recorded successfully.');
-      setAttendanceInputs((prev) => ({ ...prev, [applicationId]: '' }));
-      setScannerVisible((prev) => ({ ...prev, [applicationId]: false }));
+      fetchApplications();
       fetchApplications();
     } catch (submitError) {
       const message = submitError.response?.data?.message || 'Failed to record attendance.';
-      updateAttendanceFeedback(applicationId, 'error', message);
+      toast.error('Submission failed', { description: message });
+      throw new Error(message);
     } finally {
       setAttendanceSubmitting((prev) => ({ ...prev, [applicationId]: false }));
     }
@@ -232,7 +198,7 @@ export function Applications() {
     const attendanceCodeValue = attendanceInputs[applicationId] || '';
     const isSubmitting = Boolean(attendanceSubmitting[applicationId]);
     const scannerOpen = Boolean(scannerVisible[applicationId]);
-    const sessionStatus = application.attendanceSession || { status: 'inactive' };
+    // This will now be handled by the useAttendanceSession hook inside AttendanceSection
     const sessionActive = sessionStatus.status === 'active';
     const offlineEnabled = Boolean(sessionStatus.offlineCodeEnabled || sessionStatus.offlineCode);
     const offlineUsedAt = sessionStatus.offlineCodeUsedAt;
@@ -404,7 +370,161 @@ export function Applications() {
     return sorted;
   }, [applications, searchTerm, statusFilter, sortOption]);
 
-  const renderApplicationCard = (application) => {
+  function AttendanceSection({ application, onAttendanceSubmit }) {
+  const roundId = application.currentRound?._id;
+  const { sessionState, loading, error, loadStatus } = useAttendanceSession(roundId);
+  const [attendanceCode, setAttendanceCode] = useState('');
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (roundId) {
+      loadStatus(true); // isStudent = true
+    }
+  }, [roundId, loadStatus]);
+
+  const handleCodeSubmit = async () => {
+    if (!attendanceCode) {
+      setFeedback({ type: 'error', message: 'Please enter a code.' });
+      return;
+    }
+    setIsSubmitting(true);
+    setFeedback({ type: 'info', message: 'Submitting...' });
+    try {
+      await onAttendanceSubmit(application._id, roundId, attendanceCode);
+      setFeedback({ type: 'success', message: 'Attendance submitted successfully!' });
+      setAttendanceCode('');
+      setScannerVisible(false);
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message || 'Submission failed.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleScan = (text) => {
+    if (!text) return;
+    try {
+      const payload = JSON.parse(text);
+      if (payload.roundId && payload.roundId !== roundId) {
+        setFeedback({ type: 'error', message: 'This QR code is for a different round.' });
+        return;
+      }
+      const code = (payload.code || payload.currentCode || '').toString().trim();
+      if (code) {
+        setAttendanceCode(code.toUpperCase());
+        setFeedback({ type: 'info', message: 'Code captured. Please submit.' });
+        setScannerVisible(false);
+      }
+    } catch (e) {
+      setAttendanceCode(text.toUpperCase());
+      setFeedback({ type: 'info', message: 'Code captured. Please submit.' });
+    }
+  };
+
+  const currentRoundLabel = application.currentRound?.roundName || FALLBACK_TEXT.currentRound;
+  const attendanceMarked = application.roundProgress?.find(p => p.round === roundId)?.attendance;
+
+  if (attendanceMarked) {
+    return (
+      <Card className="bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Attendance</CardTitle>
+              <CardDescription>Round: {currentRoundLabel}</CardDescription>
+            </div>
+            <Badge variant="default">Recorded</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+            Your attendance for this round has already been recorded.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (sessionState.status !== 'active') {
+    return (
+      <Card className="bg-muted/20">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Attendance</CardTitle>
+              <CardDescription>Round: {currentRoundLabel}</CardDescription>
+            </div>
+            <Badge variant="secondary">Session not active</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Attendance will be available once the coordinator starts the session. Check back later.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-muted/40">
+      <CardHeader className="pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="space-y-1">
+            <CardTitle className="text-base">Attendance</CardTitle>
+            <CardDescription>Round: {currentRoundLabel}</CardDescription>
+          </div>
+          <Badge variant="default">Session live</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Enter the code from the coordinator or scan the QR code.
+        </p>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-2">
+          <Input
+            value={attendanceCode}
+            onChange={(e) => setAttendanceCode(e.target.value.toUpperCase())}
+            maxLength={8}
+            placeholder="Enter code"
+            className="md:max-w-xs"
+            disabled={isSubmitting}
+          />
+          <Button type="button" onClick={handleCodeSubmit} disabled={isSubmitting}>
+            {isSubmitting ? 'Submitting…' : 'Submit code'}
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => setScannerVisible(v => !v)}>
+            {scannerVisible ? 'Close Scanner' : 'Scan QR'}
+          </Button>
+        </div>
+        {scannerVisible && (
+          <div className="rounded-md border border-dashed border-border/60">
+            <QrScanner
+              constraints={{ facingMode: 'environment' }}
+              scanDelay={500}
+              onDecode={handleScan}
+              onError={(e) => console.debug(e)}
+              style={{ width: '100%' }}
+            />
+          </div>
+        )}
+        {feedback.message && (
+          <p className={`text-xs ${
+            feedback.type === 'error' ? 'text-destructive' :
+            feedback.type === 'success' ? 'text-emerald-600' :
+            'text-muted-foreground'
+          }`}>
+            {feedback.message}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+const ApplicationCard = ({ application, onAttendanceSubmit }) => {
     const statusRaw = application.currentRound?.roundName
       ? 'in_process'
       : application.finalStatus || application.status || 'in_process';
@@ -450,9 +570,9 @@ export function Applications() {
               {description.length > 220 ? `${description.slice(0, 220)}…` : description}
             </p>
           )}
-          {renderAttendanceSection(application)}
+          {application.currentRound?._id && <AttendanceSection application={application} onAttendanceSubmit={onAttendanceSubmit} />}
         </CardContent>
-        {application.roundProgress?.length ? (
+        {application.roundProgress?.length > 0 && (
           <CardFooter className="block space-y-2 text-xs text-muted-foreground">
             <Separator />
             <p className="font-medium text-foreground">Round progress</p>
@@ -460,7 +580,6 @@ export function Applications() {
               {application.roundProgress.map((progress) => {
                 const roundName = progress.round?.roundName || progress.roundName || 'Round';
                 const attendance = progress.attendance ? 'Attendance recorded' : 'Attendance pending';
-                const feedback = progress.feedback ? `Feedback: ${progress.feedback}` : null;
                 return (
                   <div key={progress.round?._id || progress.round} className="rounded-md border border-border/60 p-3">
                     <div className="flex items-center justify-between gap-2">
@@ -469,17 +588,17 @@ export function Applications() {
                         {attendance}
                       </Badge>
                     </div>
-                    {feedback && <p className="mt-1 text-xs text-muted-foreground">{feedback}</p>}
+                    {progress.feedback && <p className="mt-1 text-xs text-muted-foreground">{`Feedback: ${progress.feedback}`}</p>}
                   </div>
                 );
               })}
             </div>
           </CardFooter>
-        ) : null}
+        )}
       </Card>
     );
-  };
-
+};
+    
   return (
     <div className="space-y-6">
       <div>
@@ -559,7 +678,9 @@ export function Applications() {
               </Card>
             ) : (
               <div className="grid gap-5 md:grid-cols-2">
-                {normalizedApplications.map((application) => renderApplicationCard(application))}
+                {normalizedApplications.map((application) => (
+                  <ApplicationCard key={application._id} application={application} onAttendanceSubmit={handleSubmitAttendance} />
+                ))}
               </div>
             )}
           </div>
