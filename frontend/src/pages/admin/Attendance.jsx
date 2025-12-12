@@ -192,7 +192,7 @@ export function Attendance() {
     async (roundId) => {
       if (!roundId) return null;
       const response = await axios.get(
-        `${API_BASE}/rounds/${roundId}/attendance-session/status`,
+        `${API_BASE}/attendance/${roundId}/attendance-session/status`,
         { headers: adminHeaders }
       );
       return response.data;
@@ -276,7 +276,7 @@ export function Attendance() {
 
   useEffect(() => {
     loadSessionStatus(selectedRoundId);
-  }, [selectedRoundId, loadSessionStatus]);
+  }, [selectedRoundId]);
 
   const handleStartSession = useCallback(async () => {
     if (!selectedRoundId || sessionLoading) return;
@@ -284,7 +284,7 @@ export function Attendance() {
     setSessionError('');
     try {
       const response = await axios.post(
-        `${API_BASE}/rounds/${selectedRoundId}/attendance-session/start`,
+        `${API_BASE}/attendance/${selectedRoundId}/attendance-session/start`,
         {
           refreshIntervalSeconds: Number(refreshInterval),
           enableOfflineCode,
@@ -311,7 +311,7 @@ export function Attendance() {
     setSessionError('');
     try {
       await axios.post(
-        `${API_BASE}/rounds/${selectedRoundId}/attendance-session/stop`,
+        `${API_BASE}/attendance/${selectedRoundId}/attendance-session/stop`,
         {},
         { headers: adminHeaders }
       );
