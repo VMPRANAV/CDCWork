@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import axios from 'axios';
 import { toast } from 'sonner';
+import axios from 'axios';
+import * as api from '../services/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
 
@@ -16,15 +17,6 @@ export function useApplications() {
   const [roundsLoading, setRoundsLoading] = useState(false);
   const abortController = useRef(null);
 
-  const adminHeaders = useMemo(() => {
-    const token = localStorage.getItem('authToken');
-    return {
-      'Content-Type': 'application/json',
-      Authorization: token ? `Bearer ${token}` : undefined,
-      role: 'admin'
-    };
-  }, []);
-
   const fetchApplications = useCallback(async () => {
     if (abortController.current) {
       abortController.current.abort();
@@ -33,10 +25,7 @@ export function useApplications() {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/applications`, {
-        headers: adminHeaders,
-        signal: abortController.current.signal
-      });
+      const response = await api.fetchApplicationsAPI(abortController.current.signal);
       setApplications(response.data || []);
     } catch (err) {
       if (!axios.isCancel(err)) {
@@ -49,7 +38,7 @@ export function useApplications() {
     } finally {
       setLoading(false);
     }
-  }, [adminHeaders]);
+  }, []);
 
   useEffect(() => {
     fetchApplications();
@@ -78,9 +67,7 @@ export function useApplications() {
       }
       setUpdating(true);
       try {
-        const response = await axios.put(`${API_BASE}/applications/${applicationId}`, payload, {
-          headers: adminHeaders
-        });
+        const response = await api.updateApplicationStatusAPI(applicationId, payload);
         toast.success('Application updated');
         refreshApplication(response.data);
         return response.data;
@@ -94,17 +81,13 @@ export function useApplications() {
         setUpdating(false);
       }
     },
-    [adminHeaders, refreshApplication]
+    [refreshApplication]
   );
 
   const markAttendance = useCallback(
     async (applicationId, roundId, attended) => {
       try {
-        const response = await axios.put(
-          `${API_BASE}/applications/${applicationId}/attendance`,
-          { roundId, attended },
-          { headers: adminHeaders }
-        );
+        const response = await api.markAttendanceAPI(applicationId, roundId, attended);
         toast.success('Attendance updated');
         refreshApplication(response.data);
         return response.data;
@@ -116,17 +99,13 @@ export function useApplications() {
         throw err;
       }
     },
-    [adminHeaders, refreshApplication]
+    [refreshApplication]
   );
 
   const advanceToRound = useCallback(
     async (applicationId, nextRoundId) => {
       try {
-        const response = await axios.post(
-          `${API_BASE}/applications/${applicationId}/advance`,
-          { nextRoundId },
-          { headers: adminHeaders }
-        );
+        const response = await api.advanceToRoundAPI(applicationId, nextRoundId);
         toast.success('Application advanced to next round');
         refreshApplication(response.data);
         return response.data;
@@ -138,17 +117,13 @@ export function useApplications() {
         throw err;
       }
     },
-    [adminHeaders, refreshApplication]
+    [refreshApplication]
   );
 
   const finalizeApplication = useCallback(
     async (applicationId, payload) => {
       try {
-        const response = await axios.post(
-          `${API_BASE}/applications/${applicationId}/finalize`,
-          payload,
-          { headers: adminHeaders }
-        );
+        const response = await api.finalizeApplicationAPI(applicationId, payload);
         toast.success('Application finalized');
         refreshApplication(response.data);
         return response.data;
@@ -160,7 +135,7 @@ export function useApplications() {
         throw err;
       }
     },
-    [adminHeaders, refreshApplication]
+    [refreshApplication]
   );
 
   const fetchJobRounds = useCallback(
@@ -168,9 +143,7 @@ export function useApplications() {
       if (!jobId) return [];
       setRoundsLoading(true);
       try {
-        const response = await axios.get(`${API_BASE}/jobs`, {
-          headers: adminHeaders
-        });
+        const response = await api.fetchJobsAPI();
         const allJobs = [...(response.data?.private || []), ...(response.data?.public || [])];
         const job = allJobs.find((item) => item._id === jobId);
         
@@ -189,19 +162,13 @@ export function useApplications() {
         setRoundsLoading(false);
       }
     },
-    [adminHeaders]
+    []
   );
    const bulkAdvanceApplications = useCallback(
     async (payload) => {
       const { jobId, fromRoundId, toRoundId, emails, rollNos } = payload;
       try {
-        const url = `${API_BASE}/applications/${jobId}/bulk-advance`;
-        // Send both emails and rollNos if present
-        const body = { fromRoundId, toRoundId };
-        if (emails) body.emails = emails;
-        if (rollNos) body.rollNos = rollNos;
-
-        const response = await axios.post(url, body, { headers: adminHeaders });
+        const response = await api.bulkAdvanceApplicationsAPI(payload);
 
         toast.success('Bulk advance successful', {
           description: `${response.data.successCount} applications were advanced.`
@@ -218,7 +185,7 @@ export function useApplications() {
         throw err;
       }
     },
-    [adminHeaders, fetchApplications]
+    [fetchApplications]
   );
 
   return {

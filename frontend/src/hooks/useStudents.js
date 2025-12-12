@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
 import { toast } from 'sonner';
+import axios from 'axios';
+import api from '../services/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
 
@@ -67,12 +68,7 @@ export function useStudents() {
         throw new Error('No authentication token found. Please log in again.');
       }
       
-      const response = await axios.get(`${API_BASE}/users`, {
-        signal: listAbortController.current.signal,
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.fetchStudentsAPI(listAbortController.current.signal);
       
       // Transform and set data
       const transformedData = response.data.map(transformStudentData);
@@ -124,12 +120,7 @@ export function useStudents() {
         throw new Error('No authentication token found. Please log in again.');
       }
 
-      const response = await axios.get(`${API_BASE}/users/${studentId}`, {
-        signal: detailAbortController.current.signal,
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.fetchStudentDetailsAPI(studentId, detailAbortController.current.signal);
 
       const transformedData = transformStudentData(response.data);
       setStudentDetails(transformedData);
@@ -190,15 +181,7 @@ export function useStudents() {
         throw new Error('No authentication token found. Please log in again.');
       }
 
-      const response = await axios.put(
-        `${API_BASE}/users/${studentId}`, 
-        updates,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const response = await api.updateStudentAPI(studentId, updates);
       
       // Invalidate cache
       studentCache.delete('all-students');

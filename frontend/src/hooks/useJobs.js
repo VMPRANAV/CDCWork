@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getInitialJobForm } from './jobFormUtils';
-import axios from 'axios';
 import { toast } from 'sonner';
+import axios from 'axios';
+import * as api from '../services/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
 
@@ -25,9 +26,7 @@ export function useJobs() {
       if (!roundId) return;
       setAttendeesLoading(true);
       try {
-        const response = await axios.get(`${API_BASE}/attendance/${roundId}/attendees`, {
-          headers: adminHeaders
-        });
+        const response = await api.fetchAttendeesForRoundAPI(roundId);
         setAttendees(response.data || []);
       } catch (err) {
         console.error('Failed to fetch attendees', err);
@@ -38,18 +37,9 @@ export function useJobs() {
         setAttendeesLoading(false);
       }
     },
-    [adminHeaders]
+    []
   );
   const abortController = useRef(null);
-
-  const adminHeaders = useMemo(() => {
-    const token = localStorage.getItem('authToken');
-    return {
-      'Content-Type': 'application/json',
-      Authorization: token ? `Bearer ${token}` : undefined,
-      role: 'admin'
-    };
-  }, []);
 
   const fetchJobs = useCallback(async () => {
     if (abortController.current) {
@@ -59,10 +49,7 @@ export function useJobs() {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/jobs`, {
-        headers: adminHeaders,
-        signal: abortController.current.signal
-      });
+      const response = await api.fetchJobsAPI(abortController.current.signal);
       const mapJobs = (list = []) => list.map((job) => ({
         ...job,
         eligibleCount: typeof job.eligibleCount === 'number'
@@ -87,7 +74,7 @@ export function useJobs() {
     } finally {
       setLoading(false);
     }
-  }, [adminHeaders]);
+  }, []);
 
   useEffect(() => {
     fetchJobs();
@@ -102,9 +89,7 @@ export function useJobs() {
     async (payload) => {
       setSaving(true);
       try {
-        const response = await axios.post(`${API_BASE}/jobs`, payload, {
-          headers: adminHeaders
-        });
+        const response = await api.createJobAPI(payload);
         toast.success('Job drafted', {
           description: `${response.data?.jobTitle || 'Job'} saved as private`
         });
@@ -120,15 +105,13 @@ export function useJobs() {
         setSaving(false);
       }
     },
-    [adminHeaders, fetchJobs]
+    [fetchJobs]
   );
    const deleteJob = useCallback(
     async (jobId) => {
       if (!jobId) return;
       try {
-        await axios.delete(`${API_BASE}/jobs/${jobId}`, {
-          headers: adminHeaders
-        });
+        await api.deleteJobAPI(jobId);
         toast.success('Job deleted successfully');
         await fetchJobs();
       } catch (err) {
@@ -139,16 +122,14 @@ export function useJobs() {
         throw err;
       }
     },
-    [adminHeaders, fetchJobs]
+    [fetchJobs]
   );
 
   const updateJob = useCallback(
     async (jobId, payload) => {
       setSaving(true);
       try {
-        await axios.put(`${API_BASE}/jobs/${jobId}`, payload, {
-          headers: adminHeaders
-        });
+        await api.updateJobAPI(jobId, payload);
         toast.success('Job updated');
         await fetchJobs();
       } catch (err) {
@@ -161,16 +142,14 @@ export function useJobs() {
         setSaving(false);
       }
     },
-    [adminHeaders, fetchJobs]
+    [fetchJobs]
   );
 
   const publishJob = useCallback(
     async (jobId) => {
       setPublishing(true);
       try {
-        const response = await axios.post(`${API_BASE}/jobs/${jobId}/publish`, {}, {
-          headers: adminHeaders
-        });
+        const response = await api.publishJobAPI(jobId);
         toast.success('Job published');
         await fetchJobs();
         return response.data;
@@ -184,7 +163,7 @@ export function useJobs() {
         setPublishing(false);
       }
     },
-    [adminHeaders, fetchJobs]
+    [fetchJobs]
   );
 
   const fetchEligibleStudents = useCallback(
@@ -192,9 +171,7 @@ export function useJobs() {
       if (!jobId) return;
       setEligibleLoading(true);
       try {
-        const response = await axios.get(`${API_BASE}/jobs/${jobId}/eligible-students`, {
-          headers: adminHeaders
-        });
+        const response = await api.fetchEligibleStudentsAPI(jobId);
         setEligibleStudents(response.data || []);
       } catch (err) {
         console.error('Failed to fetch eligible students', err);
@@ -205,17 +182,13 @@ export function useJobs() {
         setEligibleLoading(false);
       }
     },
-    [adminHeaders]
+    []
   );
 
   const updateEligibleStudents = useCallback(
     async (jobId, { add = [], remove = [] }) => {
       try {
-        const response = await axios.put(
-          `${API_BASE}/jobs/${jobId}/eligible-students`,
-          { add, remove },
-          { headers: adminHeaders }
-        );
+        const response = await api.updateEligibleStudentsAPI(jobId, { add, remove });
         toast.success('Eligible students updated');
         setEligibleStudents(response.data || []);
         await fetchJobs();
@@ -228,7 +201,7 @@ export function useJobs() {
         throw err;
       }
     },
-    [adminHeaders, fetchJobs]
+    [fetchJobs]
   );
 
   const addRound = useCallback((round) => {
@@ -255,10 +228,7 @@ export function useJobs() {
   const downloadEligibleStudents = useCallback(
     async (jobId, companyName) => {
       try {
-        const response = await axios.get(`${API_BASE}/jobs/${jobId}/eligible-students/download`, {
-          headers: adminHeaders,
-          responseType: 'blob' // Important for file downloads
-        });
+        const response = await api.downloadEligibleStudentsAPI(jobId);
 
         // Get filename from response headers
         const contentDisposition = response.headers['content-disposition'];
@@ -292,7 +262,7 @@ export function useJobs() {
         throw err;
       }
     },
-    [adminHeaders]
+    []
   );
 
 const handleFileUpload = async (files) => {
