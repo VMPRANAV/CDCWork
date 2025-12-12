@@ -1351,7 +1351,7 @@ export function Jobs() {
                           <Button type="button" variant="destructive" size="sm" onClick={() => removeRoundField(index)}>
                             Remove
                           </Button>
-                          <Button variant="outline" size="icon" onClick={() => handleOpenAttendeesDialog(round)}>
+                          <Button type="button" variant="outline" size="icon" onClick={() => handleOpenAttendeesDialog(roundsEditingJob.rounds[index])}>
                             <Users className="h-4 w-4" />
                           </Button>
                         </div>
