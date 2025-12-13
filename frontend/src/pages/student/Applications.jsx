@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { Scanner as QrScanner } from '@yudiel/react-qr-scanner';
+import QrReader from 'react-qr-scanner';
 import {
   Select,
   SelectContent,
@@ -293,12 +293,12 @@ export function Applications() {
           )}
           {scannerOpen && (
             <div className="rounded-md border border-dashed border-border/60">
-              <QrScanner
-                constraints={{ facingMode: 'environment' }}
-                scanDelay={500}
-                onDecode={(decodedText) => handleScanDecode(applicationId, roundId, decodedText)}
-                onError={handleScanError}
+              <QrReader
+                delay={500}
                 style={{ width: '100%' }}
+                onError={(e) => console.debug(e)}
+                onScan={handleScan}
+                constraints={{ video: { facingMode: 'environment' } }}
               />
             </div>
           )}
@@ -403,8 +403,11 @@ export function Applications() {
     }
   };
 
-  const handleScan = (text) => {
+  const handleScan = (data) => {
+    if (!data) return;
+    const text = data.text;
     if (!text) return;
+
     try {
       const payload = JSON.parse(text);
       if (payload.roundId && payload.roundId !== roundId) {
@@ -420,6 +423,7 @@ export function Applications() {
     } catch (e) {
       setAttendanceCode(text.toUpperCase());
       setFeedback({ type: 'info', message: 'Code captured. Please submit.' });
+      setScannerVisible(false);
     }
   };
 
@@ -501,20 +505,23 @@ export function Applications() {
         </div>
         {scannerVisible && (
           <div className="rounded-md border border-dashed border-border/60">
-            <QrScanner
-              constraints={{ facingMode: 'environment' }}
-              scanDelay={500}
-              onDecode={handleScan}
-              onError={(e) => console.debug(e)}
+            <QrReader
+              delay={500}
               style={{ width: '100%' }}
+              onError={(e) => console.debug(e)}
+              onScan={handleScan}
+              constraints={{ video: { facingMode: 'environment' } }}
             />
           </div>
         )}
         {feedback.message && (
-          <p className={`text-xs ${
-            feedback.type === 'error' ? 'text-destructive' :
-            feedback.type === 'success' ? 'text-emerald-600' :
-            'text-muted-foreground'
+          <p
+          className={`text-xs ${
+            feedback.type === 'error'
+              ? 'text-destructive'
+              : feedback.type === 'success'
+              ? 'text-emerald-600'
+              : 'text-muted-foreground'
           }`}>
             {feedback.message}
           </p>
