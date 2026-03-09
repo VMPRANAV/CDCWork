@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import QrReader from 'react-qr-scanner';
+import QrScanner from 'qr-scanner';
 import {
   Select,
   SelectContent,
@@ -370,165 +370,244 @@ export function Applications() {
   }, [applications, searchTerm, statusFilter, sortOption]);
 
   function AttendanceSection({ application, onAttendanceSubmit }) {
-  const roundId = application.currentRound?._id;
-  const { sessionState, loading, error, loadStatus } = useAttendanceSession(roundId);
-  const [attendanceCode, setAttendanceCode] = useState('');
-  const [scannerVisible, setScannerVisible] = useState(false);
-  const [feedback, setFeedback] = useState({ type: '', message: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+    const roundId = application.currentRound?._id;
+    const { sessionState, loadStatus } = useAttendanceSession(roundId);
+    const [attendanceCode, setAttendanceCode] = useState('');
+    const [scannerVisible, setScannerVisible] = useState(false);
+    const [feedback, setFeedback] = useState({ type: '', message: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [hasCamera, setHasCamera] = useState(false);
+    const [isInitializing, setIsInitializing] = useState(false);
+    const videoRef = useRef(null);
+    const scannerRef = useRef(null);
+    const mountedRef = useRef(true);
 
-  useEffect(() => {
-    if (roundId) {
-      loadStatus(true); // isStudent = true
-    }
-  }, [roundId, loadStatus]);
+    useEffect(() => {
+      mountedRef.current = true;
+      return () => { mountedRef.current = false; };
+    }, []);
 
-  const handleCodeSubmit = async () => {
-    if (!attendanceCode) {
-      setFeedback({ type: 'error', message: 'Please enter a code.' });
-      return;
-    }
-    setIsSubmitting(true);
-    setFeedback({ type: 'info', message: 'Submitting...' });
-    try {
-      await onAttendanceSubmit(application._id, roundId, attendanceCode);
-      setFeedback({ type: 'success', message: 'Attendance submitted successfully!' });
-      setAttendanceCode('');
-      setScannerVisible(false);
-    } catch (err) {
-      setFeedback({ type: 'error', message: err.message || 'Submission failed.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    useEffect(() => {
+      if (roundId) loadStatus(true);
+    }, [roundId, loadStatus]);
 
-  const handleScan = (data) => {
-    if (!data) return;
-    const text = data.text;
-    if (!text) return;
-
-    try {
-      const payload = JSON.parse(text);
-      if (payload.roundId && payload.roundId !== roundId) {
-        setFeedback({ type: 'error', message: 'This QR code is for a different round.' });
+    useEffect(() => {
+      if (!scannerVisible) {
+        if (scannerRef.current) {
+          scannerRef.current.stop();
+          scannerRef.current.destroy();
+          scannerRef.current = null;
+        }
         return;
       }
-      const code = (payload.code || payload.currentCode || '').toString().trim();
-      if (code) {
-        setAttendanceCode(code.toUpperCase());
-        setFeedback({ type: 'info', message: 'Code captured. Please submit.' });
-        setScannerVisible(false);
+
+      let cancelled = false;
+      setIsInitializing(true);
+      setHasCamera(false);
+
+      const init = async () => {
+        const available = await QrScanner.hasCamera().catch(() => false);
+        if (cancelled) return;
+        if (!available) {
+          if (mountedRef.current) {
+            setIsInitializing(false);
+            setFeedback({ type: 'error', message: 'No camera found on this device.' });
+            setScannerVisible(false);
+          }
+          return;
+        }
+        if (mountedRef.current) setHasCamera(true);
+        if (!videoRef.current) return;
+
+        const scanner = new QrScanner(
+          videoRef.current,
+          (result) => {
+            if (!mountedRef.current) return;
+            const text = result.data;
+            try {
+              const url = new URL(text);
+              const scannedRoundId = url.searchParams.get('roundId');
+              const code = url.searchParams.get('code');
+              if (scannedRoundId && scannedRoundId !== roundId) {
+                setFeedback({ type: 'error', message: 'This QR is for a different round.' });
+                return;
+              }
+              if (code) {
+                setAttendanceCode(code.toUpperCase());
+                setFeedback({ type: 'info', message: 'Code captured. Press Submit.' });
+                setScannerVisible(false);
+              }
+            } catch {
+              setAttendanceCode(text.toUpperCase());
+              setFeedback({ type: 'info', message: 'Code captured. Press Submit.' });
+              setScannerVisible(false);
+            }
+          },
+          {
+            onDecodeError: () => {},
+            highlightScanRegion: false,
+            highlightCodeOutline: false,
+            preferredCamera: 'environment',
+            maxScansPerSecond: 2,
+          }
+        );
+
+        scannerRef.current = scanner;
+        await scanner.start().catch(() => {
+          if (mountedRef.current) {
+            setFeedback({ type: 'error', message: 'Camera access denied.' });
+            setScannerVisible(false);
+          }
+        });
+        if (mountedRef.current) setIsInitializing(false);
+      };
+
+      init();
+      return () => {
+        cancelled = true;
+        if (scannerRef.current) {
+          scannerRef.current.stop();
+          scannerRef.current.destroy();
+          scannerRef.current = null;
+        }
+      };
+    }, [scannerVisible, roundId]);
+
+    const handleCodeSubmit = async () => {
+      if (!attendanceCode) {
+        setFeedback({ type: 'error', message: 'Please enter a code.' });
+        return;
       }
-    } catch (e) {
-      setAttendanceCode(text.toUpperCase());
-      setFeedback({ type: 'info', message: 'Code captured. Please submit.' });
-      setScannerVisible(false);
+      setIsSubmitting(true);
+      setFeedback({ type: 'info', message: 'Submitting...' });
+      try {
+        await onAttendanceSubmit(application._id, roundId, attendanceCode);
+        setFeedback({ type: 'success', message: 'Attendance submitted successfully!' });
+        setAttendanceCode('');
+      } catch (err) {
+        setFeedback({ type: 'error', message: err.message || 'Submission failed.' });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    const currentRoundLabel = application.currentRound?.roundName || FALLBACK_TEXT.currentRound;
+    const attendanceMarked = application.roundProgress?.find(
+      (p) => (p.round?._id ?? p.round)?.toString() === roundId
+    )?.attendance;
+
+    if (attendanceMarked) {
+      return (
+        <Card className="bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50">
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="space-y-1">
+                <CardTitle className="text-base">Attendance</CardTitle>
+                <CardDescription>Round: {currentRoundLabel}</CardDescription>
+              </div>
+              <Badge variant="default">Recorded</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-emerald-700 dark:text-emerald-300">
+              Your attendance for this round has already been recorded.
+            </p>
+          </CardContent>
+        </Card>
+      );
     }
-  };
 
-  const currentRoundLabel = application.currentRound?.roundName || FALLBACK_TEXT.currentRound;
-  const attendanceMarked = application.roundProgress?.find(p => (p.round?._id ?? p.round)?.toString() === roundId)?.attendance;
+    if (sessionState.status !== 'active') {
+      return (
+        <Card className="bg-muted/20">
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="space-y-1">
+                <CardTitle className="text-base">Attendance</CardTitle>
+                <CardDescription>Round: {currentRoundLabel}</CardDescription>
+              </div>
+              <Badge variant="secondary">Session not active</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Attendance will be available once the coordinator starts the session.
+            </p>
+          </CardContent>
+        </Card>
+      );
+    }
 
-  if (attendanceMarked) {
     return (
-      <Card className="bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50">
+      <Card className="bg-muted/40">
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="space-y-1">
               <CardTitle className="text-base">Attendance</CardTitle>
               <CardDescription>Round: {currentRoundLabel}</CardDescription>
             </div>
-            <Badge variant="default">Recorded</Badge>
+            <Badge variant="default">Session live</Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-emerald-700 dark:text-emerald-300">
-            Your attendance for this round has already been recorded.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (sessionState.status !== 'active') {
-    return (
-      <Card className="bg-muted/20">
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="space-y-1">
-              <CardTitle className="text-base">Attendance</CardTitle>
-              <CardDescription>Round: {currentRoundLabel}</CardDescription>
-            </div>
-            <Badge variant="secondary">Session not active</Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Attendance will be available once the coordinator starts the session. Check back later.
+            Scan the QR code shown by the coordinator, or enter the code manually.
           </p>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-2">
+            <Input
+              value={attendanceCode}
+              onChange={(e) => setAttendanceCode(e.target.value.toUpperCase())}
+              maxLength={8}
+              placeholder="Enter code"
+              className="md:max-w-xs"
+              disabled={isSubmitting}
+            />
+            <Button type="button" onClick={handleCodeSubmit} disabled={isSubmitting || !attendanceCode}>
+              {isSubmitting ? 'Submitting…' : 'Submit'}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setScannerVisible((v) => !v)}>
+              {scannerVisible ? 'Close Scanner' : 'Scan QR'}
+            </Button>
+          </div>
+
+          {scannerVisible && (
+            <div className="relative overflow-hidden rounded-lg border border-dashed border-border/60 bg-black">
+              <video
+                ref={videoRef}
+                className="w-full h-64 object-cover"
+                playsInline
+                muted
+                autoPlay
+              />
+              {isInitializing && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                  <div className="text-center text-white">
+                    <div className="mx-auto mb-2 h-7 w-7 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <p className="text-xs">Starting camera…</p>
+                  </div>
+                </div>
+              )}
+              {!isInitializing && hasCamera && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div className="h-44 w-44 rounded-lg border-2 border-blue-400" />
+                </div>
+              )}
+            </div>
+          )}
+
+          {feedback.message && (
+            <p className={`text-xs ${
+              feedback.type === 'error' ? 'text-destructive'
+              : feedback.type === 'success' ? 'text-emerald-600 dark:text-emerald-400'
+              : 'text-muted-foreground'
+            }`}>
+              {feedback.message}
+            </p>
+          )}
         </CardContent>
       </Card>
     );
   }
-
-  return (
-    <Card className="bg-muted/40">
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="space-y-1">
-            <CardTitle className="text-base">Attendance</CardTitle>
-            <CardDescription>Round: {currentRoundLabel}</CardDescription>
-          </div>
-          <Badge variant="default">Session live</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Enter the code from the coordinator or scan the QR code.
-        </p>
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-2">
-          <Input
-            value={attendanceCode}
-            onChange={(e) => setAttendanceCode(e.target.value.toUpperCase())}
-            maxLength={8}
-            placeholder="Enter code"
-            className="md:max-w-xs"
-            disabled={isSubmitting}
-          />
-          <Button type="button" onClick={handleCodeSubmit} disabled={isSubmitting}>
-            {isSubmitting ? 'Submitting…' : 'Submit code'}
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => setScannerVisible(v => !v)}>
-            {scannerVisible ? 'Close Scanner' : 'Scan QR'}
-          </Button>
-        </div>
-        {scannerVisible && (
-          <div className="rounded-md border border-dashed border-border/60">
-            <QrReader
-              delay={500}
-              style={{ width: '100%' }}
-              onError={(e) => console.debug(e)}
-              onScan={handleScan}
-              constraints={{ video: { facingMode: 'environment' } }}
-            />
-          </div>
-        )}
-        {feedback.message && (
-          <p
-          className={`text-xs ${
-            feedback.type === 'error'
-              ? 'text-destructive'
-              : feedback.type === 'success'
-              ? 'text-emerald-600'
-              : 'text-muted-foreground'
-          }`}>
-            {feedback.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 const ApplicationCard = ({ application, onAttendanceSubmit }) => {
     const statusRaw = application.currentRound?.roundName
