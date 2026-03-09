@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { toast } from 'sonner';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
-const ADMIN_POLL_INTERVAL_MS = 5000;  // admin needs fresh QR codes
-const STUDENT_POLL_INTERVAL_MS = 15000; // students only need active/inactive status
+const ADMIN_POLL_INTERVAL_MS = 5000;
+const STUDENT_POLL_INTERVAL_MS = 15000;
 
 const defaultSessionState = { status: 'inactive' };
 
@@ -21,6 +20,8 @@ export function useAttendanceSession(roundId) {
     }
   }, []);
 
+  // Headers built inside fetchStatus — NOT as render-level objects,
+  // which would cause new references every render and trigger infinite loops.
   const fetchStatus = useCallback(async (isStudent = false) => {
     if (!roundId) return null;
     const token = localStorage.getItem('authToken');

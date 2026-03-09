@@ -529,11 +529,7 @@ export function Attendance() {
                         size={180}
                         bgColor="#ffffff"
                         fgColor="#000000"
-                        value={JSON.stringify({
-                          jobId: selectedJobId,
-                          roundId: selectedRoundId,
-                          code: sessionState.currentCode,
-                        })}
+                        value={`${window.location.origin}/student/attend?roundId=${selectedRoundId}&code=${sessionState.currentCode}`}
                       />
                     ) : (
                       <div className="flex items-center text-sm text-muted-foreground">
@@ -604,11 +600,7 @@ export function Attendance() {
               size={280}
               bgColor="#ffffff"
               fgColor="#000000"
-              value={JSON.stringify({
-                jobId: selectedJobId,
-                roundId: selectedRoundId,
-                code: sessionState.currentCode,
-              })}
+              value={`${window.location.origin}/student/attend?roundId=${selectedRoundId}&code=${sessionState.currentCode}`}
             />
             <div className="text-center text-sm text-muted-foreground">
               <p className="font-medium tracking-wide text-lg">{sessionState.currentCode || '—'}</p>

@@ -32,6 +32,7 @@ import { Applications } from '@/pages/admin/Applications';
 import { Attendance } from '@/pages/admin/Attendance';
 import { Calendar as AdminCalendar } from '@/pages/admin/Calendar';
 import ProtectedRoute from './components/ProtectedRoute';
+import Attend from '@/pages/student/Attend';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -71,6 +72,11 @@ createRoot(document.getElementById('root')).render(
           </Route>
         </Route>
         
+        {/* Attendance check-in via QR link — protected, student only */}
+        <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+          <Route path="/student/attend" element={<Attend />} />
+        </Route>
+
         {/* 404 Route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
