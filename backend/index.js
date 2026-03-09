@@ -24,7 +24,13 @@ app.use(express.json()); // To parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // To parse URL-encoded bodies
 
 // Make the 'uploads' folder publicly accessible
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Health check route for Uptime Robot
+app.get('/', (req, res) => {
+    res.status(200).send('Backend is up and running!');
+});
 
 main().catch(err => console.error(err));
 
