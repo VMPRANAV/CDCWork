@@ -345,7 +345,6 @@ export function Attendance() {
                           )}
                           onClick={() => {
                             setSelectedJobId(job._id);
-                            setSessionError('');
                           }}
                         >
                           <div className="flex flex-1 items-center gap-2">

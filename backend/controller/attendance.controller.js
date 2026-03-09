@@ -4,6 +4,12 @@ const Application = require('../models/application.model');
 const User = require('../models/user.model');
 
 const ALLOWED_REFRESH_INTERVALS = [30, 45, 60, 90];
+
+// In-memory cache for student status responses (admin always gets live data)
+const studentStatusCache = new Map(); // roundId -> { data, expiresAt }
+const STUDENT_CACHE_TTL_MS = 5000;
+
+const invalidateStatusCache = (roundId) => studentStatusCache.delete(String(roundId));
 const CODE_LENGTH = 6;
 const OFFLINE_CODE_LENGTH = 6;
 const CODE_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -92,6 +98,7 @@ const startAttendanceSession = async (req, res) => {
         const { code, expiresAt } = issueNewCode(round);
         round.markModified('attendanceSession');
         await round.save();
+        invalidateStatusCache(roundId);
 
         return res.status(200).json({
             status: session.status,
@@ -133,6 +140,7 @@ const stopAttendanceSession = async (req, res) => {
 
         round.markModified('attendanceSession');
         await round.save();
+        invalidateStatusCache(roundId);
 
         return res.status(200).json({ message: 'Attendance session ended.' });
     } catch (error) {
@@ -143,6 +151,16 @@ const stopAttendanceSession = async (req, res) => {
 const getAttendanceSessionStatus = async (req, res) => {
     try {
         const { roundId } = req.params;
+        const isAdmin = req.user?.role === 'admin';
+
+        // Serve cached response for students to reduce DB load
+        if (!isAdmin) {
+            const cached = studentStatusCache.get(roundId);
+            if (cached && cached.expiresAt > Date.now()) {
+                return res.status(200).json(cached.data);
+            }
+        }
+
         const round = await Round.findById(roundId);
         if (!round) {
             return res.status(404).json({ message: 'Round not found.' });
@@ -150,6 +168,10 @@ const getAttendanceSessionStatus = async (req, res) => {
 
         const session = ensureSessionObject(round);
         if (session.status !== 'active') {
+            if (!isAdmin) {
+                const inactivePayload = { status: 'inactive' };
+                studentStatusCache.set(roundId, { data: inactivePayload, expiresAt: Date.now() + STUDENT_CACHE_TTL_MS });
+            }
             return res.status(200).json({ status: 'inactive' });
         }
 
@@ -160,6 +182,7 @@ const getAttendanceSessionStatus = async (req, res) => {
             session.codeExpiresAt = expiresAt;
             round.markModified('attendanceSession');
             await round.save();
+            invalidateStatusCache(roundId); // new code — invalidate so students re-fetch
         }
 
         const responsePayload = {
@@ -173,8 +196,10 @@ const getAttendanceSessionStatus = async (req, res) => {
             responsePayload.expiresAt = session.codeExpiresAt;
         }
 
-        if (req.user?.role === 'admin') {
+        if (isAdmin) {
             responsePayload.currentCode = session.currentCode;
+        } else {
+            studentStatusCache.set(roundId, { data: responsePayload, expiresAt: Date.now() + STUDENT_CACHE_TTL_MS });
         }
 
         return res.status(200).json(responsePayload);
@@ -266,6 +291,7 @@ const submitAttendanceCode = async (req, res) => {
         round.markModified('attendanceSession');
         await round.save();
         await application.save();
+        invalidateStatusCache(roundId);
 
         await User.findByIdAndUpdate(application.student, {
             $pull: {

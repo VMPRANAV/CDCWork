@@ -92,10 +92,7 @@ async function seedStudents() {
 
 async function main() {
   // connect
-  await mongoose.connect(MONGO, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
+  await mongoose.connect(MONGO);
 
   const args = process.argv.slice(2);
   if (args.includes('--seed-students')) {

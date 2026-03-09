@@ -1,10 +1,7 @@
-require('dotenv').config();
+const { MONGO_URL } = require('../.config/config');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user.model');
-
-// Configuration
-const MONGO_URL = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/CDCWork';
 
 // Import test students data
 const { testStudents } = require('./testStudentsData');
@@ -15,10 +12,7 @@ const { testStudents } = require('./testStudentsData');
 async function seedStudents() {
   try {
     console.log('🚀 Connecting to MongoDB...');
-    await mongoose.connect(MONGO_URL, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(MONGO_URL);
     console.log('✅ Connected to MongoDB');
 
     // Clear existing students

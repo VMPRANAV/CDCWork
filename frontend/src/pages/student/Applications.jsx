@@ -118,7 +118,6 @@ export function Applications() {
 
       toast.success('Attendance recorded successfully');
       fetchApplications();
-      fetchApplications();
     } catch (submitError) {
       const message = submitError.response?.data?.message || 'Failed to record attendance.';
       toast.error('Submission failed', { description: message });
@@ -428,7 +427,7 @@ export function Applications() {
   };
 
   const currentRoundLabel = application.currentRound?.roundName || FALLBACK_TEXT.currentRound;
-  const attendanceMarked = application.roundProgress?.find(p => p.round === roundId)?.attendance;
+  const attendanceMarked = application.roundProgress?.find(p => (p.round?._id ?? p.round)?.toString() === roundId)?.attendance;
 
   if (attendanceMarked) {
     return (

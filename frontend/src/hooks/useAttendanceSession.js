@@ -3,7 +3,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
-const POLL_INTERVAL_MS = 5000;
+const ADMIN_POLL_INTERVAL_MS = 5000;  // admin needs fresh QR codes
+const STUDENT_POLL_INTERVAL_MS = 15000; // students only need active/inactive status
 
 const defaultSessionState = { status: 'inactive' };
 
@@ -12,15 +13,6 @@ export function useAttendanceSession(roundId) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const pollRef = useRef(null);
-
-  const adminHeaders = {
-    Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-    role: 'admin',
-  };
-
-  const studentHeaders = {
-    Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-  };
 
   const clearPolling = useCallback(() => {
     if (pollRef.current) {
@@ -31,13 +23,17 @@ export function useAttendanceSession(roundId) {
 
   const fetchStatus = useCallback(async (isStudent = false) => {
     if (!roundId) return null;
-    const headers = isStudent ? studentHeaders : adminHeaders;
+    const token = localStorage.getItem('authToken');
+    const headers = isStudent
+      ? { Authorization: `Bearer ${token}` }
+      : { Authorization: `Bearer ${token}`, role: 'admin' };
     const response = await axios.get(`${API_BASE}/attendance/${roundId}/attendance-session/status`, { headers });
     return response.data;
-  }, [roundId, adminHeaders, studentHeaders]);
+  }, [roundId]);
 
   const startPolling = useCallback((isStudent = false) => {
     clearPolling();
+    const interval = isStudent ? STUDENT_POLL_INTERVAL_MS : ADMIN_POLL_INTERVAL_MS;
     pollRef.current = setInterval(() => {
       fetchStatus(isStudent)
         .then(status => {
@@ -52,7 +48,7 @@ export function useAttendanceSession(roundId) {
           setError('Failed to refresh session status.');
           clearPolling();
         });
-    }, POLL_INTERVAL_MS);
+    }, interval);
   }, [clearPolling, fetchStatus]);
 
   const loadStatus = useCallback(async (isStudent = false) => {

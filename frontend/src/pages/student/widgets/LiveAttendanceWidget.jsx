@@ -41,7 +41,7 @@ export function LiveAttendanceWidget() {
           const roundId = application.currentRound._id;
           try {
             const { data: sessionStatus } = await axios.get(
-              `${API_BASE}/rounds/${roundId}/attendance-session/status`,
+              `${API_BASE}/attendance/${roundId}/attendance-session/status`,
               { headers }
             );
             return { ...application, attendanceSession: sessionStatus };
