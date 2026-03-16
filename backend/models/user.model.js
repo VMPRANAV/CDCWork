@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-    firstName: { type: String, required: true, trim: true },
-    middleName: { type: String, trim: true },
-    lastName: { type: String, required: true, trim: true },
+    firstName: { type: String, required: true, trim: true, match: [/^[a-zA-Z]+$/, 'First name can only contain alphabets.'] },
+    middleName: { type: String, trim: true, match: [/^[a-zA-Z]*$/, 'Middle name can only contain alphabets.'] },
+    lastName: { type: String, required: true, trim: true, match: [/^[a-zA-Z]+$/, 'Last name can only contain alphabets.'] },
     fullName: { type: String, trim: true },
     collegeEmail: {
         type: String,
@@ -34,8 +34,9 @@ const userSchema = new mongoose.Schema({
     personalEmail: { type: String, unique: true, sparse: true, lowercase: true },
     dept: {
         type: String,
-        enum: ['AIDS', 'BME', 'CHEM', 'CIVIL', 'CSE', 'AIML', 'Cyber Security', 'CSBS', 'ECE', 'EEE', 'IT', 'Mechanical', 'Mechatronics']
+        enum: ['AI&DS', 'BME', 'CHEM', 'CIVIL', 'CSE', 'CSE(AIML)', 'Cyber Security', 'CSBS', 'ECE', 'EEE', 'IT', 'Mechanical', 'Mechatronics']
     },
+    cutoff12: { type: Number },
     quota: { type: String, enum: ['Management Quota(MQ)', 'Government Quota(GQ)'] },
     passoutYear: { type: Number },
     historyOfArrears: { type: Number, default: 0 },
@@ -69,6 +70,8 @@ const userSchema = new mongoose.Schema({
         },
     },
     address: {
+        street:{type:String, trim:true},
+        pincode:{type:Number},
         city: { type: String, trim: true },
         state: { type: String, trim: true }
     },

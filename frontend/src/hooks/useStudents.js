@@ -23,7 +23,13 @@ const transformStudentData = (data) => ({
   skills: Array.isArray(data.skills) ? data.skills : [],
   currentArrears: data.currentArrears || 0,
   historyOfArrears: data.historyOfArrears || 0,
-  // Add any other transformations here
+  cutoff12: data.cutoff12 ? parseFloat(data.cutoff12).toFixed(2) : 'N/A',
+  address: {
+    street: data.address?.street || '',
+    city: data.address?.city || '',
+    state: data.address?.state || '',
+    pincode: data.address?.pincode || '',
+  },
 });
 
 /**
