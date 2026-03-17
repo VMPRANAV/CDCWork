@@ -49,6 +49,8 @@ function cleanForUpdate(input) {
     'education.twelth.passingYear',
     'education.diploma.percentage',
     'education.diploma.passingYear',
+    'cutoff12',
+    'address.pincode',
   ]);
 
   const toNumber = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
@@ -95,12 +97,12 @@ const languageLevels = {
 };
 
 const departmentOptions = [
-  'AIDS',
+  'AI&DS',
   'BME',
   'CHEM',
   'CIVIL',
   'CSE',
-  'AIML',
+  'CSE(AIML)',
   'Cyber Security',
   'CSBS',
   'ECE',
@@ -162,7 +164,19 @@ export function StudentProfile() {
           lastName,
           dob: dob ? new Date(dob).toISOString().split('T')[0] : '',
           gender,
+      
+           mobileNumber: profile.mobileNumber || '',
+          personalEmail: profile.personalEmail || '',
+          residence: profile.residence || '',
+          address: {
+            street: profile.address?.street || '',
+            pincode: profile.address?.pincode || '',
+            city: profile.address?.city || '',
+            state: profile.address?.state || '',
+          },
           nationality,
+          panNumber: profile.panNumber || '',
+          aadharNumber: profile.aadharNumber || '',
         };
         break;
       }
@@ -176,6 +190,7 @@ export function StudentProfile() {
           ugCgpa: profile.ugCgpa ?? '',
           historyOfArrears: profile.historyOfArrears ?? 0,
           currentArrears: profile.currentArrears ?? 0,
+          cutoff12: profile.cutoff12 ?? 0,
           education: {
             tenth: {
               percentage: profile.education?.tenth?.percentage || '',
@@ -219,20 +234,8 @@ export function StudentProfile() {
         };
         break;
       }
-      case 'contact': {
-        sectionDraft = {
-          mobileNumber: profile.mobileNumber || '',
-          personalEmail: profile.personalEmail || '',
-          residence: profile.residence || '',
-          address: {
-            city: profile.address?.city || '',
-            state: profile.address?.state || '',
-          },
-          panNumber: profile.panNumber || '',
-          aadharNumber: profile.aadharNumber || '',
-        };
-        break;
-      }
+      
+      
       default:
         break;
     }
@@ -299,6 +302,7 @@ export function StudentProfile() {
             ...draft.education,
           },
         };
+        payload.cutoff12 = draft.cutoff12;
         break;
       case 'professional':
         payload = {
@@ -458,7 +462,6 @@ export function StudentProfile() {
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="academic">Academic</TabsTrigger>
           <TabsTrigger value="professional">Professional</TabsTrigger>
-          <TabsTrigger value="contact">Contact & Other</TabsTrigger>
         </TabsList>
 
         <TabsContent value="personal">
@@ -487,7 +490,7 @@ export function StudentProfile() {
               {activeEdit === 'personal' && personalDraft ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
                     <Input
                       id="firstName"
                       value={personalDraft.firstName}
@@ -503,7 +506,7 @@ export function StudentProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName">Last Name <span className="text-red-500">*</span></Label>
                     <Input
                       id="lastName"
                       value={personalDraft.lastName}
@@ -511,7 +514,7 @@ export function StudentProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth</Label>
+                    <Label htmlFor="dob">Date of Birth <span className="text-red-500">*</span></Label>
                     <Input
                       id="dob"
                       type="date"
@@ -520,7 +523,7 @@ export function StudentProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
+                    <Label htmlFor="gender">Gender <span className="text-red-500">*</span></Label>
                     <Select
                       value={personalDraft.gender}
                       onValueChange={(value) => updateDraft('personal', 'gender', value)}
@@ -536,13 +539,94 @@ export function StudentProfile() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="nationality">Nationality</Label>
+                    <Label htmlFor="nationality">Nationality <span className="text-red-500">*</span></Label>
                     <Input
                       id="nationality"
                       value={personalDraft.nationality}
                       onChange={(event) => updateDraft('personal', 'nationality', event.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                  <Label htmlFor="mobileNumber">Mobile Number <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="mobileNumber"
+                    value={personalDraft.mobileNumber ?? ''}
+                    onChange={(event) => updateDraft('personal', 'mobileNumber', event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="personalEmail">Personal Email <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="personalEmail"
+                    type="email"
+                    value={personalDraft.personalEmail ?? ''}
+                    onChange={(event) => updateDraft('personal', 'personalEmail', event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="residence">Residence <span className="text-red-500">*</span></Label>
+                  <Select
+                    value={personalDraft.residence ?? ''}
+                    onValueChange={(value) => updateDraft('personal', 'residence', value)}
+                  >
+                    <SelectTrigger id="residence">
+                      <SelectValue placeholder="Select residence" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Hostel">Hostel</SelectItem>
+                      <SelectItem value="Day Scholar">Day Scholar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="panNumber">PAN Number</Label>
+                  <Input
+                    id="panNumber"
+                    value={personalDraft.panNumber ?? ''}
+                    onChange={(event) => updateDraft('personal', 'panNumber', event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="aadharNumber">Aadhar Number <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="aadharNumber"
+                    value={personalDraft.aadharNumber ?? ''}
+                    onChange={(event) => updateDraft('personal', 'aadharNumber', event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address_street">Location (Street) <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="address_street"
+                    value={personalDraft.address?.street ?? ''}
+                    onChange={(event) => updateDraft('personal', 'address.street', event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address_pincode">Pincode <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="address_pincode"
+                    value={personalDraft.address?.pincode ?? ''}
+                    onChange={(event) => updateDraft('personal', 'address.pincode', event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address_city">City <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="address_city"
+                    value={personalDraft.address?.city ?? ''}
+                    onChange={(event) => updateDraft('personal', 'address.city', event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address_state">State <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="address_state"
+                    value={personalDraft.address?.state ?? ''}
+                    onChange={(event) => updateDraft('personal', 'address.state', event.target.value)}
+                  />
+                </div>
+                
                 </div>
               ) : (
                 <div className="grid gap-6 md:grid-cols-2">
@@ -550,6 +634,12 @@ export function StudentProfile() {
                   {renderViewValue('Date of birth', profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A')}
                   {renderViewValue('Gender', profile.gender || 'N/A')}
                   {renderViewValue('Nationality', profile.nationality || 'N/A')}
+                     {renderViewValue('Mobile number', profile.mobileNumber || 'N/A')}
+                {renderViewValue('Personal email', profile.personalEmail || 'N/A')}
+                {renderViewValue('Residence', profile.residence || 'N/A')}
+                {renderViewValue('Location', `${profile.address?.street || ''}, ${profile.address?.city || ''}, ${profile.address?.state || ''} - ${profile.address?.pincode || ''}`)}
+                {renderViewValue('PAN number', profile.panNumber || 'N/A')}
+                {renderViewValue('Aadhar number', profile.aadharNumber || 'N/A')}
                 </div>
               )}
             </CardContent>
@@ -583,7 +673,7 @@ export function StudentProfile() {
               <div className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="universityRegNumber">University Reg Number</Label>
+                    <Label htmlFor="universityRegNumber">University Reg Number <span className="text-red-500">*</span></Label>
                     <Input
                       id="universityRegNumber"
                       value={academicDraft.universityRegNumber}
@@ -591,7 +681,7 @@ export function StudentProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="rollNo">Roll Number</Label>
+                    <Label htmlFor="rollNo">Roll Number <span className="text-red-500">*</span></Label>
                     <Input
                       id="rollNo"
                       value={academicDraft.rollNo}
@@ -599,7 +689,7 @@ export function StudentProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="dept">Department</Label>
+                    <Label htmlFor="dept">Department <span className="text-red-500">*</span></Label>
                     <Select
                       value={academicDraft.dept}
                       onValueChange={(value) => updateDraft('academic', 'dept', value)}
@@ -617,7 +707,7 @@ export function StudentProfile() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="quota">Quota</Label>
+                    <Label htmlFor="quota">Quota <span className="text-red-500">*</span></Label>
                     <Select
                       value={academicDraft.quota}
                       onValueChange={(value) => updateDraft('academic', 'quota', value)}
@@ -632,7 +722,7 @@ export function StudentProfile() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="passoutYear">Passout Year</Label>
+                    <Label htmlFor="passoutYear">Passout Year <span className="text-red-500">*</span></Label>
                     <Input
                       id="passoutYear"
                       type="number"
@@ -641,7 +731,7 @@ export function StudentProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="ugCgpa">UG CGPA</Label>
+                    <Label htmlFor="ugCgpa">UG CGPA <span className="text-red-500">*</span></Label>
                     <Input
                       id="ugCgpa"
                       type="number"
@@ -668,13 +758,23 @@ export function StudentProfile() {
                       onChange={(event) => updateDraft('academic', 'currentArrears', event.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cutoff12">12th Cutoff</Label>
+                    <Input
+                      id="cutoff12"
+                      type="number"
+                      step="0.01"
+                      value={academicDraft.cutoff12}
+                      onChange={(event) => updateDraft('academic', 'cutoff12', event.target.value)}
+                    />
+                  </div>
                 </div>
 
                 <Separator />
 
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-3">
-                    <p className="text-sm font-semibold">10th Grade</p>
+                    <p className="text-sm font-semibold">10th Grade <span className="text-red-500">*</span></p>
                     <Input
                       placeholder="Percentage"
                       value={academicDraft.education.tenth.percentage}
@@ -701,7 +801,6 @@ export function StudentProfile() {
                       onChange={(event) => updateDraft('academic', 'education.tenth.passingYear', event.target.value)}
                     />
                   </div>
-
                   <div className="space-y-3">
                     <p className="text-sm font-semibold">12th Grade</p>
                     <Input
@@ -730,7 +829,6 @@ export function StudentProfile() {
                       onChange={(event) => updateDraft('academic', 'education.twelth.passingYear', event.target.value)}
                     />
                   </div>
-
                   <div className="space-y-3">
                     <p className="text-sm font-semibold">Diploma</p>
                     <Input
@@ -756,6 +854,7 @@ export function StudentProfile() {
                 {renderViewValue('UG CGPA', profile.ugCgpa || 'N/A')}
                 {renderViewValue('History of arrears', profile.historyOfArrears ?? 'N/A')}
                 {renderViewValue('Current arrears', profile.currentArrears ?? 'N/A')}
+                {renderViewValue('12th Cutoff', profile.cutoff12 || 'N/A')}
                 {renderViewValue(
                   '10th grade',
                   profile.education?.tenth?.percentage
@@ -811,7 +910,7 @@ export function StudentProfile() {
                     {['github', 'leetcode', 'codeforces', 'hackerrank', 'geeksforgeeks'].map((profileKey) => (
                       <div key={profileKey} className="space-y-2">
                         <Label className="capitalize" htmlFor={profileKey}>
-                          {profileKey}
+                          {profileKey} {profileKey === 'github' || profileKey === 'leetcode' || profileKey === 'hackerrank' ? <span className="text-red-500">*</span> : ''}
                         </Label>
                         <Input
                           id={profileKey}
@@ -868,7 +967,7 @@ export function StudentProfile() {
                   {/* Resume & Photo upload */}
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="resumeUpload">Upload Resume (PDF)</Label>
+                      <Label htmlFor="resumeUpload">Upload Resume (PDF) <span className="text-red-500">*</span></Label>
                       <Input
                         id="resumeUpload"
                         type="file"
@@ -887,7 +986,7 @@ export function StudentProfile() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="photoUpload">Upload Photo</Label>
+                      <Label htmlFor="photoUpload">Upload Photo <span className="text-red-500">*</span></Label>
                       <Input
                         id="photoUpload"
                         type="file"
@@ -982,109 +1081,6 @@ export function StudentProfile() {
           </Card>
         </TabsContent>
 
-      <TabsContent value="contact">
-        <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-start justify-between">
-            <div>
-              <CardTitle className="text-lg">Contact & Other Details</CardTitle>
-              <CardDescription>Keep your contact information up to date.</CardDescription>
-            </div>
-            {activeEdit === 'contact' ? (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => cancelEdit('contact')}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={() => saveSection('contact')}>
-                  Save
-                </Button>
-              </div>
-            ) : (
-              <Button size="sm" onClick={() => startEdit('contact')}>
-                Edit
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {activeEdit === 'contact' && contactDraft ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="mobileNumber">Mobile Number</Label>
-                  <Input
-                    id="mobileNumber"
-                    value={contactDraft.mobileNumber ?? ''}
-                    onChange={(event) => updateDraft('contact', 'mobileNumber', event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="personalEmail">Personal Email</Label>
-                  <Input
-                    id="personalEmail"
-                    type="email"
-                    value={contactDraft.personalEmail ?? ''}
-                    onChange={(event) => updateDraft('contact', 'personalEmail', event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="residence">Residence</Label>
-                  <Select
-                    value={contactDraft.residence ?? ''}
-                    onValueChange={(value) => updateDraft('contact', 'residence', value)}
-                  >
-                    <SelectTrigger id="residence">
-                      <SelectValue placeholder="Select residence" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Hostel">Hostel</SelectItem>
-                      <SelectItem value="Day Scholar">Day Scholar</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="panNumber">PAN Number</Label>
-                  <Input
-                    id="panNumber"
-                    value={contactDraft.panNumber ?? ''}
-                    onChange={(event) => updateDraft('contact', 'panNumber', event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="aadharNumber">Aadhar Number</Label>
-                  <Input
-                    id="aadharNumber"
-                    value={contactDraft.aadharNumber ?? ''}
-                    onChange={(event) => updateDraft('contact', 'aadharNumber', event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address_city">City</Label>
-                  <Input
-                    id="address_city"
-                    value={contactDraft.address?.city ?? ''}
-                    onChange={(event) => updateDraft('contact', 'address.city', event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address_state">States</Label>
-                  <Input
-                    id="address_state"
-                    value={contactDraft.address?.state ?? ''}
-                    onChange={(event) => updateDraft('contact', 'address.state', event.target.value)}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2">
-                {renderViewValue('Mobile number', profile.mobileNumber || 'N/A')}
-                {renderViewValue('Personal email', profile.personalEmail || 'N/A')}
-                {renderViewValue('Residence', profile.residence || 'N/A')}
-                {renderViewValue('Location', `${profile.address?.city || 'N/A'}, ${profile.address?.state || 'N/A'}`)}
-                {renderViewValue('PAN number', profile.panNumber || 'N/A')}
-                {renderViewValue('Aadhar number', profile.aadharNumber || 'N/A')}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </TabsContent>
     </Tabs>
   </div>
 );
