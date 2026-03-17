@@ -21,33 +21,35 @@ const userSchema = new mongoose.Schema({
         type: String,
         unique: true,
        sparse: true,
-        match: [/^\d{16}$/, 'University Reg Number must be exactly 16 digits.']
+        match: [/^\d{16}$/, 'University Reg Number must be exactly 16 digits.'],
+        required: true
     },
     rollNo: { type: String,unique: true,
-        sparse: true, trim: true },
-    dob: { type: Date },
-    gender: { type: String, enum: ['Male', 'Female', 'Other'] },
-    nationality: { type: String, trim: true },
+        sparse: true, trim: true, required: true },
+    dob: { type: Date, required: true },
+    gender: { type: String, enum: ['Male', 'Female', 'Other'], required: true },
+    nationality: { type: String, trim: true, required: true },
     panNumber: { type: String, trim: true, uppercase: true },
-    aadharNumber: { type: String, trim: true },
-    mobileNumber: { type: String },
-    personalEmail: { type: String, unique: true, sparse: true, lowercase: true },
+    aadharNumber: { type: String, trim: true, required: true },
+    mobileNumber: { type: String, required: true },
+    personalEmail: { type: String, unique: true, sparse: true, lowercase: true, required: true },
     dept: {
         type: String,
-        enum: ['AI&DS', 'BME', 'CHEM', 'CIVIL', 'CSE', 'CSE(AIML)', 'Cyber Security', 'CSBS', 'ECE', 'EEE', 'IT', 'Mechanical', 'Mechatronics']
+        enum: ['AI&DS', 'BME', 'CHEM', 'CIVIL', 'CSE', 'CSE(AIML)', 'Cyber Security', 'CSBS', 'ECE', 'EEE', 'IT', 'Mechanical', 'Mechatronics'],
+        required: true
     },
     cutoff12: { type: Number },
-    quota: { type: String, enum: ['Management Quota(MQ)', 'Government Quota(GQ)'] },
-    passoutYear: { type: Number },
+    quota: { type: String, enum: ['Management Quota(MQ)', 'Government Quota(GQ)'], required: true },
+    passoutYear: { type: Number, required: true },
     historyOfArrears: { type: Number, default: 0 },
     currentArrears: { type: Number, default: 0 },
-    ugCgpa: { type: Number },
-    residence: { type: String, enum: ['Hostel', 'Day Scholar'] },
+    ugCgpa: { type: Number, required: true },
+    residence: { type: String, enum: ['Hostel', 'Day Scholar'], required: true },
     education: {
         tenth: {
-            percentage: { type: Number },
-            board: { type: String, enum: ['State', 'CBSE', 'ICSC', 'NEB', 'others'] },
-            passingYear: { type: Number }
+            percentage: { type: Number, required: true },
+            board: { type: String, enum: ['State', 'CBSE', 'ICSC', 'NEB', 'others'], required: true },
+            passingYear: { type: Number, required: true }
         },
         twelth: {
             percentage: { type: Number },
@@ -70,19 +72,19 @@ const userSchema = new mongoose.Schema({
         },
     },
     address: {
-        street:{type:String, trim:true},
-        pincode:{type:Number},
-        city: { type: String, trim: true },
-        state: { type: String, trim: true }
+        street:{type:String, trim:true, required: true},
+        pincode:{type:Number, required: true},
+        city: { type: String, trim: true, required: true },
+        state: { type: String, trim: true, required: true }
     },
-    photoUrl: { type: String },
-    resumeUrl: { type: String },
+    photoUrl: { type: String, required: true },
+    resumeUrl: { type: String, required: true },
     codingProfiles: {
-        leetcode: { type: String, trim: true },
+        leetcode: { type: String, trim: true, required: true },
         codeforces: { type: String, trim: true },
-        hackerrank: { type: String, trim: true },
+        hackerrank: { type: String, trim: true, required: true },
         geeksforgeeks: { type: String, trim: true },
-        github: { type: String, trim: true }
+        github: { type: String, trim: true, required: true }
     },
     isPlaced: { type: Boolean, default: false },
     company: { type: String, trim: true },
@@ -114,6 +116,21 @@ userSchema.pre('save', async function() {
     if (!this.isModified('password')) return;
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+});
+
+userSchema.pre('save', function(next) {
+    const twelthProvided = this.education?.twelth && this.education.twelth.percentage && this.education.twelth.board && this.education.twelth.passingYear;
+    const diplomaProvided = this.education?.diploma && this.education.diploma.percentage && this.education.diploma.passingYear;
+
+    if (!twelthProvided && !diplomaProvided) {
+        return next(new Error('Please provide either 12th grade or diploma details.'));
+    }
+
+    if (twelthProvided && diplomaProvided) {
+        return next(new Error('You can only provide either 12th grade or diploma details, not both.'));
+    }
+
+    next();
 });
 
 userSchema.methods.comparePassword = async function(candidatePassword) {
