@@ -13,7 +13,7 @@ const applicationRoutes = require('./routes/application.routes');
 const postRoutes = require('./routes/post.routes');
 const jobRoutes = require('./routes/job.routes');
 const departmentRoutes = require('./routes/department.route.js');
-const attendanceRoutes = require('./routes/attendance.routes');
+const { router: attendanceRoutes } = require('./routes/attendance.routes');
 const calendarRoutes = require('./routes/calendar.routes');
 
 const app = express();

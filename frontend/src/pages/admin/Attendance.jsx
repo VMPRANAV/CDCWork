@@ -29,11 +29,11 @@ import {
 } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertCircle,
+  Check,
   Loader2,
   QrCode,
   RefreshCw,
@@ -44,8 +44,6 @@ import { cn } from '@/lib/utils';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
 const POLL_INTERVAL_MS = 5000;
 const REFRESH_INTERVAL_OPTIONS = [30, 45, 60, 90];
-
-const defaultSessionState = { status: 'inactive' };
 
 export function Attendance() {
   const [jobs, setJobs] = useState([]);
@@ -63,6 +61,8 @@ export function Attendance() {
   const [offlineCodeValue, setOfflineCodeValue] = useState(null);
   const [countdown, setCountdown] = useState('');
   const [showQrDialog, setShowQrDialog] = useState(false);
+  const [attendees, setAttendees] = useState([]);
+  const [attendeesLoading, setAttendeesLoading] = useState(false);
 
     const qrCodeContainerRef = useRef(null);
 
@@ -179,13 +179,29 @@ export function Attendance() {
     });
   }, [selectedJob]);
 
-  const { sessionState, loading: sessionLoading, error: sessionError, loadStatus } = useAttendanceSession(selectedRoundId);
+  const { sessionState, setSessionState, loading: sessionLoading, error: sessionError, loadStatus } = useAttendanceSession(selectedRoundId);
 
   useEffect(() => {
     if (selectedRoundId) {
       loadStatus();
+      fetchAttendees();
     }
   }, [selectedRoundId, loadStatus]);
+
+  const fetchAttendees = useCallback(async () => {
+    if (!selectedRoundId) return;
+    setAttendeesLoading(true);
+    try {
+      const { data } = await axios.get(`${API_BASE}/attendance/${selectedRoundId}/attendees`, {
+        headers: adminHeaders,
+      });
+      setAttendees(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to fetch attendees:', err);
+    } finally {
+      setAttendeesLoading(false);
+    }
+  }, [selectedRoundId, adminHeaders]);
 
   useEffect(() => {
     if (sessionState.status !== 'active') {
@@ -237,6 +253,80 @@ export function Attendance() {
     }
   }, [selectedRoundId, actionLoading, adminHeaders, loadStatus]);
 
+  // SSE for real-time updates; heartbeat timeout or onerror falls back to polling
+  useEffect(() => {
+    if (!selectedRoundId || sessionState.status !== 'active') return;
+
+    let pollInterval = null;
+    let heartbeatTimeout = null;
+    const HEARTBEAT_TIMEOUT_MS = 25000;
+
+    const startPollingFallback = () => {
+      if (pollInterval) return;
+      console.warn('SSE heartbeat lost — falling back to polling');
+      pollInterval = setInterval(() => {
+        fetchAttendees();
+        loadStatus();
+      }, POLL_INTERVAL_MS);
+    };
+
+    const resetHeartbeatTimer = () => {
+      clearTimeout(heartbeatTimeout);
+      heartbeatTimeout = setTimeout(startPollingFallback, HEARTBEAT_TIMEOUT_MS);
+    };
+
+    const token = localStorage.getItem('authToken');
+    const eventSource = new EventSource(
+      `${API_BASE}/attendance/${selectedRoundId}/attendance-session/stream?token=${token}`
+    );
+
+    eventSource.addEventListener('connected', () => resetHeartbeatTimer());
+
+    eventSource.addEventListener('heartbeat', () => resetHeartbeatTimer());
+
+    eventSource.addEventListener('codeRefresh', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setSessionState((prev) => ({
+          ...prev,
+          currentCode: data.currentCode,
+          expiresAt: data.expiresAt,
+        }));
+      } catch (err) {
+        console.error('codeRefresh parse error:', err);
+      }
+    });
+
+    eventSource.addEventListener('attendance', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setAttendees((prev) => {
+          const exists = prev.some(
+            (a) => a._id === data.studentId || a.collegeEmail === data.collegeEmail
+          );
+          if (exists) return prev;
+          toast.success(`${data.studentName} marked attendance`);
+          return [...prev, { _id: data.studentId, fullName: data.studentName, collegeEmail: data.collegeEmail }];
+        });
+      } catch (err) {
+        console.error('SSE parse error:', err);
+      }
+    });
+
+    eventSource.onerror = () => {
+      console.warn('SSE connection error — falling back to polling');
+      eventSource.close();
+      clearTimeout(heartbeatTimeout);
+      startPollingFallback();
+    };
+
+    return () => {
+      eventSource.close();
+      clearTimeout(heartbeatTimeout);
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [selectedRoundId, sessionState.status, fetchAttendees, loadStatus, setSessionState]);
+
   useEffect(() => {
     if (sessionState.status === 'active' && sessionState.expiresAt) {
       const updateCountdown = () => {
@@ -274,344 +364,369 @@ export function Attendance() {
   const noRounds = selectedJob && (!selectedJob.rounds || selectedJob.rounds.length === 0);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Attendance Sessions</h1>
-        <p className="text-muted-foreground">
-          Manage QR based attendance for each job round. Start a session to generate a code that students can scan to mark attendance.
-        </p>
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Attendance Sessions</h1>
+          <p className="text-sm text-muted-foreground">QR-based attendance management for placement rounds</p>
+        </div>
+        {sessionState.status === 'active' && (
+          <Badge className="gap-1.5 bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-600">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-white" /> Live
+          </Badge>
+        )}
       </div>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-[320px,minmax(0,1fr)]">
-        <Card className="flex h-full border border-border/60 lg:max-h-[72vh] lg:flex-col">
-          <CardHeader>
-            <CardTitle>Job postings</CardTitle>
-            <CardDescription>Select a job to view its rounds and manage attendance.</CardDescription>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
+
+        {/* ── Job sidebar ───────────────────────────────────────────── */}
+        <Card className="flex flex-col lg:col-span-1 lg:max-h-[calc(100vh-10rem)]">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Jobs</CardTitle>
+            <CardDescription className="text-xs">Select a job to manage attendance</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 space-y-4 overflow-hidden">
+          <CardContent className="flex flex-1 flex-col gap-2 overflow-hidden pb-2">
+            <Input
+              value={jobQuery}
+              onChange={(e) => setJobQuery(e.target.value)}
+              placeholder="Search..."
+              className="h-8 text-sm"
+            />
+            <Select value={jobSortOption} onValueChange={setJobSortOption}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created-desc">Newest first</SelectItem>
+                <SelectItem value="created-asc">Oldest first</SelectItem>
+                <SelectItem value="title-asc">Title A–Z</SelectItem>
+                <SelectItem value="title-desc">Title Z–A</SelectItem>
+                <SelectItem value="eligible-desc">Most eligible</SelectItem>
+                <SelectItem value="eligible-asc">Fewest eligible</SelectItem>
+              </SelectContent>
+            </Select>
+
             {jobsLoading ? (
-              <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading jobs...
+              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
               </div>
             ) : jobsError ? (
               <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4" />
-                <span>{jobsError}</span>
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{jobsError}</span>
               </div>
             ) : noJobs ? (
-              <p className="text-sm text-muted-foreground">No job postings found yet.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">No job postings found.</p>
+            ) : filteredJobs.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No matches.</p>
             ) : (
-              <div className="space-y-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <Input
-                    value={jobQuery}
-                    onChange={(event) => setJobQuery(event.target.value)}
-                    placeholder="Search job title or company"
-                    className="h-9 sm:max-w-xs"
-                  />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium uppercase text-muted-foreground">Sort by</span>
-                    <Select value={jobSortOption} onValueChange={setJobSortOption}>
-                      <SelectTrigger className="w-48 h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="created-desc">Newest first</SelectItem>
-                        <SelectItem value="created-asc">Oldest first</SelectItem>
-                        <SelectItem value="title-asc">Job title A-Z</SelectItem>
-                        <SelectItem value="title-desc">Job title Z-A</SelectItem>
-                        <SelectItem value="eligible-desc">Most eligible students</SelectItem>
-                        <SelectItem value="eligible-asc">Fewest eligible students</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {filteredJobs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No jobs match your search.</p>
-                ) : (
-                  <ScrollArea className="max-h-[calc(60vh-4rem)] pr-1">
-                    <div className="space-y-2 pb-4">
-                      {filteredJobs.map((job) => {
-                      const isActive = selectedJobId === job._id;
-                      return (
-                        <Button
-                          key={job._id}
-                          type="button"
-                          variant="ghost"
-                          className={cn(
-                            'w-full justify-between gap-3 rounded-md border px-4 py-3 text-left',
-                            isActive
-                              ? 'border-primary/60 bg-primary/10 hover:bg-primary/20'
-                              : 'border-border/60 hover:bg-muted'
-                          )}
-                          onClick={() => {
-                            setSelectedJobId(job._id);
-                          }}
-                        >
-                          <div className="flex flex-1 items-center gap-2">
-                            <span className="text-sm font-semibold leading-tight">{job.jobTitle}</span>
-                            <span className="text-xs text-muted-foreground">{job.companyName}</span>
-                            <span className="text-xs text-muted-foreground">• {job.eligibleCount ?? 0} eligible</span>
-                          </div>
-                          <Badge variant={job.status === 'public' ? 'default' : 'secondary'}>
-                            {job.status === 'public' ? 'Published' : 'Draft'}
+              <ScrollArea className="flex-1">
+                <div className="space-y-1.5 pb-2 pr-1">
+                  {filteredJobs.map((job) => {
+                    const isActive = selectedJobId === job._id;
+                    return (
+                      <button
+                        key={job._id}
+                        type="button"
+                        onClick={() => setSelectedJobId(job._id)}
+                        className={cn(
+                          'w-full overflow-hidden rounded-lg border px-3 py-2.5 text-left transition-colors',
+                          isActive
+                            ? 'border-primary/60 bg-primary/10'
+                            : 'border-border/40 hover:bg-muted/60'
+                        )}
+                      >
+                        <p className="truncate text-sm font-semibold leading-tight">{job.jobTitle}</p>
+                        <p className="truncate text-xs text-muted-foreground">{job.companyName}</p>
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <Badge
+                            variant={job.status === 'public' ? 'default' : 'secondary'}
+                            className="px-1.5 py-0 text-[10px]"
+                          >
+                            {job.status === 'public' ? 'Live' : 'Draft'}
                           </Badge>
-                        </Button>
-                      );
-                    })}
-                    </div>
-                  </ScrollArea>
-                )}
-              </div>
+                          <span className="text-[10px] text-muted-foreground">{job.eligibleCount ?? 0} eligible</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
             )}
           </CardContent>
-          <CardFooter>
-            <Button variant="ghost" size="sm" onClick={fetchJobs} disabled={jobsLoading}>
-              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+          <CardFooter className="pb-3 pt-0">
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={fetchJobs} disabled={jobsLoading}>
+              <RefreshCw className="mr-1.5 h-3 w-3" /> Refresh
             </Button>
           </CardFooter>
         </Card>
 
-        <Card className="flex h-full border border-border/60 lg:max-h-[72vh] lg:flex-col">
-          <CardHeader>
-            <CardTitle>Session controls</CardTitle>
-            <CardDescription>
-              Choose a round and configure attendance settings. Sessions expire automatically once the code times out.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 space-y-4 overflow-hidden">
-            <ScrollArea className="h-full pr-1">
-              <div className="space-y-4 pb-4">
-            <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
-              {selectedJob ? (
-                <div className="flex flex-col gap-1">
-                  <p className="text-sm font-semibold">{selectedJob.jobTitle}</p>
-                  <p className="text-xs text-muted-foreground">{selectedJob.companyName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Eligible students: <span className="font-semibold">{selectedJob.eligibleCount ?? 0}</span>
-                  </p>
-                  <Badge className="mt-1 w-fit" variant={selectedJob.status === 'public' ? 'default' : 'secondary'}>
-                    {selectedJob.status === 'public' ? 'Published' : 'Draft'}
-                  </Badge>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Select a job from the list to begin.</p>
-              )}
-            </div>
+        {/* ── Main area ─────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-4 lg:col-span-3">
 
-            <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase text-muted-foreground">Round</Label>
-              <Select
-                value={selectedRoundId}
-                onValueChange={(value) => setSelectedRoundId(value)}
-                disabled={!selectedJob || noRounds}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={noRounds ? 'No rounds available' : 'Select round'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedJob?.rounds?.map((round) => (
-                    <SelectItem key={round._id} value={round._id}>
-                      {round.roundName || 'Round'} • Seq {round.sequence ?? '-'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedRound && (
-              <div className="rounded-md border border-dashed border-border/60 bg-muted/10 p-4 text-sm">
-                <p className="font-medium">{selectedRound.roundName || 'Round details'}</p>
-                <p className="text-muted-foreground">
-                  {selectedRound.mode ? selectedRound.mode.charAt(0).toUpperCase() + selectedRound.mode.slice(1) : 'Mode'} •
-                  {' '}
-                  Sequence {selectedRound.sequence ?? '-'}
-                </p>
-              </div>
-            )}
-
-            <Separator />
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-xs font-medium uppercase text-muted-foreground">Refresh interval</Label>
-                <Select
-                  value={String(refreshInterval)}
-                  onValueChange={(value) => setRefreshInterval(Number(value))}
-                  disabled={actionLoading || sessionState.status === 'active'}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {REFRESH_INTERVAL_OPTIONS.map((value) => (
-                      <SelectItem key={value} value={String(value)}>
-                        {value} seconds
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
-                <div>
-                  <p className="text-sm font-medium">Offline fallback code</p>
-                  <p className="text-xs text-muted-foreground">Allow manual entry if QR cannot be scanned</p>
-                </div>
-                <Switch
-                  checked={enableOfflineCode}
-                  onCheckedChange={setEnableOfflineCode}
-                  disabled={actionLoading || sessionState.status === 'active'}
-                />
-              </div>
-            </div>
-
-            {sessionError && (
-              <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="mt-0.5 h-4 w-4" />
-                <span>{sessionError}</span>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                onClick={handleStartSession}
-                disabled={actionLoading || !selectedRoundId || sessionState.status === 'active'}
-              >
-                {actionLoading && sessionState.status !== 'active' ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <QrCode className="mr-2 h-4 w-4" />
-                )}
-                {sessionState.status === 'active' ? 'Session Active' : 'Start Session'}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => loadStatus()}
-                disabled={sessionLoading || !selectedRoundId}
-              >
-                <RefreshCw className="mr-2 h-4 w-4" /> Check Status
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleStopSession}
-                disabled={actionLoading || sessionState.status !== 'active'}
-              >
-                {actionLoading && sessionState.status === 'active' ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <StopCircle className="mr-2 h-4 w-4" />
-                )}
-                Stop Session
-              </Button>
-            </div>
-
-            {sessionState.status === 'active' && (
-              <div
-                ref={qrCodeContainerRef}
-                tabIndex={-1}
-                className="rounded-lg border border-border/60 bg-muted/10 p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">QR Code</p>
-                    <p className="text-xs text-muted-foreground">
-                      Share this with students. A new code is generated every {sessionState.refreshIntervalSeconds || refreshInterval} seconds.
-                    </p>
-                  </div>
-                  <Badge variant="secondary">{countdown || 'Active'}</Badge>
-                </div>
-                <div className="mt-4 flex flex-col items-center gap-4 md:flex-row md:items-start">
-                  <div className="flex items-center justify-center rounded-md border border-border/60 bg-background p-4">
-                    {sessionState.currentCode ? (
-                      <QRCodeCanvas
-                        size={180}
-                        bgColor="#ffffff"
-                        fgColor="#000000"
-                        value={`${window.location.origin}/student/attend?roundId=${selectedRoundId}&code=${sessionState.currentCode}`}
-                      />
+          {/* Control bar */}
+          <Card>
+            <CardContent className="py-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                {/* Job + round */}
+                <div className="flex min-w-0 flex-1 items-center gap-4">
+                  <div className="min-w-0 flex-1">
+                    {selectedJob ? (
+                      <>
+                        <p className="truncate font-semibold">{selectedJob.jobTitle}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {selectedJob.companyName} · {selectedJob.eligibleCount ?? 0} eligible
+                        </p>
+                      </>
                     ) : (
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for code...
-                      </div>
+                      <p className="text-sm text-muted-foreground">Select a job from the list</p>
                     )}
                   </div>
-                  <div className="flex-1 space-y-2 text-sm">
-                    <div className="flex items-center justify-between rounded-md border border-border/60 bg-background px-3 py-2">
-                      <span className="font-medium">Current code</span>
-                      <span className="text-muted-foreground">{sessionState.currentCode || '—'}</span>
-                    </div>
-                    {offlineCodeValue && (
-                      <div className="flex items-center justify-between rounded-md border border-border/60 bg-background px-3 py-2">
-                        <span className="font-medium">Offline code</span>
-                        <span className="text-muted-foreground">{offlineCodeValue}</span>
+                  <div className="w-48 shrink-0">
+                    <Select
+                      value={selectedRoundId}
+                      onValueChange={setSelectedRoundId}
+                      disabled={!selectedJob || !!noRounds}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder={noRounds ? 'No rounds' : 'Select round'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedJob?.rounds?.map((round) => (
+                          <SelectItem key={round._id} value={round._id}>
+                            {round.roundName || 'Round'} · Seq {round.sequence ?? '–'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex shrink-0 items-center gap-2">
+                  {sessionState.status !== 'active' && (
+                    <>
+                      <Select
+                        value={String(refreshInterval)}
+                        onValueChange={(v) => setRefreshInterval(Number(v))}
+                        disabled={actionLoading}
+                      >
+                        <SelectTrigger className="h-9 w-24 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {REFRESH_INTERVAL_OPTIONS.map((v) => (
+                            <SelectItem key={v} value={String(v)}>{v}s</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="flex items-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5">
+                        <Label className="text-xs text-muted-foreground">Offline</Label>
+                        <Switch
+                          checked={enableOfflineCode}
+                          onCheckedChange={setEnableOfflineCode}
+                          disabled={actionLoading}
+                        />
                       </div>
-                    )}
-                    {sessionState.offlineCodeUsedAt && (
-                      <p className="text-xs text-muted-foreground">
-                        Offline code used at {new Date(sessionState.offlineCodeUsedAt).toLocaleString()}
-                      </p>
-                    )}
-                    <div className="flex flex-wrap gap-2 pt-2">
                       <Button
-                        type="button"
+                        size="sm"
+                        onClick={handleStartSession}
+                        disabled={actionLoading || !selectedRoundId}
+                      >
+                        {actionLoading
+                          ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                          : <QrCode className="mr-1.5 h-4 w-4" />}
+                        Start
+                      </Button>
+                    </>
+                  )}
+                  {sessionState.status === 'active' && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleStopSession}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading
+                        ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                        : <StopCircle className="mr-1.5 h-4 w-4" />}
+                      Stop
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => loadStatus()}
+                    disabled={sessionLoading || !selectedRoundId}
+                  >
+                    <RefreshCw className={cn('h-4 w-4', sessionLoading && 'animate-spin')} />
+                  </Button>
+                </div>
+              </div>
+
+              {sessionError && (
+                <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" /> {sessionError}
+                </div>
+              )}
+              {!selectedRoundId && !noJobs && (
+                <p className="mt-3 text-center text-sm text-muted-foreground">
+                  {noRounds ? 'Selected job has no rounds configured.' : 'Select a round to begin.'}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* QR hero — only when active */}
+          {sessionState.status === 'active' && (
+            <Card
+              className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              <div ref={qrCodeContainerRef} tabIndex={-1} className="focus:outline-none">
+                <CardContent className="py-8">
+                  <div className="flex flex-col items-center gap-8 md:flex-row md:items-start md:justify-center">
+                    {/* QR */}
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="rounded-2xl border-2 border-border/60 bg-white p-5 shadow-md">
+                        {sessionState.currentCode ? (
+                          <QRCodeCanvas
+                            size={220}
+                            bgColor="#ffffff"
+                            fgColor="#000000"
+                            value={`${window.location.origin}/student/attend?roundId=${selectedRoundId}&code=${sessionState.currentCode}`}
+                          />
+                        ) : (
+                          <div className="flex h-[220px] w-[220px] items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <Button
                         variant="outline"
+                        size="sm"
                         onClick={() => setShowQrDialog(true)}
                         disabled={!sessionState.currentCode}
                       >
                         Present fullscreen
                       </Button>
+                    </div>
+
+                    {/* Code + meta */}
+                    <div className="flex flex-col items-center gap-5 md:items-start md:pt-2">
+                      <div className="text-center md:text-left">
+                        <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">Current Code</p>
+                        <p className="font-mono text-5xl font-bold tracking-[0.25em]">
+                          {sessionState.currentCode || '——'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                        Refreshes in <span className="ml-1 font-semibold text-foreground">{countdown || '…'}</span>
+                      </div>
                       {offlineCodeValue && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => setEnableOfflineCode((prev) => !prev)}
-                          disabled={actionLoading || sessionState.status !== 'active'}
-                        >
-                          {enableOfflineCode ? 'Disable offline code' : 'Enable offline code'}
-                        </Button>
+                        <div className="rounded-xl border border-border/60 bg-muted/30 px-5 py-3 text-center md:text-left">
+                          <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Offline Code</p>
+                          <p className="font-mono text-2xl font-semibold tracking-widest">{offlineCodeValue}</p>
+                          {sessionState.offlineCodeUsedAt && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Used {new Date(sessionState.offlineCodeUsedAt).toLocaleString()}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
-                </div>
+                </CardContent>
               </div>
-            )}
+            </Card>
+          )}
 
-            {!selectedRound && !noRounds && !noJobs && (
-              <p className="text-sm text-muted-foreground">Select a round to view attendance controls.</p>
-            )}
-            {noRounds && !noJobs && (
-              <p className="text-sm text-muted-foreground">The selected job has no rounds configured.</p>
-            )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+          {/* Live attendance */}
+          {selectedRoundId && (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">Live Attendance</CardTitle>
+                    <CardDescription className="text-xs">
+                      {sessionState.status === 'active'
+                        ? 'Updates in real-time via stream'
+                        : 'Start a session to track attendance'}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">
+                      {selectedJob?.eligibleCount ?? 0} eligible
+                    </span>
+                    <Badge className="px-3 text-sm">{attendees.length} present</Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {attendeesLoading ? (
+                  <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+                  </div>
+                ) : attendees.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border/60 py-12 text-center text-sm text-muted-foreground">
+                    {sessionState.status === 'active'
+                      ? 'Waiting for students to scan…'
+                      : 'No attendance recorded yet'}
+                  </div>
+                ) : (
+                  <ScrollArea className="max-h-[35vh]">
+                    <div className="grid grid-cols-1 gap-2 pr-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {attendees.map((attendee, idx) => (
+                        <div
+                          key={attendee._id || idx}
+                          className="flex items-center gap-3 rounded-lg border border-border/60 bg-background px-3 py-2.5"
+                        >
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                            <Check className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{attendee.fullName || 'Unknown'}</p>
+                            <p className="truncate text-xs text-muted-foreground">{attendee.collegeEmail}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
+      {/* Fullscreen QR dialog */}
       <Dialog open={showQrDialog} onOpenChange={setShowQrDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Attendance QR Code</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center gap-4">
-            <QRCodeCanvas
-              size={280}
-              bgColor="#ffffff"
-              fgColor="#000000"
-              value={`${window.location.origin}/student/attend?roundId=${selectedRoundId}&code=${sessionState.currentCode}`}
-            />
-            <div className="text-center text-sm text-muted-foreground">
-              <p className="font-medium tracking-wide text-lg">{sessionState.currentCode || '—'}</p>
-              {countdown && <p>Expires in {countdown}</p>}
-              {offlineCodeValue && <p>Offline code: {offlineCodeValue}</p>}
+          <div className="flex flex-col items-center gap-5">
+            <div className="rounded-2xl bg-white p-6 shadow-md">
+              <QRCodeCanvas
+                size={300}
+                bgColor="#ffffff"
+                fgColor="#000000"
+                value={`${window.location.origin}/student/attend?roundId=${selectedRoundId}&code=${sessionState.currentCode}`}
+              />
+            </div>
+            <div className="text-center">
+              <p className="font-mono text-3xl font-bold tracking-[0.25em]">
+                {sessionState.currentCode || '—'}
+              </p>
+              {countdown && <p className="mt-1 text-sm text-muted-foreground">Expires in {countdown}</p>}
+              {offlineCodeValue && (
+                <p className="mt-1 text-sm text-muted-foreground">Offline: {offlineCodeValue}</p>
+              )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setShowQrDialog(false)}>
-              Close
-            </Button>
+            <Button variant="secondary" onClick={() => setShowQrDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

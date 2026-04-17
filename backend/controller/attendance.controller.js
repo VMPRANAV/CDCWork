@@ -9,7 +9,29 @@ const ALLOWED_REFRESH_INTERVALS = [30, 45, 60, 90];
 const studentStatusCache = new Map(); // roundId -> { data, expiresAt }
 const STUDENT_CACHE_TTL_MS = 5000;
 
+// SSE clients per round
+const sseClients = new Map(); // roundId -> Set of res
+
+// Round-level code rotation timers (only while at least one admin SSE client is connected)
+const codeRotationTimers = new Map(); // roundId -> { intervalId, adminCount }
+
 const invalidateStatusCache = (roundId) => studentStatusCache.delete(String(roundId));
+
+// Broadcast event to all SSE clients for a round
+const broadcastToRound = (roundId, event, data) => {
+    const clients = sseClients.get(String(roundId));
+    if (!clients || clients.size === 0) return;
+
+    const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+    clients.forEach((client) => {
+        try {
+            client.write(payload);
+        } catch (err) {
+            console.error('SSE write error:', err.message);
+            clients.delete(client);
+        }
+    });
+};
 const CODE_LENGTH = 6;
 const OFFLINE_CODE_LENGTH = 6;
 const CODE_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -302,6 +324,10 @@ const submitAttendanceCode = async (req, res) => {
             }
         });
 
+        // Broadcast to SSE clients
+        const student = await User.findById(application.student);
+        broadcastAttendance(roundId, student);
+
         return res.status(200).json({ message: 'Attendance recorded successfully.', method: attendanceMethod });
     } catch (error) {
         return res.status(500).json({ message: 'Failed to record attendance.', error: error.message });
@@ -323,10 +349,99 @@ const getAttendeesForRound = async (req, res) => {
     }
 };
 
+// SSE endpoint for real-time attendance updates
+const streamAttendanceSession = async (req, res) => {
+    try {
+        const { roundId } = req.params;
+        const isAdmin = req.user?.role === 'admin';
+        const roundKey = String(roundId);
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+
+        res.write(`event: connected\ndata: ${JSON.stringify({ roundId })}\n\n`);
+
+        if (!sseClients.has(roundKey)) sseClients.set(roundKey, new Set());
+        sseClients.get(roundKey).add(res);
+
+        // Heartbeat every 15s so clients can detect dead connections
+        const heartbeatInterval = setInterval(() => {
+            try {
+                res.write(`event: heartbeat\ndata: ${JSON.stringify({ ts: Date.now() })}\n\n`);
+            } catch (_) {
+                clearInterval(heartbeatInterval);
+            }
+        }, 15000);
+
+        // Round-level QR code rotation — only one timer per round, driven by admin connections
+        if (isAdmin) {
+            if (!codeRotationTimers.has(roundKey)) {
+                codeRotationTimers.set(roundKey, { intervalId: null, adminCount: 0 });
+            }
+            const entry = codeRotationTimers.get(roundKey);
+            entry.adminCount++;
+
+            if (!entry.intervalId) {
+                entry.intervalId = setInterval(async () => {
+                    try {
+                        const round = await Round.findById(roundId);
+                        if (!round || round.attendanceSession?.status !== 'active') return;
+                        const now = new Date();
+                        if (round.attendanceSession.codeExpiresAt && round.attendanceSession.codeExpiresAt > now) return;
+                        const { code, expiresAt } = issueNewCode(round);
+                        round.markModified('attendanceSession');
+                        await round.save();
+                        invalidateStatusCache(roundId);
+                        broadcastToRound(roundKey, 'codeRefresh', { currentCode: code, expiresAt });
+                    } catch (err) {
+                        console.error('Code rotation error:', err.message);
+                    }
+                }, 5000);
+            }
+        }
+
+        req.on('close', () => {
+            clearInterval(heartbeatInterval);
+
+            const clients = sseClients.get(roundKey);
+            if (clients) {
+                clients.delete(res);
+                if (clients.size === 0) sseClients.delete(roundKey);
+            }
+
+            if (isAdmin && codeRotationTimers.has(roundKey)) {
+                const entry = codeRotationTimers.get(roundKey);
+                entry.adminCount--;
+                if (entry.adminCount <= 0) {
+                    clearInterval(entry.intervalId);
+                    codeRotationTimers.delete(roundKey);
+                }
+            }
+        });
+    } catch (error) {
+        console.error('SSE stream error:', error.message);
+        res.end();
+    }
+};
+
+// Broadcast new attendance to all listeners
+const broadcastAttendance = async (roundId, student) => {
+    broadcastToRound(roundId, 'attendance', {
+        studentId: student._id,
+        studentName: student.fullName || student.firstName,
+        collegeEmail: student.collegeEmail,
+        timestamp: new Date().toISOString()
+    });
+};
+
 module.exports = {
     startAttendanceSession,
     stopAttendanceSession,
     getAttendanceSessionStatus,
     submitAttendanceCode,
-    getAttendeesForRound
+    getAttendeesForRound,
+    streamAttendanceSession,
+    broadcastAttendance
 };

@@ -13,10 +13,13 @@ exports.getUserProfile = async (req, res) => {
 // @route   PUT /api/users/profile
 exports.updateUserProfile = async (req, res) => {
     try {
+        // Prevent password updates via this endpoint (use dedicated endpoint)
+        const { password, ...updateData } = req.body;
+
         // We use findByIdAndUpdate for efficiency.
         const updatedUser = await User.findByIdAndUpdate(
             req.user._id, // User ID from the 'protect' middleware
-            req.body,    // The request body contains all the new data
+            updateData,    // The request body contains all the new data (minus password)
             {
                 new: true, // Return the updated document
                 runValidators: true, // Ensure the new data passes schema validation

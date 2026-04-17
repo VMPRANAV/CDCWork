@@ -25,3 +25,16 @@ yarn-error.log*
 .vscode/
 .idea/
 .todo
+
+# Multi-agent workflow — runtime state (gitignored, not source)
+workflow/logs/
+workflow/state/plan.md
+workflow/state/review.md
+workflow/state/task.json
+
+# Agent tool state dirs
+.opencode/
+.gemini/
+.codex/
+ARCHITECTURE_NOTES.md
+AGENTS.md

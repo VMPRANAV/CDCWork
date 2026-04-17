@@ -33,6 +33,7 @@ import { Attendance } from '@/pages/admin/Attendance';
 import { Calendar as AdminCalendar } from '@/pages/admin/Calendar';
 import ProtectedRoute from './components/ProtectedRoute';
 import Attend from '@/pages/student/Attend';
+import AttendancePage from '@/pages/student/AttendancePage';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -52,6 +53,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/student/my-profile" element={<MyProfile />} />
           <Route path="/student/posts" element={<StudentPosts />} />
           <Route path="/student/applications" element={<StudentApplications />} />
+          <Route path="/student/attendance" element={<AttendancePage />} />
           <Route path="/student/availableJob" element={<AvailableJobs />} />
           <Route path="/student/calendar" element={<StudentCalendar />} />
           <Route path="/student/settings" element={<Settings />} />

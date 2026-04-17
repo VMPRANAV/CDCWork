@@ -7,7 +7,8 @@
       "Bash(cmd:*)",
       "Bash(powershell:*)",
       "Bash(grep commit:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(grep -E \"\\\\.\\(jsx|tsx|ts|js\\)$\")"
     ]
   }
 }

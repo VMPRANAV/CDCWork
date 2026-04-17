@@ -15,10 +15,16 @@ exports.register = async (req, res) => {
     }
 
     try {
-        // Check if user already exists
-        const userExist = await Admin.findOne({ collegeEmail });
+        // Check if user already exists in User collection
+        const userExist = await User.findOne({ collegeEmail });
         if (userExist) {
             return res.status(400).json({ message: 'User with this email already exists.' });
+        }
+
+        // Also check admin collection (admin emails are unique too)
+        const adminExist = await Admin.findOne({ collegeEmail });
+        if (adminExist) {
+            return res.status(400).json({ message: 'An account with this email already exists.' });
         }
         // Construct fullName
         const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');

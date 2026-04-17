@@ -8,7 +8,8 @@ import {
   UserRound,
   MessageSquare,
   CalendarDays,
-  LogOut
+  LogOut,
+  QrCode
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import kprietLogo from '@/assets/kprietLogo.png';
@@ -19,6 +20,7 @@ const navItems = [
   { name: 'Profile', href: '/student/profile', icon: UserRound },
   { name: 'Available Jobs', href: '/student/availableJob', icon: Briefcase },
   { name: 'Applications', href: '/student/applications', icon: ClipboardList },
+  { name: 'Attendance', href: '/student/attendance', icon: QrCode },
   { name: 'Calendar', href: '/student/calendar', icon: CalendarDays },
   { name: 'Posts', href: '/student/posts', icon: MessageSquare }
 ];
