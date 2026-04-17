@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
+import QrScanner from 'qr-scanner';
 import {
   Card,
   CardContent,
@@ -19,11 +20,51 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Copy,
   RefreshCw,
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+
+function extractAttendanceCode(scannedText, expectedRoundId) {
+  const rawText = scannedText?.trim();
+  if (!rawText) {
+    return { error: 'The QR code did not contain a valid attendance code.' };
+  }
+
+  try {
+    const url = new URL(rawText);
+    const roundId = url.searchParams.get('roundId');
+    const code = url.searchParams.get('code') || url.searchParams.get('currentCode');
+
+    if (roundId && expectedRoundId && roundId !== expectedRoundId) {
+      return { error: 'This QR is for a different round.' };
+    }
+
+    if (code) {
+      return { code: code.trim().toUpperCase() };
+    }
+  } catch {
+    // Ignore and continue with other payload shapes.
+  }
+
+  try {
+    const payload = JSON.parse(rawText);
+    const roundId = payload.roundId;
+    const code = (payload.code || payload.currentCode || '').toString().trim();
+
+    if (roundId && expectedRoundId && roundId !== expectedRoundId) {
+      return { error: 'This QR is for a different round.' };
+    }
+
+    if (code) {
+      return { code: code.toUpperCase() };
+    }
+  } catch {
+    // Fallback to plain text code.
+  }
+
+  return { code: rawText.toUpperCase() };
+}
 
 export function AttendancePage() {
   const navigate = useNavigate();
@@ -35,6 +76,12 @@ export function AttendancePage() {
   const [codeInput, setCodeInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [hasCamera, setHasCamera] = useState(false);
+  const [isInitializingScanner, setIsInitializingScanner] = useState(false);
+  const videoRef = useRef(null);
+  const scannerRef = useRef(null);
+  const mountedRef = useRef(true);
 
   const studentHeaders = useMemo(() => {
     const token = localStorage.getItem('authToken');
@@ -76,6 +123,18 @@ export function AttendancePage() {
   }, [studentHeaders]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current.destroy();
+        scannerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     fetchApplications();
   }, [fetchApplications]);
 
@@ -87,6 +146,104 @@ export function AttendancePage() {
     fetchSessionStatus(selectedApp.currentRound._id);
   }, [selectedApp, fetchSessionStatus]);
 
+  useEffect(() => {
+    setCodeInput('');
+    setError('');
+    setScannerVisible(false);
+  }, [selectedApp?._id]);
+
+  useEffect(() => {
+    if (!scannerVisible || !selectedApp?.currentRound?._id) {
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current.destroy();
+        scannerRef.current = null;
+      }
+      setIsInitializingScanner(false);
+      return;
+    }
+
+    let cancelled = false;
+    setHasCamera(false);
+    setIsInitializingScanner(true);
+    setError('');
+
+    const initScanner = async () => {
+      const cameraAvailable = await QrScanner.hasCamera().catch(() => false);
+
+      if (cancelled || !mountedRef.current) {
+        return;
+      }
+
+      if (!cameraAvailable) {
+        setIsInitializingScanner(false);
+        setError('No camera found on this device.');
+        setScannerVisible(false);
+        return;
+      }
+
+      setHasCamera(true);
+
+      if (!videoRef.current) {
+        setIsInitializingScanner(false);
+        return;
+      }
+
+      const scanner = new QrScanner(
+        videoRef.current,
+        (result) => {
+          if (!mountedRef.current) {
+            return;
+          }
+
+          const { code, error: scanError } = extractAttendanceCode(
+            result.data,
+            selectedApp.currentRound._id
+          );
+
+          if (scanError) {
+            setError(scanError);
+            return;
+          }
+
+          setCodeInput(code);
+          setError('');
+          setScannerVisible(false);
+        },
+        {
+          onDecodeError: () => {},
+          highlightScanRegion: false,
+          highlightCodeOutline: false,
+          preferredCamera: 'environment',
+          maxScansPerSecond: 2,
+        }
+      );
+
+      scannerRef.current = scanner;
+
+      await scanner.start().catch(() => {
+        if (mountedRef.current) {
+          setError('Camera access denied.');
+          setScannerVisible(false);
+        }
+      });
+
+      if (!cancelled && mountedRef.current) {
+        setIsInitializingScanner(false);
+      }
+    };
+
+    initScanner();
+
+    return () => {
+      cancelled = true;
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current.destroy();
+        scannerRef.current = null;
+      }
+    };
+  }, [scannerVisible, selectedApp]);
 
   const handleSubmitCode = useCallback(async () => {
     if (!selectedApp?.currentRound?._id || !codeInput.trim()) return;
@@ -292,30 +449,66 @@ export function AttendancePage() {
                   <>
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">
-                        Enter the code shown on the coordinator's screen
+                        Scan the QR shown by the coordinator, or enter the code manually
                       </Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center">
                         <Input
                           value={codeInput}
                           onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
                           placeholder="Enter 6-digit code"
-                          className="flex-1 text-center text-lg tracking-widest font-mono"
+                          className="flex-1 text-center text-lg font-mono tracking-widest"
                           maxLength={6}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleSubmitCode();
                           }}
                         />
-                        <Button
-                          onClick={handleSubmitCode}
-                          disabled={submitting || codeInput.length < 6}
-                        >
-                          {submitting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            'Submit'
-                          )}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={handleSubmitCode}
+                            disabled={submitting || codeInput.length < 6}
+                          >
+                            {submitting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Submit'
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setScannerVisible((visible) => !visible)}
+                          >
+                            <QrCode className="mr-2 h-4 w-4" />
+                            {scannerVisible ? 'Close Scanner' : 'Scan QR'}
+                          </Button>
+                        </div>
                       </div>
+
+                      {scannerVisible && (
+                        <div className="relative overflow-hidden rounded-lg border border-dashed border-border/60 bg-black">
+                          <video
+                            ref={videoRef}
+                            className="h-64 w-full object-cover"
+                            playsInline
+                            muted
+                            autoPlay
+                          />
+                          {isInitializingScanner && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                              <div className="text-center text-white">
+                                <div className="mx-auto mb-2 h-7 w-7 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                <p className="text-xs">Starting camera…</p>
+                              </div>
+                            </div>
+                          )}
+                          {!isInitializingScanner && hasCamera && (
+                            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                              <div className="h-44 w-44 rounded-lg border-2 border-blue-400" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {error && (
                         <p className="text-sm text-destructive">{error}</p>
                       )}
@@ -326,8 +519,8 @@ export function AttendancePage() {
                     <div className="rounded-lg bg-muted/50 p-4">
                       <p className="mb-2 text-sm font-medium">How to mark attendance:</p>
                       <ol className="list-inside list-decimal text-sm text-muted-foreground space-y-1">
-                        <li>Look at the coordinator's screen</li>
-                        <li>Enter the 6-digit code shown</li>
+                        <li>Scan the QR code or read the 6-digit code from the coordinator's screen</li>
+                        <li>Review the captured code or enter it manually</li>
                         <li>Click Submit to record your attendance</li>
                       </ol>
                     </div>
