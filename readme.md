@@ -49,17 +49,6 @@ The CDC Management System is an end-to-end solution for managing campus placemen
 2. Install dependencies: `npm install`.
 3. Start the development server: `npm run dev`.
 
-## 🛠 Troubleshooting
-
-If you encounter errors during student registration (specifically regarding duplicate email indexes), run the following command in your MongoDB shell:
-
-```bash
-db.users.dropIndex("email_1")
-
-```
-
-*(Source:)*
-
 ## 📊 Database Schema (User Model)
 
 The system maintains highly detailed user records, including:
